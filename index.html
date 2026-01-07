@@ -9,9 +9,9 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Fishing Spot by Wayan & StoryBali</title>
-    <meta id="meta-theme-color" name="theme-color" content="#0f172a">
+    <meta name="theme-color" content="#0f172a">
     
     <!-- PWA Manifest & Icons -->
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -44,7 +44,6 @@
         .view-section {
             display: none;
             height: 100vh;
-            height: 100dvh; /* FIX: Full screen akurat di HP (Dynamic Viewport) */
             width: 100%;
             overflow-y: auto;
             padding-bottom: 100px; /* Ruang untuk navigasi bawah */
@@ -192,7 +191,7 @@
         <!-- === HALAMAN 2: PETA (MAP) === -->
         <div id="view-map" class="view-section">
             <!-- Search Bar (Moved inside Map View) -->
-            <div class="absolute top-6 left-4 right-4 z-[1000] transition-all duration-300" style="top: calc(1.5rem + env(safe-area-inset-top));">
+            <div class="absolute top-6 left-4 right-4 z-[1000] transition-all duration-300">
                 <div class="glass rounded-full flex items-center p-2 max-w-lg mx-auto shadow-2xl border border-white/10 backdrop-blur-xl bg-slate-900/40 ring-1 ring-white/5">
                     <button onclick="startVoiceSearch()" id="mic-btn" class="p-2 text-slate-400 hover:text-white transition-colors">
                     <i data-lucide="mic" class="w-4 h-4"></i>
@@ -221,15 +220,15 @@
         </div>
         
         <!-- Floating Buttons -->
-        <button onclick="locateUser()" class="absolute bottom-28 right-4 md:bottom-32 md:right-8 z-[900] glass p-3 rounded-full text-blue-400 shadow-xl hover:scale-110 transition-transform active:scale-90 animate-float" style="bottom: calc(7rem + env(safe-area-inset-bottom));"><i data-lucide="navigation" class="w-6 h-6"></i></button>
-        <button onclick="findNearestSpot()" class="absolute bottom-44 right-4 md:bottom-48 md:right-8 z-[900] glass p-3 rounded-full text-emerald-400 shadow-xl hover:scale-110 transition-transform active:scale-90 animate-float-delay" style="bottom: calc(11rem + env(safe-area-inset-bottom));"><i data-lucide="locate-fixed" class="w-6 h-6"></i></button>
-        <button onclick="openMapSettings()" class="absolute bottom-60 right-4 md:bottom-64 md:right-8 z-[900] glass p-3 rounded-full text-yellow-400 shadow-xl hover:scale-110 transition-transform active:scale-90 animate-float" aria-label="Layer Peta" style="bottom: calc(15rem + env(safe-area-inset-bottom));"><i data-lucide="layers" class="w-6 h-6"></i></button>
+        <button onclick="locateUser()" class="absolute bottom-28 right-4 md:bottom-32 md:right-8 z-[900] glass p-3 rounded-full text-blue-400 shadow-xl hover:scale-110 transition-transform active:scale-90 animate-float"><i data-lucide="navigation" class="w-6 h-6"></i></button>
+        <button onclick="findNearestSpot()" class="absolute bottom-44 right-4 md:bottom-48 md:right-8 z-[900] glass p-3 rounded-full text-emerald-400 shadow-xl hover:scale-110 transition-transform active:scale-90 animate-float-delay"><i data-lucide="locate-fixed" class="w-6 h-6"></i></button>
+        <button onclick="openMapSettings()" class="absolute bottom-60 right-4 md:bottom-64 md:right-8 z-[900] glass p-3 rounded-full text-yellow-400 shadow-xl hover:scale-110 transition-transform active:scale-90 animate-float" aria-label="Layer Peta"><i data-lucide="layers" class="w-6 h-6"></i></button>
         </div>
 
         <!-- === HALAMAN 3: CUACA (WEATHER) === -->
         <div id="view-weather" class="view-section">
             <!-- Container ID 'location-panel' dipertahankan agar script.js tetap bisa mengisi data -->
-            <div id="location-panel" class="p-6 pt-10 max-w-2xl mx-auto" style="padding-top: calc(2.5rem + env(safe-area-inset-top));">
+            <div id="location-panel" class="p-6 pt-10 max-w-2xl mx-auto">
                 <h2 class="text-2xl font-black text-white mb-6">Kondisi Cuaca</h2>
                 
                 <div class="flex items-start justify-between mb-6">
@@ -338,7 +337,7 @@
         </div>
 
         <!-- Bottom Navigation Bar (Instagram Style) -->
-        <div class="fixed bottom-0 left-0 right-0 md:bottom-6 md:w-[500px] md:left-1/2 md:-translate-x-1/2 z-[900] glass md:rounded-3xl pt-2 pb-2 px-2 md:pb-3 md:px-8 grid grid-cols-5 justify-items-center items-end md:items-center shadow-2xl transition-all duration-300 border-t md:border border-white/10">
+        <div class="fixed bottom-0 left-0 right-0 md:bottom-6 md:w-[500px] md:left-1/2 md:-translate-x-1/2 z-[900] glass md:rounded-3xl pb-6 pt-3 px-2 md:pb-3 md:px-8 grid grid-cols-5 justify-items-center items-end md:items-center shadow-2xl transition-all duration-300 border-t md:border border-white/10">
             <button onclick="navigateTo('home')" class="nav-btn p-2 text-blue-400 flex flex-col items-center gap-1 transition-colors" id="nav-home">
                 <i data-lucide="home" class="w-6 h-6"></i>
                 <span class="text-[10px] font-medium">Home</span>
