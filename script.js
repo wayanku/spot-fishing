@@ -3339,4 +3339,7 @@
             if(typeof lucide !== 'undefined') {
                 lucide.createIcons();
             }
+            
+            // FIX: Jalankan aplikasi utama saat load agar Auth Listener aktif
+            initApp();
         });
