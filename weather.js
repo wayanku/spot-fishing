@@ -1566,6 +1566,7 @@ async function showLocationPanel(latlng) {
         header = document.createElement('div');
         header.id = 'new-weather-header';
         header.className = 'flex flex-col items-center text-white pt-16 pb-10 px-4 text-center';
+        header.style.paddingTop = 'calc(4rem + env(safe-area-inset-top))';
         // Sisipkan di paling atas panel
         panel.insertBefore(header, panel.firstChild);
     }
@@ -2147,6 +2148,7 @@ function updateWeatherUI(data) {
             header.id = 'new-weather-header';
             // FIX: Tambah jarak atas (pt-16) dan jarak bawah ke grid (pb-10) agar lebih lega
             header.className = 'flex flex-col items-center text-white pt-16 pb-10 px-4 text-center';
+            header.style.paddingTop = 'calc(4rem + env(safe-area-inset-top))';
             header.innerHTML = `
                 <div class="flex items-center justify-center gap-2 px-4">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin text-blue-400 w-6 h-6 drop-shadow-md"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></svg>
