@@ -2183,7 +2183,7 @@ function updateWeatherUI(data) {
             if (oldTitle) oldTitle.classList.add('hidden');
             
             // Hapus icon map-pin lama (yang warna biru/lainnya) yang mungkin tertinggal
-            const panel = document.getElementById('location-panel');
+            // const panel = document.getElementById('location-panel'); // REMOVED: Redundant declaration
             const strayPins = panel.querySelectorAll('[data-lucide="map-pin"], .lucide-map-pin');
             strayPins.forEach(pin => {
                 if (!pin.closest('#new-weather-header')) pin.classList.add('hidden');
