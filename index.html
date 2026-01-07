@@ -78,7 +78,7 @@
     <!-- LOGIN / REGISTER OVERLAY -->
     <canvas id="weather-canvas" class="fixed inset-0 z-[9990] pointer-events-none"></canvas>
 
-    <div id="auth-overlay" class="fixed inset-0 flex items-center justify-center p-6 hidden">
+    <div id="auth-overlay" class="fixed inset-0 z-[10000] flex items-center justify-center p-6 hidden bg-slate-900/90 backdrop-blur-sm">
         <div class="glass w-full max-w-md p-8 md:p-10 rounded-[2.5rem] shadow-2xl border border-white/10 m-4 relative overflow-hidden">
             <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"></div>
             <!-- Language Selector (Auth) -->
@@ -87,6 +87,9 @@
                     <option value="id">🇮🇩 ID</option><option value="en">🇺🇸 EN</option><option value="jp">🇯🇵 JP</option>
                 </select>
             </div>
+            <!-- Close Button (Hidden by default, shown when opened from profile) -->
+            <button id="auth-close-btn" onclick="closeAuthOverlay()" class="absolute top-6 left-6 text-slate-400 hover:text-white hidden transition-colors"><i data-lucide="x" class="w-6 h-6"></i></button>
+
             <div class="text-center mb-8">
                 <div class="bg-gradient-to-br from-blue-500 to-blue-700 w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-blue-500/20 ring-4 ring-blue-500/10">
                     <i data-lucide="anchor" class="text-white w-8 h-8"></i>
@@ -97,16 +100,10 @@
             </div>
             
             <div class="space-y-4">
-                <div>
-                    <label class="text-xs font-bold text-slate-500 uppercase ml-1">Email</label>
-                    <input type="email" id="auth-email" class="w-full bg-slate-900/50 border border-white/10 rounded-2xl p-4 mt-1 outline-none focus:border-blue-500 focus:bg-slate-900/80 transition-all text-sm font-medium">
-                </div>
-                <div>
-                    <label class="text-xs font-bold text-slate-500 uppercase ml-1">Password</label>
-                    <input type="password" id="auth-pass" class="w-full bg-slate-900/50 border border-white/10 rounded-2xl p-4 mt-1 outline-none focus:border-blue-500 focus:bg-slate-900/80 transition-all text-sm font-medium">
-                </div>
-                <button onclick="handleAuth('login')" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 py-4 rounded-2xl font-bold transition-all shadow-lg shadow-blue-500/25 active:scale-95" data-i18n="btn_login">Masuk Sekarang</button>
-                <button onclick="handleAuth('register')" class="w-full py-2 text-slate-400 text-sm hover:text-white" data-i18n="btn_register">Belum punya akun? Daftar gratis</button>
+                <button onclick="handleAuth('google')" class="w-full bg-white text-slate-900 py-4 rounded-2xl font-bold transition-all shadow-lg hover:bg-slate-100 active:scale-95 flex items-center justify-center gap-3">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+                    Masuk dengan Google
+                </button>
             </div>
             <p id="auth-error" class="text-red-400 text-xs mt-4 text-center hidden"></p>
         </div>
@@ -123,8 +120,8 @@
                         <h1 class="text-2xl font-black text-white tracking-tight">Fishing Spot</h1>
                         <p class="text-xs text-slate-400">Jelajahi spot terbaik hari ini</p>
                     </div>
-                    <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 p-0.5">
-                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Wayan" class="w-full h-full rounded-full bg-slate-900">
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 p-0.5 cursor-pointer hover:scale-105 transition-transform" onclick="openProfile()">
+                        <img id="home-profile-img" src="https://api.dicebear.com/7.x/avataaars/svg?seed=Guest" class="w-full h-full rounded-full bg-slate-900">
                     </div>
                 </div>
                 
@@ -932,6 +929,11 @@
             </div>
         </div>
     </div>
+
+    <!-- Firebase SDK (Compat version agar mudah digunakan) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
     <script src="weather.js"></script>
     <script src="script.js"></script>
