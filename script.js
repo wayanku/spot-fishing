@@ -679,13 +679,50 @@
         }
 
         // 3. Auth Logic
-        // (MODIFIKASI: Login Dinonaktifkan - Aplikasi Tanpa Profil)
-        function handleAuth(type) {
-            console.log("Auth system disabled.");
+        // --- FIREBASE CONFIGURATION ---
+        // SALIN CONFIG DARI FIREBASE CONSOLE -> PROJECT SETTINGS -> GENERAL -> YOUR APPS
+        const firebaseConfig = {
+            apiKey: "AIzaSyC2mB-b5f80u4yMqTsBn0QbpRZS_nZ7AVo",
+            authDomain: "gen-lang-client-0638026513.firebaseapp.com",
+            projectId: "gen-lang-client-0638026513",
+            storageBucket: "gen-lang-client-0638026513.firebasestorage.app",
+            messagingSenderId: "1095475854923",
+            appId: "1:1095475854923:web:eb9b7104cd9432809b17ce",
+            measurementId: "G-NT4028EQZQ"
+        };
+
+        // Inisialisasi Firebase
+        let auth, db;
+        if (typeof firebase !== 'undefined') {
+            if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+            auth = firebase.auth();
+            db = firebase.firestore();
+            console.log("Firebase Connected");
+        } else {
+            console.error("Firebase SDK belum dipasang di index.html!");
         }
 
-        // Langsung inisialisasi aplikasi (Bypass Login)
-        setTimeout(() => initApp(), 100);
+        function handleAuth(type) {
+            if (!auth) return alert("Firebase belum siap.");
+            
+            let provider;
+            if (type === 'google') {
+                provider = new firebase.auth.GoogleAuthProvider();
+            } else if (type === 'facebook') {
+                provider = new firebase.auth.FacebookAuthProvider();
+            }
+
+            if (provider) {
+                auth.signInWithPopup(provider)
+                    .then((result) => {
+                        console.log("Login sukses:", result.user.displayName);
+                        // initApp akan dipanggil otomatis oleh onAuthStateChanged
+                    })
+                    .catch((error) => {
+                        alert("Login Gagal: " + error.message);
+                    });
+            }
+        }
 
         // --- AUTO RECONNECT HANDLER (Fitur Baru) ---
         // Mendeteksi saat internet nyala kembali
@@ -739,21 +776,45 @@
         });
 
         function initApp() {
-            // Set user default (Guest) agar fungsi penyimpanan tetap berjalan
-            currentUser = { email: 'Guest', uid: 'guest_user' };
-            
-            // Sembunyikan overlay login & tampilkan konten utama
-            const authOverlay = document.getElementById('auth-overlay');
-            if(authOverlay) authOverlay.classList.add('hidden');
-            
-            const appContent = document.getElementById('app-content');
-            if(appContent) appContent.classList.remove('hidden');
-            
-            const emailEl = document.getElementById('user-display-email');
-            if(emailEl) emailEl.innerText = "Guest Mode";
-            
-            // PERBAIKAN: Refresh ukuran peta agar tidak error/abu-abu saat muncul
-            setTimeout(() => { if(typeof map !== 'undefined') map.invalidateSize(); }, 100);
+            // Listener Status Login Firebase
+            if (auth) {
+                auth.onAuthStateChanged(user => {
+                    if (user) {
+                        // --- USER LOGIN ---
+                        currentUser = user;
+                        const emailEl = document.getElementById('user-display-email');
+                        if(emailEl) emailEl.innerText = user.displayName || user.email;
+                        
+                        // Update Profile Image di Home
+                        const profileImg = document.getElementById('home-profile-img');
+                        if(profileImg) profileImg.src = user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`;
+                        
+                        // Tampilkan konten, sembunyikan login overlay
+                        document.getElementById('auth-overlay').classList.add('hidden');
+                        document.getElementById('app-content').classList.remove('hidden');
+                        
+                        // Refresh peta agar tidak abu-abu
+                        setTimeout(() => { if(typeof map !== 'undefined') map.invalidateSize(); }, 100);
+                        
+                        // Load data user dari Firestore (Profil, dll) bisa ditambahkan di sini nanti
+                    } else {
+                        // --- USER LOGOUT ---
+                        currentUser = null;
+                        document.getElementById('auth-overlay').classList.remove('hidden');
+                        document.getElementById('app-content').classList.add('hidden');
+                        
+                        // Sembunyikan tombol close karena ini layar utama saat logout
+                        const closeBtn = document.getElementById('auth-close-btn');
+                        if(closeBtn) closeBtn.classList.add('hidden');
+                    }
+                });
+            } else {
+                // Fallback jika Firebase belum disetting (Mode Tamu Sementara)
+                console.warn("Running in Guest Mode (No Firebase)");
+                currentUser = { email: 'Guest', uid: 'guest_user' };
+                document.getElementById('auth-overlay').classList.add('hidden');
+                document.getElementById('app-content').classList.remove('hidden');
+            }
             
             // Buat modal untuk peta presipitasi
             if (typeof createPrecipitationModal === 'function') {
@@ -778,8 +839,25 @@
         }
 
         function logout() {
-            // Tidak ada logout di mode tanpa login
-            console.log("Logout disabled");
+            if (auth) {
+                auth.signOut().then(() => console.log("User logged out"));
+            } else {
+                location.reload();
+            }
+        }
+
+        // --- PROFILE & LOGIN MENU ---
+        function openProfile() {
+            const overlay = document.getElementById('auth-overlay');
+            overlay.classList.remove('hidden');
+            
+            // Tampilkan tombol close karena dibuka dari dalam aplikasi
+            const closeBtn = document.getElementById('auth-close-btn');
+            if(closeBtn) closeBtn.classList.remove('hidden');
+        }
+
+        function closeAuthOverlay() {
+            document.getElementById('auth-overlay').classList.add('hidden');
         }
 
         // 4. Spot Management
