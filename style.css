@@ -1,3 +1,4 @@
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
 body { 
     font-family: 'Inter', sans-serif; 
@@ -109,14 +110,6 @@ body.light-mode {
 
 /* Navbar Specific (Mobile & Desktop) - Fix Background Color in Light Mode */
 .light-mode .bg-\[\#020617\]\/95, .light-mode .md\:bg-slate-900\/80 { background-color: rgba(255,255,255,0.9) !important; border-top: 1px solid #e2e8f0 !important; backdrop-filter: blur(20px); }
-
-/* FIX BOTTOM NAV SAFE AREA */
-.bg-\[\#020617\]\/95 {
-    position: fixed !important;
-    bottom: 0 !important;
-    padding-bottom: env(safe-area-inset-bottom) !important;
-    margin-bottom: 0 !important;
-}
 
 /* Borders */
 .light-mode .border-white\/5, .light-mode .border-white\/10, .light-mode .border-white\/20 { border-color: #e2e8f0 !important; }
