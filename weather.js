@@ -21,7 +21,6 @@ let currentSkyTop = '#000000'; // NEW: Cache for landscape
 let currentSkyBot = '#000000'; // NEW: Cache for landscape
 let isAudioUnlocked = false; // Status untuk autoplay audio di HP
 let pendingAudio = null; // Sinkronisasi audio & animasi
-let audioFrameCounter = 0; // Counter delay audio agar tidak mendahului visual
 let landscapeTreePath = null; // Cache untuk siluet pohon
 
 
@@ -254,6 +253,7 @@ function initWeatherSystem() {
     initCloudAssets();
     resizeCanvas();
     initPWA(); // Initialize PWA Logic
+    weatherAudio.init(); // Preload audio files
 }
 
 // --- NEW: Audio Manager ---
@@ -264,37 +264,48 @@ const weatherAudio = {
     isReady: false,
     fadeInterval: null, // To manage fade in/out
 
-    init: function() {
-        if (this.isReady) return;
-        console.log("Initializing audio context...");
+    init: function() { // This will be for PRELOADING
+        if (this.rain) return; // Already initialized
+        console.log("Preloading audio files...");
         try {
             // Menggunakan audio langsung dari URL GitHub (raw)
             this.rain = new Audio('https://raw.githubusercontent.com/wayanku/fishing/main/real-rain-sound-379215%20(2).mp3');
             this.rain.loop = true;
             this.rain.volume = 0; // Mulai dengan volume 0
+            this.rain.preload = 'auto';
 
             // Buat beberapa audio petir agar bisa tumpang tindih
             for (let i = 0; i < 3; i++) {
                 this.thunder.push(new Audio('https://raw.githubusercontent.com/wayanku/fishing/main/loud-thunder-192165.mp3'));
                 this.thunder[i].volume = 0.7;
+                this.thunder[i].preload = 'auto';
             }
-            
-            // Trik untuk "membuka kunci" audio di browser mobile
-            const promise = this.rain.play();
-            if (promise !== undefined) {
-                promise.then(_ => {
-                    this.rain.pause();
-                    console.log("Audio context unlocked by user interaction.");
-                    this.isReady = true;
-                    isAudioUnlocked = true; // Set flag global
-                }).catch(error => {
-                    // Autoplay was prevented. Audio will not play until next interaction.
-                    console.warn("Audio unlock failed on load, will be silent until user interacts.", error);
-                });;
-            }
-
         } catch (e) {
-            console.error("Failed to create audio elements:", e);
+            console.error("Failed to create audio elements for preloading:", e);
+        }
+    },
+    
+    unlock: function() { // This will be for UNLOCKING on user interaction
+        if (this.isReady) return;
+        if (!this.rain) this.init(); // Failsafe if preloading didn't run
+        
+        console.log("Attempting to unlock audio context...");
+        // Trik untuk "membuka kunci" audio di browser mobile
+        const promise = this.rain.play();
+        if (promise !== undefined) {
+            promise.then(_ => {
+                this.rain.pause();
+                this.rain.currentTime = 0; // Rewind after test play
+                console.log("Audio context unlocked by user interaction.");
+                this.isReady = true;
+                isAudioUnlocked = true; // Set flag global
+            }).catch(error => {
+                console.warn("Audio unlock failed. Will be silent until next interaction.", error);
+            });
+        } else {
+            // For older browsers that don't return a promise
+            this.isReady = true;
+            isAudioUnlocked = true;
         }
     },
 
@@ -1215,14 +1226,9 @@ function animate() {
             return;
         }
 
-        audioFrameCounter++;
-        // Tunggu sedikit frame agar animasi visual Hujan/Badai sudah stabil terlihat di layar
-        // Di HP frame bisa drop, jadi kurangi dari 30 ke 5 agar suara lebih responsif
-        if (audioFrameCounter > 5) {
-            weatherAudio.playRain(pendingAudio.volume);
-            pendingAudio = null;
-            audioFrameCounter = 0;
-        }
+        // FIX: Langsung mainkan audio tanpa delay frame untuk responsivitas instan
+        weatherAudio.playRain(pendingAudio.volume);
+        pendingAudio = null;
     }
 }
 
@@ -1242,7 +1248,6 @@ function startWeatherEffect(type) {
         const count = isMobile ? 150 : 350; // Kurangi jumlah partikel di HP agar loading cepat
         for (let i = 0; i < count; i++) particles.push(new RainDrop());
         pendingAudio = { volume: 0.5 }; // Sinkronisasi: Queue audio
-        audioFrameCounter = 0;
     }
     else if (type === 'snow') {
         const count = isMobile ? 100 : 200;
@@ -1255,7 +1260,6 @@ function startWeatherEffect(type) {
         lightningBolts = []; // Reset bolts
         storm = { flashOpacity: 0 };
         pendingAudio = { volume: 0.7 }; // Sinkronisasi: Queue audio
-        audioFrameCounter = 0;
     }
     
     // Tambahkan Awan jika cuaca mendukung (Berawan/Hujan/Salju)
@@ -1304,7 +1308,6 @@ function startWeatherEffect(type) {
 function stopWeatherEffect() {
     if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; }
     pendingAudio = null; // Reset pending audio
-    audioFrameCounter = 0;
     particles = [];
     lightningBolts = []; // Clear lightning
     // Clean up DOM clouds
@@ -1524,7 +1527,7 @@ async function showLocationPanel(latlng) {
     // --- NEW: Unlock Audio on First Interaction ---
     // Ini adalah kunci agar audio bisa autoplay di HP
     if (!isAudioUnlocked) {
-        weatherAudio.init();
+        weatherAudio.unlock();
     }
     // ---------------------------------------------
 
