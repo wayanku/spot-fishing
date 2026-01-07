@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'fishing-spot-v9-sky';
+const CACHE_NAME = 'fishing-spot-v13-nav-fix';
 const ASSETS = [
     './',
     './index.html',
