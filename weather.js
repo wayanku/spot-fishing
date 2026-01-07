@@ -3088,7 +3088,7 @@ function openDetailModal(dayIndex) {
     
     // Update Style menjadi Tombol Back di Kiri Atas (Konsisten)
     closeBtn.style.position = 'fixed';
-    closeBtn.style.top = 'calc(16px + env(safe-area-inset-top))';
+    closeBtn.style.top = 'calc(env(safe-area-inset-top, 24px) + 16px)';
     closeBtn.style.left = 'auto';
     closeBtn.style.right = '16px'; 
     closeBtn.style.zIndex = '2147483647';
