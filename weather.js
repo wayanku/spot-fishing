@@ -1,27 +1,27 @@
 
 
 // --- HIGH-PERFORMANCE WEATHER ANIMATION (CANVAS) ---
-let canvas = document.getElementById('weather-canvas');
-let ctx = canvas ? canvas.getContext('2d') : null;
-let particles = [];
-let clouds = []; // Array untuk awan
-let lightningBolts = []; // Array untuk petir
-let animationFrameId = null;
-let wxInterval = null;
-let currentWxType = null;
-let storm = null;
-let wxIsDay = true;
-let wxCode = 0;
-let wxWindSpeed = 0; // Kecepatan angin lokasi terpilih
-let stars = [];
-let moonPhase = 0.5; // 0.0 - 1.0
-let wxLocalHour = new Date().getHours(); // Jam lokal lokasi terpilih
-let lastSkyGradient = ''; // Cache untuk mencegah redraw background berlebihan
-let currentSkyTop = '#000000'; // NEW: Cache for landscape
-let currentSkyBot = '#000000'; // NEW: Cache for landscape
-let isAudioUnlocked = false; // Status untuk autoplay audio di HP
-let pendingAudio = null; // Sinkronisasi audio & animasi
-let landscapeTreePath = null; // Cache untuk siluet pohon
+var canvas = document.getElementById('weather-canvas');
+var ctx = canvas ? canvas.getContext('2d') : null;
+var particles = [];
+var clouds = []; // Array untuk awan
+var lightningBolts = []; // Array untuk petir
+var animationFrameId = null;
+var wxInterval = null;
+var currentWxType = null;
+var storm = null;
+var wxIsDay = true;
+var wxCode = 0;
+var wxWindSpeed = 0; // Kecepatan angin lokasi terpilih
+var stars = [];
+var moonPhase = 0.5; // 0.0 - 1.0
+var wxLocalHour = new Date().getHours(); // Jam lokal lokasi terpilih
+var lastSkyGradient = ''; // Cache untuk mencegah redraw background berlebihan
+var currentSkyTop = '#000000'; // NEW: Cache for landscape
+var currentSkyBot = '#000000'; // NEW: Cache for landscape
+var isAudioUnlocked = false; // Status untuk autoplay audio di HP
+var pendingAudio = null; // Sinkronisasi audio & animasi
+var landscapeTreePath = null; // Cache untuk siluet pohon
 
 
 // --- NEW: Inject SVG Filters & CSS for Realistic Clouds ---
@@ -196,7 +196,7 @@ function initStars() {
 }
 
 // --- NEW: PWA INSTALLATION LOGIC ---
-let deferredPrompt;
+var deferredPrompt;
 
 function initPWA() {
     // 1. Register Service Worker (Wajib untuk PWA)
@@ -1327,14 +1327,14 @@ function stopWeatherEffect() {
 }
 
 // --- WEATHER VARIABLES ---
-let currentUserWeatherCode = null; // Simpan kode cuaca user
-let currentUserWindSpeed = 0; // Simpan kecepatan angin user
-let currentWeatherData = null; // Simpan data cuaca lengkap
-let currentMarineData = null; // Simpan data laut (New)
-let currentSolunarData = null; // Data Solunar untuk chart
-let currentChartData = []; // Data untuk tooltip chart
-let currentRouteLine = null; // Menyimpan garis rute
-let currentRouteSteps = []; // Menyimpan langkah-langkah rute
+var currentUserWeatherCode = null; // Simpan kode cuaca user
+var currentUserWindSpeed = 0; // Simpan kecepatan angin user
+var currentWeatherData = null; // Simpan data cuaca lengkap
+var currentMarineData = null; // Simpan data laut (New)
+var currentSolunarData = null; // Data Solunar untuk chart
+var currentChartData = []; // Data untuk tooltip chart
+var currentRouteLine = null; // Menyimpan garis rute
+var currentRouteSteps = []; // Menyimpan langkah-langkah rute
 
 // --- WEATHER FUNCTIONS ---
 
@@ -2777,9 +2777,9 @@ function closeLocationPanel() {
 }
 
 // --- FITUR DETAIL CUACA (Chart & Hourly) ---
-let currentChartType = 'temp';
-let currentDayIndex = 0;
-const solunarTranslations = { id: "Aktivitas Ikan", en: "Fish Activity", jp: "魚の活性" };
+var currentChartType = 'temp';
+var currentDayIndex = 0;
+var solunarTranslations = { id: "Aktivitas Ikan", en: "Fish Activity", jp: "魚の活性" };
 
 function openDetailModal(dayIndex) {
     // closeLocationPanel(); // JANGAN tutup panel utama agar bisa kembali
