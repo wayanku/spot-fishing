@@ -859,6 +859,10 @@
         function closeAuthOverlay() {
             document.getElementById('auth-overlay').classList.add('hidden');
         }
+        
+        // Pastikan fungsi bisa diakses dari HTML (Global Scope)
+        window.openProfile = openProfile;
+        window.closeAuthOverlay = closeAuthOverlay;
 
         // 4. Spot Management
         
