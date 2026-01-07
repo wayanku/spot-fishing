@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'fishing-spot-v18-statusbar';
+const CACHE_NAME = 'fishing-spot-v19-nav-height';
 const ASSETS = [
     './',
     './index.html',
