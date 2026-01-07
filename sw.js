@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'fishing-spot-v19-nav-height';
+const CACHE_NAME = 'fishing-spot-v20-nav-height';
 const ASSETS = [
     './',
     './index.html',
