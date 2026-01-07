@@ -221,6 +221,7 @@
         <!-- Floating Buttons -->
         <button onclick="locateUser()" class="absolute bottom-28 right-4 md:bottom-32 md:right-8 z-[900] glass p-3 rounded-full text-blue-400 shadow-xl hover:scale-110 transition-transform active:scale-90 animate-float"><i data-lucide="navigation" class="w-6 h-6"></i></button>
         <button onclick="findNearestSpot()" class="absolute bottom-44 right-4 md:bottom-48 md:right-8 z-[900] glass p-3 rounded-full text-emerald-400 shadow-xl hover:scale-110 transition-transform active:scale-90 animate-float-delay"><i data-lucide="locate-fixed" class="w-6 h-6"></i></button>
+        <button onclick="openMapSettings()" class="absolute bottom-60 right-4 md:bottom-64 md:right-8 z-[900] glass p-3 rounded-full text-yellow-400 shadow-xl hover:scale-110 transition-transform active:scale-90 animate-float" aria-label="Layer Peta"><i data-lucide="layers" class="w-6 h-6"></i></button>
         </div>
 
         <!-- === HALAMAN 3: CUACA (WEATHER) === -->
@@ -934,63 +935,5 @@
     <script src="weather.js"></script>
     <script src="script.js"></script>
     
-    <!-- Script Navigasi Halaman Baru -->
-    <script>
-        // Pindahkan konten pengaturan ke halaman settings saat load
-        document.addEventListener('DOMContentLoaded', function() {
-            const settingsContent = document.querySelector('#legendModal .space-y-4');
-            if(settingsContent) {
-                document.getElementById('settings-content-placeholder').appendChild(settingsContent);
-            }
-            
-            // Inisialisasi icon lucide untuk elemen baru
-            if(typeof lucide !== 'undefined') {
-                lucide.createIcons();
-            }
-        });
-
-        function navigateTo(pageId) {
-            // Sembunyikan semua halaman
-            document.querySelectorAll('.view-section').forEach(el => {
-                el.classList.remove('active');
-            });
-            
-            // Matikan efek cuaca jika keluar dari halaman cuaca
-            if (pageId !== 'weather' && typeof stopWeatherEffect === 'function') {
-                stopWeatherEffect();
-            }
-            
-            // Reset warna tombol nav
-            document.querySelectorAll('.nav-btn').forEach(btn => {
-                btn.classList.remove('text-blue-400');
-                btn.classList.add('text-slate-400');
-            });
-            
-            // Tampilkan halaman target
-            const target = document.getElementById('view-' + pageId);
-            if(target) {
-                target.classList.add('active');
-                
-                // Highlight tombol nav
-                const navBtn = document.getElementById('nav-' + pageId);
-                if(navBtn) {
-                    navBtn.classList.remove('text-slate-400');
-                    navBtn.classList.add('text-blue-400');
-                }
-                
-                // Khusus Peta: Refresh ukuran agar tidak error render
-                if(pageId === 'map' && typeof map !== 'undefined') {
-                    setTimeout(() => { map.invalidateSize(); }, 100);
-                }
-                
-                // Khusus Cuaca: Auto-load jika data kosong
-                if(pageId === 'weather') {
-                    if (typeof currentWeatherData === 'undefined' || !currentWeatherData) {
-                        if (typeof showUserWeatherPanel === 'function') showUserWeatherPanel();
-                    }
-                }
-            }
-        }
-    </script>
 </body>
 </html>
