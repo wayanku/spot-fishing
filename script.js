@@ -3185,3 +3185,73 @@
             closeLegend(); // Tutup menu pengaturan
             initTour(); // Mulai tour dari awal
         }
+
+        // --- NAVIGATION SYSTEM (Moved from index.html) ---
+        function navigateTo(pageId) {
+            // Sembunyikan semua halaman
+            document.querySelectorAll('.view-section').forEach(el => {
+                el.classList.remove('active');
+            });
+            
+            // Matikan efek cuaca jika keluar dari halaman cuaca
+            if (pageId !== 'weather' && typeof stopWeatherEffect === 'function') {
+                stopWeatherEffect();
+            }
+
+            // --- FIX: Handle Tombol Back Floating (Hanya muncul di halaman Weather) ---
+            const backBtn = document.getElementById('panel-close-btn');
+            if (backBtn) {
+                if (pageId === 'weather') backBtn.classList.remove('hidden');
+                else backBtn.classList.add('hidden');
+            }
+            
+            // Reset warna tombol nav
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('text-blue-400');
+                btn.classList.add('text-slate-400');
+            });
+            
+            // Tampilkan halaman target
+            const target = document.getElementById('view-' + pageId);
+            if(target) {
+                target.classList.add('active');
+                
+                // Highlight tombol nav
+                const navBtn = document.getElementById('nav-' + pageId);
+                if(navBtn) {
+                    navBtn.classList.remove('text-slate-400');
+                    navBtn.classList.add('text-blue-400');
+                }
+                
+                // Khusus Peta: Refresh ukuran agar tidak error render
+                if(pageId === 'map' && typeof map !== 'undefined') {
+                    setTimeout(() => { map.invalidateSize(); }, 100);
+                }
+                
+                // Khusus Cuaca: Auto-load jika data kosong
+                if(pageId === 'weather') {
+                    if (typeof currentWeatherData === 'undefined' || !currentWeatherData) {
+                        if (typeof showUserWeatherPanel === 'function') showUserWeatherPanel();
+                    } else {
+                        // FIX: Force Update data saat tab dibuka (agar tidak menampilkan data lama)
+                        if (typeof showLocationPanel === 'function' && currentWeatherData.latitude && currentWeatherData.longitude) {
+                            showLocationPanel({ lat: currentWeatherData.latitude, lng: currentWeatherData.longitude });
+                        }
+                    }
+                }
+            }
+        }
+
+        // Pindahkan konten pengaturan ke halaman settings saat load
+        document.addEventListener('DOMContentLoaded', function() {
+            const settingsContent = document.querySelector('#legendModal .space-y-4');
+            if(settingsContent) {
+                const placeholder = document.getElementById('settings-content-placeholder');
+                if(placeholder) placeholder.appendChild(settingsContent);
+            }
+            
+            // Inisialisasi icon lucide untuk elemen baru
+            if(typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        });
