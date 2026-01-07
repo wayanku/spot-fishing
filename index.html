@@ -10,7 +10,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Fishing Spot by Wayan & StoryBali</title>
-    <meta name="theme-color" content="#0f172a">
+    <meta id="meta-theme-color" name="theme-color" content="#0f172a">
     
     <!-- PWA Manifest & Icons -->
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -43,6 +43,7 @@
         .view-section {
             display: none;
             height: 100vh;
+            height: 100dvh; /* FIX: Full screen akurat di HP (Dynamic Viewport) */
             width: 100%;
             overflow-y: auto;
             padding-bottom: 100px; /* Ruang untuk navigasi bawah */
