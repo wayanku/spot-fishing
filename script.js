@@ -3228,15 +3228,17 @@
                     setTimeout(() => { map.invalidateSize(); }, 100);
                 }
                 
-                // Khusus Cuaca: Auto-load jika data kosong
+                // Khusus Cuaca: Selalu muat lokasi user (Override pin peta)
                 if(pageId === 'weather') {
-                    if (typeof currentWeatherData === 'undefined' || !currentWeatherData) {
-                        if (typeof showUserWeatherPanel === 'function') showUserWeatherPanel();
-                    } else {
-                        // FIX: Force Update data saat tab dibuka (agar tidak menampilkan data lama)
-                        if (typeof showLocationPanel === 'function' && currentWeatherData.latitude && currentWeatherData.longitude) {
-                            showLocationPanel({ lat: currentWeatherData.latitude, lng: currentWeatherData.longitude });
+                    // Prioritaskan lokasi user
+                    if (typeof userLatlng !== 'undefined' && userLatlng) {
+                        if (typeof showLocationPanel === 'function') {
+                            showLocationPanel(userLatlng);
+                            if(typeof map !== 'undefined') map.flyTo(userLatlng, 15);
                         }
+                    } else {
+                        // Jika lokasi user belum ada, coba cari & tampilkan
+                        if (typeof showUserWeatherPanel === 'function') showUserWeatherPanel();
                     }
                 }
             }
