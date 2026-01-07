@@ -1751,6 +1751,13 @@ async function showLocationPanel(latlng) {
     
     // FIX: Hapus lengkungan pada elemen anak (konten dalam panel)
     Array.from(panel.children).forEach(child => {
+        // --- FIX: JANGAN HAPUS STYLE KARTU-KARTU PENTING ---
+        // Kartu ini harus tetap memiliki background glass, jangan dibuat transparan
+        const preservedIds = ['hourly-card', 'weather-insight-panel', 'precip-card', 'precip-map-card', 'quake-container', 'aqi-container', 'forecast-list'];
+        if (preservedIds.includes(child.id) || child.classList.contains('weather-card-fixed')) {
+            return;
+        }
+
         child.style.setProperty('border-radius', '0', 'important');
         child.style.setProperty('border', 'none', 'important'); // FIX: Hapus border anak elemen
         child.style.setProperty('max-height', 'none', 'important'); // CRITICAL: Hapus batasan tinggi wrapper
@@ -1795,30 +1802,14 @@ async function showLocationPanel(latlng) {
     // 1. Sembunyikan garis drag handle (biasanya div kecil di tengah atas)
     const handles = panel.querySelectorAll('div.w-12.h-1\\.5, div.w-16.h-1\\.5, .mx-auto.bg-slate-700, .mx-auto.bg-gray-300');
     handles.forEach(h => h.classList.add('hidden'));
-
     // 2. Sembunyikan tombol close bawaan (X)
     const oldCloseBtns = panel.querySelectorAll('button');
     oldCloseBtns.forEach(btn => {
-        if(btn.id === 'panel-close-btn') return; // Skip tombol back kita
-        
         // Cek Icon X atau Posisi Top Right
         if(btn.querySelector('[data-lucide="x"]') || btn.querySelector('[data-lucide="x-circle"]') || (btn.classList.contains('absolute') && btn.classList.contains('right-4'))) {
             btn.classList.add('hidden');
         }
     });
-
-    // Tambahkan tombol Close/Kembali di pojok kiri atas agar user bisa keluar
-    let closeBtn = document.getElementById('panel-close-btn');
-    if (!closeBtn) {
-        closeBtn = document.createElement('button');
-        closeBtn.id = 'panel-close-btn';
-        closeBtn.className = 'fixed top-4 left-4 z-[2147483647] p-2 bg-black/20 hover:bg-black/40 rounded-full text-white backdrop-blur-sm transition-colors';
-        closeBtn.innerHTML = '<i data-lucide="chevron-left" class="w-6 h-6"></i>';
-        closeBtn.onclick = closeLocationPanel;
-        document.body.appendChild(closeBtn);
-        lucide.createIcons();
-    }
-    closeBtn.classList.remove('hidden');
     
     // Pastikan tombol close dari detail view (grafik) tersembunyi agar tidak menumpuk
     const floatClose = document.getElementById('weather-floating-close');
@@ -2294,7 +2285,7 @@ function updateWeatherUI(data) {
 
         // --- MODIFIED: Pisahkan Precip Chart, tapi Gabungkan Summary ke Hourly ---
         // LIQUID GLASS STYLE: bg-slate-900/30 (Transparan), backdrop-blur-xl (Blur Kuat)
-        const cardClass = "mx-0 mb-3 bg-slate-900/30 backdrop-blur-xl rounded-xl border border-white/20 shadow-lg overflow-hidden";
+        const cardClass = "mx-0 mb-3 bg-slate-900/30 backdrop-blur-xl rounded-xl border border-white/20 shadow-lg overflow-hidden p-1";
 
         // 1. Precip Chart Card (Hidden by default) - Separate
         const precipCard = document.createElement('div');
@@ -2790,10 +2781,6 @@ const solunarTranslations = { id: "Aktivitas Ikan", en: "Fish Activity", jp: "é­
 function openDetailModal(dayIndex) {
     // closeLocationPanel(); // JANGAN tutup panel utama agar bisa kembali
     
-    // Sembunyikan tombol back panel utama sementara agar tidak tumpang tindih
-    const mainBackBtn = document.getElementById('panel-close-btn');
-    if(mainBackBtn) mainBackBtn.classList.add('hidden');
-
     if(!currentWeatherData || !currentWeatherData.hourly) return;
     
     currentDayIndex = dayIndex;
@@ -3306,10 +3293,6 @@ function closeDetailModal() {
     document.getElementById('weatherDetailModal').classList.add('translate-y-full');
     const closeBtn = document.getElementById('weather-floating-close');
     if(closeBtn) closeBtn.classList.add('hidden');
-    
-    // Munculkan kembali tombol back panel utama
-    const mainBackBtn = document.getElementById('panel-close-btn');
-    if(mainBackBtn) mainBackBtn.classList.remove('hidden');
 }
 
 // --- AI INSIGHT FUNCTION (New) ---
@@ -3328,7 +3311,7 @@ function showMetricInsight(type) {
 
     // --- NEW: Reposition the insight panel (Standalone Card) ---
     // Apply card styles
-    panel.className = "mx-0 mb-3 bg-slate-900/40 backdrop-blur-xl rounded-xl border border-white/20 shadow-lg overflow-hidden p-4 hidden";
+    panel.className = "mx-0 mb-3 bg-slate-900/30 backdrop-blur-xl rounded-xl border border-white/20 shadow-lg overflow-hidden p-4 hidden";
     
     // Insert BEFORE the precip card (or hourly card if precip missing)
     const precipCard = document.getElementById('precip-card');
