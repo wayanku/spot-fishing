@@ -719,7 +719,14 @@
                         // initApp akan dipanggil otomatis oleh onAuthStateChanged
                     })
                     .catch((error) => {
-                        alert("Login Gagal: " + error.message);
+                        console.error("Auth Error:", error);
+                        if (error.code === 'auth/unauthorized-domain') {
+                            alert("Izin Ditolak: Domain/IP ini belum didaftarkan di Firebase.\n\nSolusi: Buka Firebase Console -> Authentication -> Settings -> Authorized Domains -> Tambahkan domain ini.");
+                        } else if (error.code === 'auth/popup-closed-by-user') {
+                            console.log("Login dibatalkan oleh user.");
+                        } else {
+                            alert("Login Gagal: " + error.message);
+                        }
                     });
             }
         }
