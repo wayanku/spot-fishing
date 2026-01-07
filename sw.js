@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'fishing-spot-v15-no-back-btn';
+const CACHE_NAME = 'fishing-spot-v16-safe-area';
 const ASSETS = [
     './',
     './index.html',
