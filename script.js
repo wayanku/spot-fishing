@@ -87,11 +87,11 @@
             };
         }
         lucide.createIcons();
-        let isSat = true; // Hoisted to top to fix initialization error
+        var isSat = true; // FIX: Gunakan var agar tidak error saat redeclare
         
         // --- MAP LAYERS CONFIGURATION ---
-        const OWM_API_KEY = "YOUR_OWM_API_KEY"; // Ganti dengan API Key OpenWeatherMap Anda untuk layer Angin
-        let activeLayers = {}; // Menyimpan layer yang aktif (Multi-layer support)
+        var OWM_API_KEY = "YOUR_OWM_API_KEY"; // Ganti ke VAR agar aman reload
+        var activeLayers = {}; 
 
         // --- THEME SYSTEM (Default Dark) ---
         function initTheme() {
@@ -131,7 +131,7 @@
         initTheme();
 
         // --- MULTI-LANGUAGE SYSTEM ---
-        const translations = {
+        var translations = {
             id: {
                 app_title: "Fishing Spot by Wayan & StoryBali", login_subtitle: "Masuk untuk simpan spot memancing Anda",
                 btn_login: "Masuk Sekarang", btn_register: "Belum punya akun? Daftar gratis",
@@ -171,7 +171,7 @@
         };
 
         // Dictionary untuk konten dinamis (Cuaca, Hari, dll)
-        const dynamicTranslations = {
+        var dynamicTranslations = {
             id: {
                 days: ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'],
                 weather: { 0: "Cerah", 1: "Cerah Berawan", 2: "Berawan", 3: "Mendung", 45: "Kabut", 51: "Gerimis", 61: "Hujan", 80: "Hujan Deras", 95: "Badai", 71: "Salju" },
@@ -223,12 +223,12 @@
         setTimeout(() => changeLanguage(localStorage.getItem('appLang') || 'id'), 100);
 
         // --- CONFIGURATION ---
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyuRtzzICS1qoBxWKdOJpHeqWCUN6Wt04xAIi_sYQHd0wSxjc89eumDWAYYcKPrT8jV/exec"; 
-        const IMGBB_API_KEY = "7e6f3ce63649d305ccaceea00c28266d"; // Daftar gratis di api.imgbb.com
+        var GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyuRtzzICS1qoBxWKdOJpHeqWCUN6Wt04xAIi_sYQHd0wSxjc89eumDWAYYcKPrT8jV/exec"; 
+        var IMGBB_API_KEY = "7e6f3ce63649d305ccaceea00c28266d"; 
 
         // --- AI SETUP (Web Worker & Lazy Loading) ---
-        let aiWorker = null;
-        let isAiReady = false; // Flag to check if AI model is pre-loaded
+        var aiWorker = null;
+        var isAiReady = false; 
 
         function getAiWorker() {
             if (!aiWorker) {
@@ -300,41 +300,41 @@
 
         // 2. Map & Street View Setup
         // Menggunakan Google Hybrid (Satelit + Label/Jalan) agar lebih lengkap & cerah
-        const satLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { 
+        var satLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { 
             maxZoom: 20,
             attribution: '© Google Maps'
         });
         
         // GANTI OSM DENGAN GOOGLE ROADMAP (Lebih Lengkap & Familiar)
-        const streetLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { 
+        var streetLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { 
             maxZoom: 20,
             attribution: '© Google Maps'
         });
 
         // Layer Laut (Bathymetry/Depth) - Esri Ocean Basemap
         // UPDATED: Menggunakan LayerGroup (Base + Reference + Seamark) agar mirip i-Boating/Navionics
-        const oceanBaseTile = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}', {
+        var oceanBaseTile = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}', {
             maxNativeZoom: 10, // FIX: Batas zoom asli Esri Ocean adalah 10, paksa stretch setelahnya agar tidak "data not available"
             maxZoom: 20,
             attribution: 'Tiles &copy; Esri'
         });
-        const oceanRefTile = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Reference/MapServer/tile/{z}/{y}/{x}', {
+        var oceanRefTile = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Reference/MapServer/tile/{z}/{y}/{x}', {
             maxNativeZoom: 10, // FIX: Batas zoom asli Esri Ocean adalah 10
             maxZoom: 20
         });
         // Tambahan: OpenSeaMap untuk navigasi lengkap (Buoy, Lampu, Jalur)
-        const oceanSeamarkTile = L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png', {
+        var oceanSeamarkTile = L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png', {
             maxNativeZoom: 18,
             maxZoom: 20,
             attribution: 'OpenSeaMap'
         });
-        const oceanLayer = L.layerGroup([oceanBaseTile, oceanRefTile, oceanSeamarkTile]);
+        var oceanLayer = L.layerGroup([oceanBaseTile, oceanRefTile, oceanSeamarkTile]);
         
         // Cek penyimpanan lokal agar saat refresh langsung ke lokasi terakhir
-        const lastLat = localStorage.getItem('lastLat');
-        const lastLng = localStorage.getItem('lastLng');
-        const initLat = lastLat ? parseFloat(lastLat) : -6.2000;
-        const initLng = lastLng ? parseFloat(lastLng) : 106.8166;
+        var lastLat = localStorage.getItem('lastLat');
+        var lastLng = localStorage.getItem('lastLng');
+        var initLat = lastLat ? parseFloat(lastLat) : -6.2000;
+        var initLng = lastLng ? parseFloat(lastLng) : 106.8166;
         
         // Inisialisasi peta dengan menonaktifkan attribution default
         var map = L.map('map', { zoomControl: false, attributionControl: false, layers: [satLayer] }).setView([initLat, initLng], lastLat ? 15 : 13);
@@ -415,17 +415,17 @@
             }
         }
 
-        let tempLatlng = null;
-        let currentUser = null;
-        let searchMarker = null; // Variabel untuk menyimpan marker pencarian
-        let selectionMarker = null; // Marker untuk lokasi yang diklik
-        let currentDetailSpot = null; // Data spot yang sedang dibuka detailnya
-        let groupedSpots = {}; // Global variable untuk menyimpan data spot yang dikelompokkan
-        let isContributionMode = false; // Flag untuk membedakan mode tambah spot vs ulasan
-        let allMarkers = []; // Array untuk menyimpan semua marker spot
+        var tempLatlng = null;
+        var currentUser = null;
+        var searchMarker = null; 
+        var selectionMarker = null; 
+        var currentDetailSpot = null; 
+        var groupedSpots = {}; 
+        var isContributionMode = false; 
+        var allMarkers = []; 
 
         // Custom Icon untuk Spot Ikan
-        const fishIcon = L.divIcon({
+        var fishIcon = L.divIcon({
             className: 'custom-fish-icon',
             html: `<div class="w-8 h-8 bg-blue-600 rounded-full border-2 border-white shadow-[0_0_15px_rgba(59,130,246,0.6)] flex items-center justify-center"><i data-lucide="fish" class="text-white w-5 h-5"></i></div>`,
             iconSize: [32, 32],
@@ -508,7 +508,7 @@
         }
 
         // --- NEW: AUTOCOMPLETE SEARCH FUNCTIONS ---
-        let searchDebounceTimer;
+        var searchDebounceTimer;
 
         function handleSearchInput() {
             clearTimeout(searchDebounceTimer);
@@ -681,7 +681,7 @@
         // 3. Auth Logic
         // --- FIREBASE CONFIGURATION ---
         // SALIN CONFIG DARI FIREBASE CONSOLE -> PROJECT SETTINGS -> GENERAL -> YOUR APPS
-        const firebaseConfig = {
+        var firebaseConfig = {
             apiKey: "AIzaSyC2mB-b5f80u4yMqTsBn0QbpRZS_nZ7AVo",
             authDomain: "gen-lang-client-0638026513.firebaseapp.com",
             projectId: "gen-lang-client-0638026513",
@@ -692,7 +692,7 @@
         };
 
         // Inisialisasi Firebase
-        let auth, db;
+        var auth, db;
         if (typeof firebase !== 'undefined') {
             if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
             auth = firebase.auth();
@@ -804,6 +804,7 @@
                         setTimeout(() => { if(typeof map !== 'undefined') map.invalidateSize(); }, 100);
                         
                         // Load data user dari Firestore (Profil, dll) bisa ditambahkan di sini nanti
+                        loadUserProfile(); // Load data profil saat login
                     } else {
                         // --- USER LOGOUT ---
                         currentUser = null;
@@ -847,7 +848,11 @@
 
         function logout() {
             if (auth) {
-                auth.signOut().then(() => console.log("User logged out"));
+                auth.signOut().then(() => {
+                    console.log("User logged out");
+                    navigateTo('home'); // Reset view
+                    // Overlay login akan muncul otomatis oleh onAuthStateChanged
+                });
             } else {
                 location.reload();
             }
@@ -855,12 +860,17 @@
 
         // --- PROFILE & LOGIN MENU ---
         function openProfile() {
-            const overlay = document.getElementById('auth-overlay');
-            overlay.classList.remove('hidden');
-            
-            // Tampilkan tombol close karena dibuka dari dalam aplikasi
-            const closeBtn = document.getElementById('auth-close-btn');
-            if(closeBtn) closeBtn.classList.remove('hidden');
+            if (currentUser && currentUser.uid !== 'guest_user') {
+                // Jika sudah login, buka Halaman Profil
+                loadUserProfile();
+                navigateTo('profile');
+            } else {
+                // Jika belum login, buka Overlay Login
+                const overlay = document.getElementById('auth-overlay');
+                overlay.classList.remove('hidden');
+                const closeBtn = document.getElementById('auth-close-btn');
+                if(closeBtn) closeBtn.classList.remove('hidden');
+            }
         }
 
         function closeAuthOverlay() {
@@ -898,7 +908,7 @@
         window.userLatlng = null;
         // let userLatlng = null; // Hapus deklarasi lokal yang membingungkan
         
-        let userLocationMarker = null; // Marker lokasi user custom
+        var userLocationMarker = null; // Marker lokasi user custom
         // --- FAVORITE SYSTEM ---
         function toggleFavorite() {
             if(!currentDetailSpot) return;
@@ -1078,7 +1088,7 @@
         }
 
         // --- IMAGE PREVIEW FUNCTIONS ---
-        let currentObjectUrl = null; // Variabel global untuk manajemen memori gambar
+        var currentObjectUrl = null; // Variabel global untuk manajemen memori gambar
 
         async function previewImage(input) {
             const file = input.files[0];
@@ -1232,6 +1242,119 @@
         }
 
         function closeModal() { document.getElementById('addModal').classList.add('translate-y-full'); }
+
+        // --- NEW: PROFILE SYSTEM (Instagram Style) ---
+        
+        async function loadUserProfile() {
+            if(!currentUser) return;
+            
+            // Default data
+            var userData = {
+                displayName: currentUser.displayName || 'Pengguna Baru',
+                username: currentUser.email ? currentUser.email.split('@')[0] : 'user',
+                photoURL: currentUser.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.uid}`,
+                bio: 'Hobi memancing adalah jalan ninjaku. 🎣',
+                followers: 0,
+                following: 0
+            };
+
+            // Fetch dari Firestore jika ada
+            if(db) {
+                try {
+                    var doc = await db.collection('users').doc(currentUser.uid).get();
+                    if(doc.exists) {
+                        userData = { ...userData, ...doc.data() };
+                    }
+                } catch(e) { console.log("Profile load error", e); }
+            }
+
+            // Update UI Profil
+            var usernameHeader = document.getElementById('profile-username-header');
+            if(usernameHeader) usernameHeader.innerText = userData.username;
+            
+            var displayNameEl = document.getElementById('profile-display-name');
+            if(displayNameEl) displayNameEl.innerText = userData.displayName;
+            
+            var bioEl = document.getElementById('profile-bio');
+            if(bioEl) bioEl.innerText = userData.bio;
+            
+            var imgEl = document.getElementById('profile-image');
+            if(imgEl) imgEl.src = userData.photoURL;
+            
+            var followersEl = document.getElementById('stat-followers');
+            if(followersEl) followersEl.innerText = userData.followers;
+            
+            var followingEl = document.getElementById('stat-following');
+            if(followingEl) followingEl.innerText = userData.following;
+
+            // Load Grid Postingan User
+            var grid = document.getElementById('profile-grid');
+            if(grid) {
+                grid.innerHTML = '';
+                
+                // Filter spot milik user ini (dari groupedSpots global)
+                var userSpots = [];
+                Object.values(groupedSpots).forEach(function(group) {
+                    group.forEach(function(spot) {
+                        if (spot.uid === currentUser.email || spot.uid === currentUser.uid) {
+                            userSpots.push(spot);
+                        }
+                    });
+                });
+                
+                var postsCountEl = document.getElementById('stat-posts');
+                if(postsCountEl) postsCountEl.innerText = userSpots.length;
+
+                userSpots.forEach(function(spot) {
+                    var div = document.createElement('div');
+                    div.className = "aspect-square bg-slate-900 relative group cursor-pointer overflow-hidden border border-white/5";
+                    div.onclick = function() {
+                        var key = spot.lat + ',' + spot.lng;
+                        if(groupedSpots[key]) openSpotDetail(groupedSpots[key]);
+                        else openSpotDetail([spot]);
+                    };
+                    var img = spot.photo || 'https://via.placeholder.com/150?text=No+Img';
+                    div.innerHTML = `<img src="${img}" class="w-full h-full object-cover hover:scale-110 transition-transform duration-500">`;
+                    grid.appendChild(div);
+                });
+            }
+        }
+
+        function openEditProfileModal() {
+            document.getElementById('edit-name').value = document.getElementById('profile-display-name').innerText;
+            document.getElementById('edit-username').value = document.getElementById('profile-username-header').innerText;
+            document.getElementById('edit-bio').value = document.getElementById('profile-bio').innerText;
+            document.getElementById('edit-profile-preview').src = document.getElementById('profile-image').src;
+            document.getElementById('editProfileModal').classList.remove('translate-y-full');
+        }
+
+        function closeEditProfileModal() {
+            document.getElementById('editProfileModal').classList.add('translate-y-full');
+        }
+
+        function previewProfileEdit(input) {
+            if(input.files && input.files[0]) {
+                var reader = new FileReader();
+                reader.onload = function(e) { document.getElementById('edit-profile-preview').src = e.target.result; }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        async function saveProfile() {
+            var btn = document.getElementById('btn-save-profile');
+            btn.innerText = "Menyimpan..."; btn.disabled = true;
+            var name = document.getElementById('edit-name').value;
+            var username = document.getElementById('edit-username').value;
+            var bio = document.getElementById('edit-bio').value;
+            var photoURL = document.getElementById('edit-profile-preview').src;
+            // (Upload logic disederhanakan untuk stabilitas)
+            var updateData = { displayName: name, username: username, bio: bio, photoURL: photoURL };
+            if(db && currentUser) {
+                await db.collection('users').doc(currentUser.uid).set(updateData, { merge: true });
+                currentUser.updateProfile({ displayName: name, photoURL: photoURL });
+            }
+            btn.innerText = "Selesai"; btn.disabled = false; closeEditProfileModal(); loadUserProfile();
+        }
 
         // Fungsi Kompresi Gambar (Mencegah Crash di iPhone)
         function compressImage(file, maxWidth = 1000, quality = 0.7) {
@@ -1841,6 +1964,11 @@
             
             // 3. Render Semua Marker dari Grouping yang sudah terkumpul
             Object.keys(groupedSpots).forEach(key => addMarker(key, groupedSpots[key]));
+            
+            // FIX: Refresh halaman profil jika sedang dibuka (agar angka postingan update)
+            if(document.getElementById('view-profile') && document.getElementById('view-profile').classList.contains('active')) {
+                loadUserProfile();
+            }
             
             lucide.createIcons();
             handleZoomEffect(); // Update tampilan setelah load
@@ -2596,14 +2724,14 @@
         }
 
         // --- PRECIPITATION MAP FUNCTIONS ---
-        let largePrecipMap = null;
+        var largePrecipMap = null;
         // --- NEW: Animation Variables ---
-        let precipAnimationInterval = null;
-        let precipFrames = [];
-        let precipLayers = {}; // Cache layer agar animasi mulus
-        let currentPrecipFrameIndex = 0;
-        let precipRadarLayer = null; // To easily remove and add new layers
-        let isPrecipPlaying = false;
+        var precipAnimationInterval = null;
+        var precipFrames = [];
+        var precipLayers = {}; // Cache layer agar animasi mulus
+        var currentPrecipFrameIndex = 0;
+        var precipRadarLayer = null; // To easily remove and add new layers
+        var isPrecipPlaying = false;
         // --- End Animation Variables ---
 
         function createPrecipitationModal() {
@@ -2660,7 +2788,7 @@
             document.body.appendChild(modal);
         }
 
-        let precipUserMarker = null; // Marker user di peta besar
+        var precipUserMarker = null; // Marker user di peta besar
 
         function openPrecipMap(lat, lng) {
             pausePrecipAnimation(); // Reset state on open
@@ -3109,8 +3237,8 @@
         window.addEventListener('resize', initScrollDots);
 
         // --- ONBOARDING TOUR SYSTEM ---
-        let currentTourStep = 0;
-        const tourSteps = [
+        var currentTourStep = 0;
+        var tourSteps = [
             {
                 target: null, // Center screen
                 title: "Selamat Datang!",
