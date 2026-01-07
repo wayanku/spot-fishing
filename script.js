@@ -3198,13 +3198,6 @@
                 stopWeatherEffect();
             }
 
-            // --- FIX: Handle Tombol Back Floating (Hanya muncul di halaman Weather) ---
-            const backBtn = document.getElementById('panel-close-btn');
-            if (backBtn) {
-                if (pageId === 'weather') backBtn.classList.remove('hidden');
-                else backBtn.classList.add('hidden');
-            }
-            
             // Reset warna tombol nav
             document.querySelectorAll('.nav-btn').forEach(btn => {
                 btn.classList.remove('text-blue-400');
