@@ -1,0 +1,177 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
+body { 
+    font-family: 'Inter', sans-serif; 
+    background: #020617; 
+    background-image: radial-gradient(circle at 0% 0%, rgba(56, 189, 248, 0.15) 0%, transparent 50%), 
+                      radial-gradient(circle at 100% 0%, rgba(139, 92, 246, 0.15) 0%, transparent 50%), 
+                      radial-gradient(circle at 100% 100%, rgba(236, 72, 153, 0.15) 0%, transparent 50%);
+    background-attachment: fixed;
+    color: white; 
+}
+#map { height: 100vh; width: 100%; z-index: 1; }
+
+/* Modern Glassmorphism */
+.glass { 
+    background: rgba(15, 23, 42, 0.65); 
+    backdrop-filter: blur(16px); 
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08); 
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+}
+
+#auth-overlay { z-index: 9999; background: #0f172a; }
+/* Custom Leaflet Popup - Transparent Container */
+.leaflet-popup-content-wrapper { background: transparent !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
+.leaflet-popup-tip { display: none; }
+.leaflet-popup-content { margin: 0 !important; width: auto !important; }
+
+/* Animations */
+@keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.animate-slide-up { animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+/* Floating Animation for Map Buttons */
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+.animate-float { animation: float 4s ease-in-out infinite; }
+.animate-float-delay { animation: float 4s ease-in-out infinite; animation-delay: 2s; }
+
+/* Gradient Text */
+.text-gradient {
+    background: linear-gradient(to right, #60a5fa, #c084fc, #f472b6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.weather-card { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); }
+.wind-arrow { transition: transform 1s ease-out; }
+.loading-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+
+/* Mobile Scroll Utility */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Mobile Optimizations */
+input, button { touch-action: manipulation; }
+
+/* Prevent iOS Zoom on Input Focus */
+@media screen and (max-width: 768px) {
+    input, select, textarea {
+        font-size: 16px !important;
+    }
+}
+
+/* Zoomed Out Marker Effects (Wider Glow) */
+.zoomed-out .fish-marker-body {
+    box-shadow: 0 0 60px 25px rgba(59, 130, 246, 0.9) !important; /* Blue Glow Thicker & Brighter */
+}
+.zoomed-out .fish-marker-body.marker-yellow {
+    box-shadow: 0 0 70px 30px rgba(234, 179, 8, 0.9) !important; /* Yellow Glow Thicker & Brighter */
+}
+.zoomed-out .fish-marker-body.marker-red {
+    box-shadow: 0 0 100px 40px rgba(225, 29, 72, 1) !important; /* Red Glow Extreme */
+    transform: scale(1.5); /* Significantly larger */
+    animation: pulse 0.6s cubic-bezier(0.4, 0, 0.6, 1) infinite !important; /* Fast alert pulse */
+    z-index: 1000;
+}
+
+/* Hide marker class */
+.hidden-marker { display: none !important; }
+
+/* --- LIGHT MODE OVERRIDES (Refined) --- */
+body.light-mode { 
+    background: #f8fafc; 
+    background-image: radial-gradient(circle at top left, rgba(219, 234, 254, 0.5) 0%, transparent 40%), radial-gradient(circle at bottom right, rgba(237, 233, 254, 0.5) 0%, transparent 40%);
+    color: #334155; 
+}
+
+/* Glass Surface - Softer & Cleaner */
+.light-mode .glass { 
+    background: rgba(255, 255, 255, 0.85); 
+    border: 1px solid rgba(226, 232, 240, 0.8); 
+    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05); 
+}
+
+/* Text Colors - Smart Inversion */
+.light-mode .text-white { color: #1e293b !important; } /* Slate 800 */
+.light-mode .text-slate-200, .light-mode .text-slate-300 { color: #475569 !important; } /* Slate 600 */
+.light-mode .text-slate-400 { color: #64748b !important; } /* Slate 500 */
+.light-mode .text-slate-500 { color: #94a3b8 !important; } /* Slate 400 */
+
+/* Background Mappings */
+.light-mode .bg-slate-950, .light-mode .bg-slate-900, .light-mode .bg-[#020617] { background-color: #ffffff !important; }
+.light-mode .bg-slate-950\/90 { background-color: rgba(255,255,255,0.95) !important; }
+
+.light-mode .bg-slate-800, .light-mode .bg-slate-800\/30, .light-mode .bg-slate-800\/40, .light-mode .bg-slate-800\/50, .light-mode .bg-slate-800\/60, .light-mode .bg-slate-800\/80 { 
+    background-color: #f1f5f9 !important; 
+    border-color: #e2e8f0 !important; 
+}
+
+/* Navbar Specific (Mobile & Desktop) - Fix Background Color in Light Mode */
+.light-mode .bg-\[\#020617\]\/95, .light-mode .md\:bg-slate-900\/80 { background-color: rgba(255,255,255,0.9) !important; border-top: 1px solid #e2e8f0 !important; backdrop-filter: blur(20px); }
+
+/* Borders */
+.light-mode .border-white\/5, .light-mode .border-white\/10, .light-mode .border-white\/20 { border-color: #e2e8f0 !important; }
+
+/* Inputs & Elements */
+.light-mode input, .light-mode select, .light-mode textarea { background-color: #ffffff !important; color: #1e293b !important; border: 1px solid #cbd5e1 !important; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+.light-mode ::placeholder { color: #94a3b8 !important; }
+.light-mode .bg-black\/30 { background-color: rgba(255,255,255,0.6) !important; color: #0f172a !important; }
+
+/* EXCEPTIONS: Keep text white on colored backgrounds (Buttons, Cards) */
+.light-mode .bg-blue-600 .text-white, .light-mode .bg-gradient-to-br .text-white, .light-mode .bg-gradient-to-r .text-white, .light-mode .bg-red-600 .text-white, .light-mode .bg-emerald-500 .text-white { color: #ffffff !important; }
+.light-mode .bg-gradient-to-br .text-blue-100 { color: #dbeafe !important; }
+.light-mode .border-\[\#020617\] { border-color: #ffffff !important; } /* Add Button Border blends with Navbar */
+
+/* Fix Search Bar in Light Mode */
+.light-mode #search-input { background-color: transparent !important; border: none !important; box-shadow: none !important; }
+.light-mode .bg-slate-900\/60 { background-color: #ffffff !important; border: 1px solid #e2e8f0 !important; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important; }
+.light-mode #search-input { color: #0f172a !important; }
+.light-mode #search-input::placeholder { color: #94a3b8 !important; }
+.light-mode #mic-btn, .light-mode #search-btn { color: #64748b !important; }
+.light-mode #search-btn { background-color: #eff6ff !important; color: #3b82f6 !important; }
+
+/* Chart Improvements in Light Mode */
+.light-mode #chart-container { background-color: #f8fafc !important; border-color: #e2e8f0 !important; }
+.light-mode #chart-container text { fill: #64748b !important; }
+.light-mode #chart-container line { stroke: #cbd5e1 !important; }
+
+/* Chart Tooltip & Tabs */
+#chart-tooltip {
+    position: absolute; background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(255,255,255,0.1);
+    padding: 8px 12px; border-radius: 8px; pointer-events: none; font-size: 11px; color: white;
+    z-index: 50; display: none; backdrop-filter: blur(4px); box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    min-width: 80px;
+}
+.light-mode #chart-tooltip { background: rgba(255, 255, 255, 0.95); border: 1px solid #e2e8f0; color: #0f172a; }
+
+.chart-tab.active { background-color: #3b82f6; color: white; border-color: #3b82f6; }
+
+/* Custom Scrollbar for Tabs */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+#chart-cursor { pointer-events: none; transition: left 0.05s linear; }
+
+/* --- ONBOARDING TOUR --- */
+.tour-highlight {
+    position: fixed;
+    z-index: 9998;
+    border-radius: 12px;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.85); /* Efek Gelap Sekeliling */
+    pointer-events: none;
+    transition: all 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+    border: 2px solid rgba(59, 130, 246, 0.8);
+    animation: pulse-border 2s infinite;
+}
+@keyframes pulse-border { 0% { border-color: rgba(59, 130, 246, 0.8); } 50% { border-color: rgba(59, 130, 246, 0.3); } 100% { border-color: rgba(59, 130, 246, 0.8); } }
+
+.tour-tooltip {
+    position: fixed;
+    z-index: 9999;
+    width: 340px;
+    opacity: 0;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    pointer-events: auto;
+}
+.tour-tooltip.active { opacity: 1; }
