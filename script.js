@@ -1,4 +1,5 @@
 
+
         // --- SAFETY CHECK: OFFLINE MODE FALLBACK ---
         // Mencegah aplikasi crash jika library tidak termuat karena offline
         if (typeof lucide === 'undefined') {
@@ -3209,18 +3210,6 @@
             if(target) {
                 target.classList.add('active');
                 
-                // --- FIX: Status Bar Transparan/Hitam untuk Peta ---
-                const metaTheme = document.getElementById('meta-theme-color');
-                if(metaTheme) {
-                    if(pageId === 'map' || pageId === 'weather') {
-                        // Ubah ke Hitam agar menyatu dengan Peta/Langit (Immersive)
-                        metaTheme.setAttribute('content', '#000000');
-                    } else {
-                        // Kembalikan ke Biru Tema untuk Home/Settings
-                        metaTheme.setAttribute('content', '#0f172a');
-                    }
-                }
-
                 // Highlight tombol nav
                 const navBtn = document.getElementById('nav-' + pageId);
                 if(navBtn) {
