@@ -817,7 +817,8 @@
             });
             selectionMarker = L.marker(e.latlng, {icon: pinIcon}).addTo(map);
             
-            if(typeof showLocationPanel === 'function') showLocationPanel(e.latlng);
+            // FIX: Langsung navigasi ke tab cuaca agar flow konsisten
+            if(typeof navigateTo === 'function') navigateTo('weather');
         });
 
         // FIX: Pastikan userLatlng global (window) agar bisa diakses weather.js
@@ -3204,6 +3205,10 @@
 
         // --- NAVIGATION SYSTEM (Moved from index.html) ---
         function navigateTo(pageId) {
+            // 1. Cek status tab cuaca SEBELUM reset class (untuk logika "klik lagi")
+            const weatherView = document.getElementById('view-weather');
+            const isWeatherActive = weatherView && weatherView.classList.contains('active');
+
             // Sembunyikan semua halaman
             document.querySelectorAll('.view-section').forEach(el => { //
                 el.classList.remove('active');
@@ -3235,18 +3240,29 @@
                 // Khusus Peta: Refresh ukuran agar tidak error render
                 if(pageId === 'map' && typeof map !== 'undefined') {
                     setTimeout(() => { map.invalidateSize(); }, 100);
+                    
+                    // FIX: Sembunyikan panel cuaca saat kembali ke peta (sesuai request)
+                    const panel = document.getElementById('location-panel');
+                    if(panel) panel.classList.add('translate-y-full');
+
+                    // FIX: Reset lokasi pin agar saat kembali ke tab cuaca (lewat navbar), yang muncul adalah GPS
+                    tempLatlng = null;
                 }
                 
                 // Khusus Cuaca: Tampilkan panel cuaca untuk lokasi terakhir yang dipilih atau lokasi user
                 if(pageId === 'weather') {
-                    // Prioritaskan lokasi yang di-pin (tempLatlng), jika tidak ada, baru pakai lokasi user (userLatlng)
-                    // Ini mencegah peta kembali ke lokasi GPS saat membuka tab cuaca.
-                    const targetLatlng = tempLatlng || userLatlng;
-                    if (targetLatlng && typeof showLocationPanel === 'function') {
-                        showLocationPanel(targetLatlng);
-                    } else {
-                        // Jika tidak ada lokasi sama sekali, coba cari lokasi user
+                    // Logika Toggle: Pin <-> GPS
+                    if (isWeatherActive && tempLatlng) {
+                        // Jika sudah di tab cuaca (lihat pin) dan klik lagi -> Reset ke GPS
+                        tempLatlng = null;
                         if (typeof showUserWeatherPanel === 'function') showUserWeatherPanel();
+                    } else {
+                        // Navigasi biasa: Prioritas Pin -> GPS
+                        if (tempLatlng && typeof showLocationPanel === 'function') {
+                            showLocationPanel(tempLatlng);
+                        } else if (typeof showUserWeatherPanel === 'function') {
+                            showUserWeatherPanel();
+                        }
                     }
                 }
             }
