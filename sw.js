@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'fishing-spot-v129-final-ui-fix';
+const CACHE_NAME = 'fishing-spot-v189-final-ui-fix';
 const ASSETS = [
     './',
     './index.html',
