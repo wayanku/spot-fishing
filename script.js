@@ -498,7 +498,7 @@
                         searchMarker = L.marker([lat, lon], {icon: redPin}).addTo(map)
                             .bindPopup(`<b class="text-slate-900 text-sm">${data[0].display_name.split(',')[0]}</b>`).openPopup();
 
-                        map.flyTo([lat, lon], 13);
+                        map.flyTo([lat, lon], 12); // FIX: Zoom out sedikit agar tidak terlalu dekat
                     } else {
                         alert("Lokasi tidak ditemukan");
                     }
@@ -661,7 +661,7 @@
             searchMarker = L.marker([lat, lon], {icon: redPin}).addTo(map)
                 .bindPopup(`<b class="text-slate-900 text-sm">${item.display_name.split(',')[0]}</b>`).openPopup();
 
-            map.flyTo([lat, lon], 13);
+            map.flyTo([lat, lon], 12); // FIX: Zoom out sedikit agar tidak terlalu dekat
         }
 
         // Fungsi Street View: Membuka koordinat di Google Street View
@@ -680,55 +680,15 @@
 
         // 3. Auth Logic
         // --- FIREBASE CONFIGURATION ---
-        // SALIN CONFIG DARI FIREBASE CONSOLE -> PROJECT SETTINGS -> GENERAL -> YOUR APPS
-        const firebaseConfig = {
-            apiKey: "AIzaSyC2mB-b5f80u4yMqTsBn0QbpRZS_nZ7AVo",
-            authDomain: "gen-lang-client-0638026513.firebaseapp.com",
-            projectId: "gen-lang-client-0638026513",
-            storageBucket: "gen-lang-client-0638026513.firebasestorage.app",
-            messagingSenderId: "1095475854923",
-            appId: "1:1095475854923:web:eb9b7104cd9432809b17ce",
-            measurementId: "G-NT4028EQZQ"
-        };
+        // Login dinonaktifkan, Firebase tidak diinisialisasi.
 
         // Inisialisasi Firebase
         let auth, db;
-        if (typeof firebase !== 'undefined') {
-            if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-            auth = firebase.auth();
-            db = firebase.firestore();
-            console.log("Firebase Connected");
-        } else {
-            console.error("Firebase SDK belum dipasang di index.html!");
-        }
+        // const firebaseConfig = { ... };
+        // if (typeof firebase !== 'undefined') { ... }
 
         function handleAuth(type) {
-            if (!auth) return alert("Firebase belum siap.");
-            
-            let provider;
-            if (type === 'google') {
-                provider = new firebase.auth.GoogleAuthProvider();
-            } else if (type === 'facebook') {
-                provider = new firebase.auth.FacebookAuthProvider();
-            }
-
-            if (provider) {
-                auth.signInWithPopup(provider)
-                    .then((result) => {
-                        console.log("Login sukses:", result.user.displayName);
-                        // initApp akan dipanggil otomatis oleh onAuthStateChanged
-                    })
-                    .catch((error) => {
-                        console.error("Auth Error:", error);
-                        if (error.code === 'auth/unauthorized-domain') {
-                            alert("Izin Ditolak: Domain/IP ini belum didaftarkan di Firebase.\n\nSolusi: Buka Firebase Console -> Authentication -> Settings -> Authorized Domains -> Tambahkan domain ini.");
-                        } else if (error.code === 'auth/popup-closed-by-user') {
-                            console.log("Login dibatalkan oleh user.");
-                        } else {
-                            alert("Login Gagal: " + error.message);
-                        }
-                    });
-            }
+            // Login dinonaktifkan.
         }
 
         // --- AUTO RECONNECT HANDLER (Fitur Baru) ---
@@ -783,45 +743,20 @@
         });
 
         function initApp() {
-            // Listener Status Login Firebase
-            if (auth) {
-                auth.onAuthStateChanged(user => {
-                    if (user) {
-                        // --- USER LOGIN ---
-                        currentUser = user;
-                        const emailEl = document.getElementById('user-display-email');
-                        if(emailEl) emailEl.innerText = user.displayName || user.email;
-                        
-                        // Update Profile Image di Home
-                        const profileImg = document.getElementById('home-profile-img');
-                        if(profileImg) profileImg.src = user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`;
-                        
-                        // Tampilkan konten, sembunyikan login overlay
-                        document.getElementById('auth-overlay').classList.add('hidden');
-                        document.getElementById('app-content').classList.remove('hidden');
-                        
-                        // Refresh peta agar tidak abu-abu
-                        setTimeout(() => { if(typeof map !== 'undefined') map.invalidateSize(); }, 100);
-                        
-                        // Load data user dari Firestore (Profil, dll) bisa ditambahkan di sini nanti
-                    } else {
-                        // --- USER LOGOUT ---
-                        currentUser = null;
-                        document.getElementById('auth-overlay').classList.remove('hidden');
-                        document.getElementById('app-content').classList.add('hidden');
-                        
-                        // Sembunyikan tombol close karena ini layar utama saat logout
-                        const closeBtn = document.getElementById('auth-close-btn');
-                        if(closeBtn) closeBtn.classList.add('hidden');
-                    }
-                });
-            } else {
-                // Fallback jika Firebase belum disetting (Mode Tamu Sementara)
-                console.warn("Running in Guest Mode (No Firebase)");
-                currentUser = { email: 'Guest', uid: 'guest_user' };
-                document.getElementById('auth-overlay').classList.add('hidden');
-                document.getElementById('app-content').classList.remove('hidden');
-            }
+            // LOGIN DINONAKTIFKAN: Langsung masuk sebagai Guest
+            console.warn("LOGIN DINONAKTIFKAN: Menjalankan aplikasi dalam Mode Tamu.");
+            currentUser = { email: 'Guest', uid: 'guest_user', displayName: 'Guest', photoURL: `https://api.dicebear.com/7.x/avataaars/svg?seed=guest_user` };
+            
+            // Update Profile Image di Home
+            const profileImg = document.getElementById('home-profile-img');
+            if(profileImg) profileImg.src = currentUser.photoURL;
+
+            // Tampilkan konten, sembunyikan login overlay
+            document.getElementById('auth-overlay').classList.add('hidden');
+            document.getElementById('app-content').classList.remove('hidden');
+            
+            // Refresh peta agar tidak abu-abu
+            setTimeout(() => { if(typeof map !== 'undefined') map.invalidateSize(); }, 100);
             
             // Buat modal untuk peta presipitasi
             if (typeof createPrecipitationModal === 'function') {
@@ -846,21 +781,12 @@
         }
 
         function logout() {
-            if (auth) {
-                auth.signOut().then(() => console.log("User logged out"));
-            } else {
-                location.reload();
-            }
+            // Login dinonaktifkan.
         }
 
         // --- PROFILE & LOGIN MENU ---
         function openProfile() {
-            const overlay = document.getElementById('auth-overlay');
-            overlay.classList.remove('hidden');
-            
-            // Tampilkan tombol close karena dibuka dari dalam aplikasi
-            const closeBtn = document.getElementById('auth-close-btn');
-            if(closeBtn) closeBtn.classList.remove('hidden');
+            // Login dinonaktifkan, fungsi ini tidak melakukan apa-apa.
         }
 
         function closeAuthOverlay() {
@@ -3279,17 +3205,17 @@
         // --- NAVIGATION SYSTEM (Moved from index.html) ---
         function navigateTo(pageId) {
             // Sembunyikan semua halaman
-            document.querySelectorAll('.view-section').forEach(el => {
+            document.querySelectorAll('.view-section').forEach(el => { //
                 el.classList.remove('active');
             });
             
             // Matikan efek cuaca jika keluar dari halaman cuaca
-            if (pageId !== 'weather' && typeof stopWeatherEffect === 'function') {
+            if (pageId !== 'weather' && typeof stopWeatherEffect === 'function') { //
                 stopWeatherEffect();
             }
 
             // Reset warna tombol nav
-            document.querySelectorAll('.nav-btn').forEach(btn => {
+            document.querySelectorAll('.nav-btn').forEach(btn => { //
                 btn.classList.remove('text-blue-400');
                 btn.classList.add('text-slate-400');
             });
@@ -3311,16 +3237,15 @@
                     setTimeout(() => { map.invalidateSize(); }, 100);
                 }
                 
-                // Khusus Cuaca: Selalu muat lokasi user (Override pin peta)
+                // Khusus Cuaca: Tampilkan panel cuaca untuk lokasi terakhir yang dipilih atau lokasi user
                 if(pageId === 'weather') {
-                    // Prioritaskan lokasi user
-                    if (typeof userLatlng !== 'undefined' && userLatlng) {
-                        if (typeof showLocationPanel === 'function') {
-                            showLocationPanel(userLatlng);
-                            if(typeof map !== 'undefined') map.flyTo(userLatlng, 15);
-                        }
+                    // Prioritaskan lokasi yang di-pin (tempLatlng), jika tidak ada, baru pakai lokasi user (userLatlng)
+                    // Ini mencegah peta kembali ke lokasi GPS saat membuka tab cuaca.
+                    const targetLatlng = tempLatlng || userLatlng;
+                    if (targetLatlng && typeof showLocationPanel === 'function') {
+                        showLocationPanel(targetLatlng);
                     } else {
-                        // Jika lokasi user belum ada, coba cari & tampilkan
+                        // Jika tidak ada lokasi sama sekali, coba cari lokasi user
                         if (typeof showUserWeatherPanel === 'function') showUserWeatherPanel();
                     }
                 }
