@@ -337,7 +337,14 @@
         const initLng = lastLng ? parseFloat(lastLng) : 106.8166;
         
         // Inisialisasi peta dengan menonaktifkan attribution default
-        var map = L.map('map', { zoomControl: false, attributionControl: false, layers: [satLayer] }).setView([initLat, initLng], lastLat ? 15 : 13);
+        var map = L.map('map', { 
+            zoomControl: false, 
+            attributionControl: false, 
+            layers: [satLayer],
+            minZoom: 3, // Diubah ke 3 agar jangkauan lebih luas tapi tetap aman
+            maxBounds: [[-85, -180], [85, 180]], // Batasi area panning (dunia)
+            maxBoundsViscosity: 1.0 // Efek pantul saat mentok batas
+        }).setView([initLat, initLng], lastLat ? 15 : 13);
 
         // BUAT PANE KHUSUS: Agar layer NASA (SST, Klorofil) selalu di atas peta dasar
         map.createPane('gibsPane');
