@@ -1424,7 +1424,14 @@ function checkWeatherAnimation(code, windSpeed = 0, isDay = true) {
     let type = 'clear'; // Default to clear (shows sky/sun/moon)
     if([95, 96, 99].includes(code)) type = 'storm';
     else if([71, 73, 75, 77, 85, 86].includes(code)) type = 'snow';
-    else if([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(code)) type = 'rain';
+    else if([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(code)) {
+        // LOGIKA NYATA: Jika terdeteksi hujan tapi suhu <= 1°C, ubah animasi jadi salju
+        if (currentWeatherData && currentWeatherData.current_weather && currentWeatherData.current_weather.temperature <= 1) {
+            type = 'snow';
+        } else {
+            type = 'rain';
+        }
+    }
     else if([1, 2, 3, 45, 48].includes(code)) type = 'cloudy'; // NEW: Tipe khusus berawan
     else if(windSpeed > 20) type = 'wind';
     
@@ -2128,7 +2135,12 @@ function updateWeatherUI(data) {
         if (hasRain) {
             // If current code is Clear/Cloudy (less than 51), force it to Drizzle (51)
             if (code < 51) {
-                code = 51; // Force Drizzle/Light Rain
+                // LOGIKA NYATA: Cek suhu. Jika <= 1°C anggap Salju (71), jika lebih anggap Hujan (51)
+                if (data.current_weather.temperature <= 1) {
+                    code = 71; // Force Snow
+                } else {
+                    code = 51; // Force Drizzle/Light Rain
+                }
             }
         }
     }
@@ -2626,6 +2638,7 @@ function updateWeatherUI(data) {
             const maxTemp = Math.round(data.daily.temperature_2m_max[i]);
             const minTemp = Math.round(data.daily.temperature_2m_min[i]);
             const code = data.daily.weathercode[i];
+            const isSnowDay = [71, 73, 75, 77, 85, 86].includes(code);
             const rainSum = data.daily.precipitation_sum[i];
             const rainProb = data.daily.precipitation_probability_max ? data.daily.precipitation_probability_max[i] : 0;
 
@@ -2660,7 +2673,7 @@ function updateWeatherUI(data) {
                 <div class="w-[22%] text-sm font-semibold text-slate-200 group-hover:text-white transition-colors truncate">${dayName}</div>
                 <div class="w-[18%] flex flex-col items-center justify-center">
                     ${iconHtml}
-                    ${rainProb >= 20 ? `<span class="text-[9px] font-bold text-blue-300 mt-0.5">${rainProb}%</span>` : ''}
+                    ${rainProb >= 20 ? `<span class="text-[9px] font-bold ${isSnowDay ? 'text-cyan-200' : 'text-blue-300'} mt-0.5">${rainProb}%</span>` : ''}
                 </div>
                 <div class="w-[60%] flex items-center gap-3 pl-1">
                     <span class="text-slate-200 text-xs font-medium w-6 text-right">${minTemp}°</span>
@@ -2763,7 +2776,7 @@ function getWeatherIcon(code) {
     if (code === 3) return 'cloud'; // Berawan
     if (code >= 45 && code <= 48) return 'cloud-fog'; // Kabut
     if (code >= 51 && code <= 67) return 'cloud-drizzle'; // Hujan Ringan
-    if (code >= 71 && code <= 77) return 'cloud-snow'; // Salju
+    if ((code >= 71 && code <= 77) || code === 85 || code === 86) return 'snowflake'; // Salju
     if (code >= 80 && code <= 82) return 'cloud-rain'; // Hujan Deras
     if (code >= 95) return 'cloud-lightning'; // Badai
     return 'sun'; // Default
@@ -2857,8 +2870,12 @@ function openDetailModal(dayIndex) {
     const rainSum = currentWeatherData.daily.precipitation_sum[dayIndex];
     
     let summary = extraDetailsHtml + `<div class="flex items-center gap-2"><i data-lucide="info" class="text-blue-400 w-4 h-4"></i> <p>Total presipitasi: ${rainSum}mm. `;
-    if(rainSum > 5) summary += "Siapkan jas hujan.";
-    else summary += "Cuaca relatif kering.";
+    if (isSnow) {
+        summary += "Turun salju, siapkan pakaian hangat.";
+    } else {
+        if(rainSum > 5) summary += "Siapkan jas hujan.";
+        else summary += "Cuaca relatif kering.";
+    }
     summary += "</p></div>";
     
     // --- NEW: Astro Visualization (Sun Position) ---
