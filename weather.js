@@ -705,34 +705,34 @@ function drawSkyBackground() {
         const sunsetHour = sunsetDate.getHours() + sunsetDate.getMinutes() / 60;
 
         // Definisi Keyframe Warna Langit (Jam -> Warna Top, Warna Bot)
-        // Menggunakan Biru Gelap (Deep Blue) untuk malam, dan warna sunset yang lebih lembut
+        // Menggunakan Hitam Pekat (True Dark) untuk malam
         skyKeys = [
-            { h: 0,               top: "#020617", bot: "#0f172a" },   // Midnight: Slate-950 -> Slate-900
-            { h: sunriseHour - 2, top: "#020617", bot: "#1e293b" },   // Pre-Dawn
-            { h: sunriseHour - 1, top: "#0f172a", bot: "#1e3a8a" },   // Dawn
+            { h: 0,               top: "#000000", bot: "#0a0a0a" },   // Midnight: Black -> Neutral-950
+            { h: sunriseHour - 2, top: "#000000", bot: "#171717" },   // Pre-Dawn
+            { h: sunriseHour - 1, top: "#0a0a0a", bot: "#1e3a8a" },   // Dawn
             { h: sunriseHour,     top: "#1e40af", bot: "#f97316" },   // Sunrise Moment
             { h: sunriseHour + 2, top: "#3b82f6", bot: "#bae6fd" },   // Morning
             { h: 12,              top: "#0ea5e9", bot: "#cffafe" },   // Noon
             { h: sunsetHour - 2,  top: "#2563eb", bot: "#fdba74" },   // Late Afternoon
             { h: sunsetHour,      top: "#1e3a8a", bot: "#f59e0b" },   // Sunset Moment: Blue-900 -> Amber-500 (Softer Orange)
-            { h: sunsetHour + 1,  top: "#172554", bot: "#0f172a" },   // Dusk: Deep Dark Blue, NO ORANGE/RED
-            { h: 24,              top: "#020617", bot: "#0f172a" }    // Loop back to Midnight
+            { h: sunsetHour + 1,  top: "#172554", bot: "#0a0a0a" },   // Dusk: Deep Dark Blue -> Neutral-950
+            { h: 24,              top: "#000000", bot: "#0a0a0a" }    // Loop back to Midnight
         ];
 
     } else {
         // Fallback ke jam tetap jika data API belum ada
         skyKeys = [
-            { h: 0, top: "#020617", bot: "#0f172a" },   // Midnight
-            { h: 4, top: "#020617", bot: "#1e293b" },   // Pre-Dawn
-            { h: 5, top: "#0f172a", bot: "#1e3a8a" },   // Dawn
+            { h: 0, top: "#000000", bot: "#0a0a0a" },   // Midnight
+            { h: 4, top: "#000000", bot: "#171717" },   // Pre-Dawn
+            { h: 5, top: "#0a0a0a", bot: "#1e3a8a" },   // Dawn
             { h: 6, top: "#1e40af", bot: "#f97316" },   // Sunrise
             { h: 8, top: "#3b82f6", bot: "#bae6fd" },   // Morning
             { h: 12, top: "#0ea5e9", bot: "#cffafe" },  // Noon
             { h: 16, top: "#2563eb", bot: "#fdba74" },  // Late Afternoon
             { h: 17, top: "#1d4ed8", bot: "#f59e0b" },  // Pre-Sunset (Amber)
             { h: 18, top: "#1e3a8a", bot: "#f59e0b" },  // Sunset (Amber)
-            { h: 19, top: "#172554", bot: "#0f172a" },  // Dusk (Deep Blue)
-            { h: 24, top: "#020617", bot: "#0f172a" }   // Loop back
+            { h: 19, top: "#172554", bot: "#0a0a0a" },  // Dusk
+            { h: 24, top: "#000000", bot: "#0a0a0a" }   // Loop back
         ];
     }
 
@@ -740,18 +740,18 @@ function drawSkyBackground() {
 
     // --- NEW: Override based on active animation type (Immediate Visual Feedback) ---
     if (currentWxType === 'storm') {
-        top = "#0f172a"; bot = "#1e1b4b"; // Deep Storm Blue
+        top = "#0a0a0a"; bot = "#1e1b4b"; // Deep Storm
     } else if (currentWxType === 'rain') {
         // Cek waktu (siang/malam) berdasarkan floatHour
         const isDay = (floatHour > 6 && floatHour < 18);
         if(isDay) { top = "#334155"; bot = "#64748b"; } // Slate-700 -> Slate-500 (Gloomy Day)
-        else { top = "#020617"; bot = "#1e293b"; } // Slate-950 -> Slate-800 (Dark Night)
+        else { top = "#000000"; bot = "#171717"; } // Black -> Neutral-900 (Dark Night)
     } else if (wxCode >= 95) { // Badai (Sangat Gelap)
-        top = "#020617"; bot = "#1e1b4b"; 
+        top = "#000000"; bot = "#1e1b4b"; 
     } else if (wxCode >= 51 || wxCode === 3) { // Hujan / Mendung Tebal
         const isDaytimeCloudy = (skyKeys.length > 4 && skyKeys[3].h && skyKeys[7].h) ? (floatHour > skyKeys[3].h && floatHour < skyKeys[7].h) : (floatHour > 6 && floatHour < 18);
         if(isDaytimeCloudy) { top = "#475569"; bot = "#94a3b8"; } // Siang Kelabu
-        else { top = "#0f172a"; bot = "#334155"; } // Malam Kelabu
+        else { top = "#0a0a0a"; bot = "#334155"; } // Malam Kelabu
     } else {
         // Interpolasi Warna Berdasarkan Waktu
         // Cari segmen waktu saat ini
@@ -1151,8 +1151,8 @@ function drawLandscape() {
     // untuk menciptakan efek siluet atmosferik yang realistis. Ini membuat
     // warna gunung menyatu dengan transisi warna langit saat sunrise/sunset.
     const baseColor = currentSkyBot; // Ambil warna horizon dari cache
-    const backColor = lerpColor(baseColor, '#020617', 0.4); // Gelapkan 40% untuk gunung belakang
-    const frontColor = lerpColor(baseColor, '#020617', 0.7); // Gelapkan 70% untuk gunung depan
+    const backColor = lerpColor(baseColor, '#000000', 0.4); // Gelapkan 40% untuk gunung belakang
+    const frontColor = lerpColor(baseColor, '#000000', 0.7); // Gelapkan 70% untuk gunung depan
 
     // 1. Gunung Belakang (Layer Jauh - Lebih Pudar)
     ctx.fillStyle = backColor;
@@ -1354,7 +1354,7 @@ function stopWeatherEffect() {
     
     // FIX: Cek tema aktif (Light/Dark) agar status bar kembali sesuai tema aplikasi
     const isLight = document.body.classList.contains('light-mode');
-    const defaultColor = isLight ? "#ffffff" : "#0f172a";
+    const defaultColor = isLight ? "#ffffff" : "#000000";
     
     if(metaTheme) metaTheme.content = defaultColor;
 
@@ -1502,7 +1502,7 @@ function injectResponsiveStyles() {
             /* Membuat menu navigasi bawah melayang & rapi di tengah layar PC */
             nav, 
             div.fixed.bottom-0.w-full.z-50:not(#location-panel), 
-            div.fixed.bottom-0.w-full.bg-slate-900:not(#location-panel) {
+            div.fixed.bottom-0.w-full.bg-black:not(#location-panel) {
                 max-width: 500px !important;
                 left: 50% !important;
                 transform: translateX(-50%) !important;
@@ -1714,7 +1714,7 @@ async function showLocationPanel(latlng) {
     // 2. Setup Daily Forecast Skeleton (Forecast List)
     const list = document.getElementById('forecast-list');
     if (list) {
-        list.className = "mx-0 bg-slate-900/30 backdrop-blur-xl rounded-xl border border-white/20 p-2 shadow-lg";
+        list.className = "mx-0 bg-neutral-900/30 backdrop-blur-xl rounded-xl border border-white/20 p-2 shadow-lg";
         let dailySkeleton = `
             <div class="px-2 py-2 mb-2 flex items-center gap-2 border-b border-white/5">
                 <i data-lucide="calendar" class="w-4 h-4 text-slate-400"></i> 
@@ -1724,14 +1724,14 @@ async function showLocationPanel(latlng) {
         for(let i=0; i<7; i++) {
             dailySkeleton += `
                 <div class="flex items-center justify-between py-3 px-3 mx-2 mb-0 border-b border-white/5 last:border-0 animate-pulse">
-                    <div class="w-[22%] h-3 bg-slate-700/50 rounded"></div>
+                    <div class="w-[22%] h-3 bg-neutral-700/50 rounded"></div>
                     <div class="w-[18%] flex flex-col items-center justify-center">
-                        <div class="w-6 h-6 bg-slate-700/50 rounded-full"></div>
+                        <div class="w-6 h-6 bg-neutral-700/50 rounded-full"></div>
                     </div>
                     <div class="w-[60%] flex items-center gap-3 pl-1">
-                        <div class="w-6 h-3 bg-slate-700/50 rounded"></div>
-                        <div class="flex-1 h-1.5 bg-slate-700/50 rounded-full"></div>
-                        <div class="w-6 h-3 bg-slate-700/50 rounded"></div>
+                        <div class="w-6 h-3 bg-neutral-700/50 rounded"></div>
+                        <div class="flex-1 h-1.5 bg-neutral-700/50 rounded-full"></div>
+                        <div class="w-6 h-3 bg-neutral-700/50 rounded"></div>
                     </div>
                 </div>`;
         }
@@ -1833,7 +1833,7 @@ async function showLocationPanel(latlng) {
     detailCards.forEach(card => {
         card.classList.add('weather-card-fixed'); // Tambahkan class layout tetap
         // LIQUID GLASS STYLE: Lebih transparan (0.3), Blur lebih kuat (16px)
-        card.style.setProperty('background-color', 'rgba(15, 23, 42, 0.3)', 'important'); 
+        card.style.setProperty('background-color', 'rgba(10, 10, 10, 0.5)', 'important'); 
         card.style.setProperty('backdrop-filter', 'blur(16px)', 'important');
         card.style.setProperty('-webkit-backdrop-filter', 'blur(16px)', 'important');
         card.style.setProperty('border', '1px solid rgba(255, 255, 255, 0.2)', 'important');
@@ -2336,7 +2336,7 @@ function updateWeatherUI(data) {
 
         // --- MODIFIED: Pisahkan Precip Chart, tapi Gabungkan Summary ke Hourly ---
         // LIQUID GLASS STYLE: bg-slate-900/30 (Transparan), backdrop-blur-xl (Blur Kuat)
-        const cardClass = "mx-0 mb-3 bg-slate-900/30 backdrop-blur-xl rounded-xl border border-white/20 shadow-lg overflow-hidden p-1";
+        const cardClass = "mx-0 mb-3 bg-neutral-900/30 backdrop-blur-xl rounded-xl border border-white/20 shadow-lg overflow-hidden p-1";
 
         // 1. Precip Chart Card (Hidden by default) - Separate
         const precipCard = document.createElement('div');
@@ -2456,7 +2456,7 @@ function updateWeatherUI(data) {
                 const maxP = Math.max(...nextSlots.map(s => s.v), 1); // Scaling
                 let barsHtml = nextSlots.map(s => {
                     const heightPct = Math.min((s.v / maxP) * 100, 100);
-                    const barColor = s.v > 0.05 ? 'bg-blue-400 shadow-[0_0_10px_rgba(96,165,250,0.5)]' : 'bg-slate-700/30';
+                    const barColor = s.v > 0.05 ? 'bg-blue-400 shadow-[0_0_10px_rgba(96,165,250,0.5)]' : 'bg-neutral-700/30';
                     return `<div class="flex flex-col items-center justify-end h-20 flex-1 gap-1"><div class="w-1 rounded-full ${barColor} transition-all duration-500" style="height: ${Math.max(heightPct, 5)}%"></div><span class="text-[9px] text-slate-400 font-mono">${s.label}</span></div>`;
                 }).join('');
 
@@ -2642,7 +2642,7 @@ function updateWeatherUI(data) {
         }
 
         const list = document.getElementById('forecast-list');
-        list.className = "mx-0 bg-slate-900/30 backdrop-blur-xl rounded-xl border border-white/20 p-2 shadow-lg"; // Style Kartu 7 Hari (Liquid Glass)
+        list.className = "mx-0 bg-neutral-900/30 backdrop-blur-xl rounded-xl border border-white/20 p-2 shadow-lg"; // Style Kartu 7 Hari (Liquid Glass)
         list.innerHTML = ''; // Clear
 
         // --- RESTORED: Judul Header Kartu 7 Hari (Internal) ---
@@ -2787,7 +2787,7 @@ function openRouteModal() {
             <div class="z-10 mt-1 ${iconBg} p-2 rounded-full border shrink-0 shadow-sm transition-all group-hover:scale-110 group-hover:shadow-blue-500/20">
                 <i data-lucide="${icon}" class="w-4 h-4 ${iconColor}"></i>
             </div>
-            <div class="flex-1 bg-slate-800/30 p-3 rounded-xl border border-white/5 hover:bg-slate-800 hover:border-blue-500/30 transition-all">
+            <div class="flex-1 bg-neutral-800/30 p-3 rounded-xl border border-white/5 hover:bg-neutral-800 hover:border-blue-500/30 transition-all">
                 <div class="flex justify-between items-start mb-1">
                     <p class="font-bold text-white text-sm leading-tight">${actionText}</p>
                     <span class="text-[10px] font-mono text-slate-400 bg-black/20 px-1.5 py-0.5 rounded border border-white/5">${dist}</span>
@@ -2873,27 +2873,27 @@ function openDetailModal(dayIndex) {
 
     const extraDetailsHtml = `
         <div class="grid grid-cols-3 gap-2 mb-4 mt-2">
-            <div class="bg-slate-800/50 p-2 rounded-xl border border-white/5 text-center">
+            <div class="bg-neutral-800/50 p-2 rounded-xl border border-white/5 text-center">
                 <p class="text-[9px] text-slate-400 uppercase font-bold">Terasa Spt</p>
                 <p class="text-sm font-bold text-white">${feelsLike}°</p>
             </div>
-            <div class="bg-slate-800/50 p-2 rounded-xl border border-white/5 text-center">
+            <div class="bg-neutral-800/50 p-2 rounded-xl border border-white/5 text-center">
                 <p class="text-[9px] text-slate-400 uppercase font-bold">Awan</p>
                 <p class="text-sm font-bold text-white">${cloudCover}<span class="text-[9px]">%</span></p>
             </div>
-            <div class="bg-slate-800/50 p-2 rounded-xl border border-white/5 text-center">
+            <div class="bg-neutral-800/50 p-2 rounded-xl border border-white/5 text-center">
                 <p class="text-[9px] text-slate-400 uppercase font-bold">Gust Angin</p>
                 <p class="text-sm font-bold text-white">${windGust} <span class="text-[9px]">km/h</span></p>
             </div>
-            <div class="bg-slate-800/50 p-2 rounded-xl border border-white/5 text-center">
+            <div class="bg-neutral-800/50 p-2 rounded-xl border border-white/5 text-center">
                 <p class="text-[9px] text-slate-400 uppercase font-bold">Titik Embun</p>
                 <p class="text-sm font-bold text-white">${dewPoint}°</p>
             </div>
-            <div class="bg-slate-800/50 p-2 rounded-xl border border-white/5 text-center">
+            <div class="bg-neutral-800/50 p-2 rounded-xl border border-white/5 text-center">
                 <p class="text-[9px] text-slate-400 uppercase font-bold">Visibilitas</p>
                 <p class="text-sm font-bold text-white">${visibility} <span class="text-[9px]">km</span></p>
             </div>
-            <div class="bg-slate-800/50 p-2 rounded-xl border border-white/5 text-center">
+            <div class="bg-neutral-800/50 p-2 rounded-xl border border-white/5 text-center">
                 <p class="text-[9px] text-slate-400 uppercase font-bold">Tren Barometer</p>
                 <p class="text-sm font-bold ${pTrend === 'Turun' ? 'text-red-400' : 'text-emerald-400'}">${pTrend}</p>
             </div>
@@ -2933,7 +2933,7 @@ function openDetailModal(dayIndex) {
         const sunRotate = (sunPct * (maxRot * 2)) - maxRot;
 
         summary += `
-            <div class="relative h-28 w-full overflow-hidden mt-4 mb-2 bg-slate-800/30 rounded-xl border border-white/5 pt-4">
+            <div class="relative h-28 w-full overflow-hidden mt-4 mb-2 bg-neutral-800/30 rounded-xl border border-white/5 pt-4">
                 <p class="absolute top-2 left-0 w-full text-center text-[10px] text-slate-400 uppercase font-bold tracking-widest">Posisi Matahari</p>
                 <div class="absolute -bottom-4 left-1/2 -translate-x-1/2 w-56 h-28 border-t-2 border-dashed border-yellow-500/20 rounded-t-full"></div>
                 <div class="absolute -bottom-4 left-1/2 -translate-x-1/2 w-56 h-28">
@@ -2944,8 +2944,8 @@ function openDetailModal(dayIndex) {
                     </div>
                 </div>
                 <div class="absolute bottom-2 w-full flex justify-between px-4 text-[10px] font-bold text-slate-400">
-                    <span class="bg-slate-900/50 px-2 py-0.5 rounded text-yellow-500/80">${currentWeatherData.daily.sunrise[dayIndex].split('T')[1]}</span>
-                    <span class="bg-slate-900/50 px-2 py-0.5 rounded text-orange-500/80">${currentWeatherData.daily.sunset[dayIndex].split('T')[1]}</span>
+                    <span class="bg-black/50 px-2 py-0.5 rounded text-yellow-500/80">${currentWeatherData.daily.sunrise[dayIndex].split('T')[1]}</span>
+                    <span class="bg-black/50 px-2 py-0.5 rounded text-orange-500/80">${currentWeatherData.daily.sunset[dayIndex].split('T')[1]}</span>
                 </div>
             </div>
         `;
@@ -3065,7 +3065,7 @@ function openDetailModal(dayIndex) {
             `;
         } else {
             recommendationsHtml += `
-                <div class="flex items-start gap-3 bg-slate-800 p-3 rounded-lg border border-slate-700 text-slate-400 text-xs">
+                <div class="flex items-start gap-3 bg-neutral-800 p-3 rounded-lg border border-neutral-700 text-slate-400 text-xs">
                     <i data-lucide="moon-star" class="w-5 h-5 text-slate-500 shrink-0 mt-0.5"></i>
                     <p class="leading-relaxed"><b>Waktu Premium Tidak Ditemukan:</b> Cuaca kurang mendukung pada jam-jam aktif ikan. Cari spot terlindung.</p>
                 </div>
@@ -3074,7 +3074,7 @@ function openDetailModal(dayIndex) {
         
         // NEW: Detailed Solunar Explanation
         recommendationsHtml += `
-            <div class="flex items-start gap-3 bg-slate-800 p-3 rounded-lg border border-slate-700 text-slate-400 text-xs">
+            <div class="flex items-start gap-3 bg-neutral-800 p-3 rounded-lg border border-neutral-700 text-slate-400 text-xs">
                 <i data-lucide="moon" class="w-5 h-5 text-purple-400 shrink-0 mt-0.5"></i>
                 <div>
                     <p class="font-bold text-purple-300 mb-1">Info Solunar & Pasang Surut</p>
@@ -3111,7 +3111,7 @@ function openDetailModal(dayIndex) {
     modal.style.setProperty('max-height', 'none', 'important');
     modal.style.setProperty('max-width', 'none', 'important');
     modal.style.setProperty('margin', '0', 'important');
-    modal.style.setProperty('background-color', '#0f172a', 'important');
+    modal.style.setProperty('background-color', '#000000', 'important');
     modal.style.setProperty('overflow-y', 'auto', 'important'); // Pastikan bisa di-scroll
     modal.style.setProperty('padding-bottom', '80px', 'important');
     
@@ -3162,12 +3162,12 @@ function switchChart(type) {
     // Update Tabs UI
     document.querySelectorAll('.chart-tab').forEach(btn => {
         btn.classList.remove('active', 'bg-blue-600', 'text-white', 'border-blue-600');
-        btn.classList.add('bg-slate-800/50', 'text-slate-400', 'border-white/10');
+        btn.classList.add('bg-neutral-800/50', 'text-slate-400', 'border-white/10');
     });
     const activeBtn = document.getElementById(`tab-${type}`);
     if(activeBtn) {
         activeBtn.classList.add('active', 'bg-blue-600', 'text-white', 'border-blue-600');
-        activeBtn.classList.remove('bg-slate-800/50', 'text-slate-400', 'border-white/10');
+        activeBtn.classList.remove('bg-neutral-800/50', 'text-slate-400', 'border-white/10');
     }
     renderChart();
 }
@@ -3367,7 +3367,7 @@ function showMetricInsight(type) {
 
     // --- NEW: Reposition the insight panel (Standalone Card) ---
     // Apply card styles
-    panel.className = "mx-0 mb-3 bg-slate-900/30 backdrop-blur-xl rounded-xl border border-white/20 shadow-lg overflow-hidden p-4 hidden";
+    panel.className = "mx-0 mb-3 bg-neutral-900/30 backdrop-blur-xl rounded-xl border border-white/20 shadow-lg overflow-hidden p-4 hidden";
     
     // Insert BEFORE the precip card (or hourly card if precip missing)
     const precipCard = document.getElementById('precip-card');
@@ -3541,7 +3541,7 @@ async function fetchEarthquakeInfo() {
         quakeContainer = document.createElement('div');
         quakeContainer.id = 'quake-container';
         // Style mirip dengan kartu prakiraan cuaca (Liquid Glass)
-        quakeContainer.className = "mx-0 mt-3 bg-slate-900/30 backdrop-blur-xl rounded-xl border border-white/20 p-2 shadow-lg";
+        quakeContainer.className = "mx-0 mt-3 bg-neutral-900/30 backdrop-blur-xl rounded-xl border border-white/20 p-2 shadow-lg";
         
         // MODIFIED: Cek apakah ada AQI container. Jika ada, taruh Gempa DI BAWAH AQI.
         const aqiContainer = document.getElementById('aqi-container');
@@ -3594,7 +3594,7 @@ async function fetchEarthquakeInfo() {
                 else if(mag >= 5.0) { magColor = 'text-orange-400'; borderColor = 'border-orange-500/40'; }
 
                 const item = document.createElement('div');
-                item.className = `flex items-center justify-between p-3 rounded-lg bg-slate-800/50 border ${borderColor} hover:bg-slate-800 transition-colors`;
+                item.className = `flex items-center justify-between p-3 rounded-lg bg-neutral-800/50 border ${borderColor} hover:bg-neutral-800 transition-colors`;
                 
                 item.innerHTML = `
                     <div class="flex items-center gap-3 overflow-hidden">
@@ -3650,7 +3650,7 @@ function updateAqiUI(aqi) {
         aqiContainer = document.createElement('div');
         aqiContainer.id = 'aqi-container';
         // Style mirip kartu gempa (Liquid Glass)
-        aqiContainer.className = "mx-0 mt-3 bg-slate-900/30 backdrop-blur-xl rounded-xl border border-white/20 p-3 shadow-lg";
+        aqiContainer.className = "mx-0 mt-3 bg-neutral-900/30 backdrop-blur-xl rounded-xl border border-white/20 p-3 shadow-lg";
     }
 
     // Tentukan warna & status
