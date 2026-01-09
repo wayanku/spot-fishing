@@ -31,7 +31,7 @@ function initCloudAssets() {
     const assets = document.createElement('div');
     assets.id = 'cloud-assets';
     assets.innerHTML = `
-        <div id="sky-gradient" style="position:fixed; top:0; left:0; width:100%; height:100%; z-index:40; pointer-events:none;"></div>
+        <div id="sky-gradient" style="position:fixed; top:0; left:0; width:100%; height:100vh; z-index:40; pointer-events:none;"></div>
         <svg width="0" height="0" style="position:absolute; z-index:-1;">
             <filter id="filter-base">
                 <feTurbulence type="fractalNoise" baseFrequency="0.011" numOctaves="5" seed="8517" />     
@@ -254,6 +254,29 @@ function initWeatherSystem() {
     resizeCanvas();
     initPWA(); // Initialize PWA Logic
     weatherAudio.init(); // Preload audio files
+
+    // --- NEW: Inject Fullscreen Meta Tags for Status Bar Transparency ---
+    // 1. Viewport Fit Cover (Agar konten tembus ke area notch/status bar)
+    let metaViewport = document.querySelector('meta[name="viewport"]');
+    if (metaViewport) {
+        if (!metaViewport.content.includes('viewport-fit=cover')) {
+            metaViewport.content += ', viewport-fit=cover';
+        }
+    } else {
+        metaViewport = document.createElement('meta');
+        metaViewport.name = "viewport";
+        metaViewport.content = "width=device-width, initial-scale=1, viewport-fit=cover";
+        document.head.appendChild(metaViewport);
+    }
+
+    // 2. iOS Status Bar Translucent (Agar transparan di PWA/Home Screen)
+    let metaApple = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+    if (!metaApple) {
+        metaApple = document.createElement('meta');
+        metaApple.name = "apple-mobile-web-app-status-bar-style";
+        document.head.appendChild(metaApple);
+    }
+    metaApple.content = "black-translucent"; // Kunci agar background menyatu
 }
 
 // --- NEW: Audio Manager ---
