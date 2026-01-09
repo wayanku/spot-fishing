@@ -2252,7 +2252,14 @@ function updateWeatherUI(data) {
         if(hTemp) { hTemp.innerHTML = ""; hTemp.innerText = `${Math.round(data.current_weather.temperature)}°`; }
         
         const hMinMax = document.getElementById('header-minmax');
-        if(hMinMax) { hMinMax.innerHTML = ""; hMinMax.innerText = `Tertinggi: ${Math.round(data.daily.temperature_2m_max[0])}° Terendah: ${Math.round(data.daily.temperature_2m_min[0])}°`; }
+        if(hMinMax) { 
+            hMinMax.innerHTML = ""; 
+            if (data.daily && data.daily.temperature_2m_max && data.daily.temperature_2m_min) {
+                hMinMax.innerText = `Tertinggi: ${Math.round(data.daily.temperature_2m_max[0])}° Terendah: ${Math.round(data.daily.temperature_2m_min[0])}°`; 
+            } else {
+                hMinMax.innerText = "-- / --";
+            }
+        }
         
         document.getElementById('header-time').innerText = localTimeStr;
     }
@@ -2304,7 +2311,7 @@ function updateWeatherUI(data) {
     }
     
     // Data Matahari (Sunrise/Sunset)
-    if(data.daily) {
+    if(data.daily && data.daily.sunrise && data.daily.sunset) {
         const sunrise = data.daily.sunrise[0].split('T')[1];
         const sunset = data.daily.sunset[0].split('T')[1];
         document.getElementById('wx-sun').innerHTML = `<div class="flex items-center justify-center gap-1"><i data-lucide="sunrise" class="w-3 h-3 text-yellow-300"></i> ${sunrise}</div><div class="flex items-center justify-center gap-1"><i data-lucide="sunset" class="w-3 h-3 text-orange-400"></i> ${sunset}</div>`;
@@ -2532,7 +2539,7 @@ function updateWeatherUI(data) {
                 }
             }
             
-            const maxWind = data.daily.windspeed_10m_max[0];
+            const maxWind = (data.daily.windspeed_10m_max) ? data.daily.windspeed_10m_max[0] : 0;
             let summaryText = `${smartText} Angin hingga <strong>${maxWind} km/j</strong>.`;
             hourlySummaryContainer.innerHTML = `<p>${summaryText}</p>`;
         }
@@ -2561,19 +2568,21 @@ function updateWeatherUI(data) {
         }
 
         // Tambahkan acara matahari terbit/terbenam untuk hari ini dan besok
-        const todaySunrise = new Date(data.daily.sunrise[0]);
-        const todaySunset = new Date(data.daily.sunset[0]);
-        if (data.daily.sunrise[1]) {
-            const tomorrowSunrise = new Date(data.daily.sunrise[1]);
-            if (tomorrowSunrise > now && tomorrowSunrise < endOfForecast) {
-                timelineEvents.push({ type: 'sunrise', date: tomorrowSunrise });
+        if (data.daily.sunrise && data.daily.sunset) {
+            const todaySunrise = new Date(data.daily.sunrise[0]);
+            const todaySunset = new Date(data.daily.sunset[0]);
+            if (data.daily.sunrise[1]) {
+                const tomorrowSunrise = new Date(data.daily.sunrise[1]);
+                if (tomorrowSunrise > now && tomorrowSunrise < endOfForecast) {
+                    timelineEvents.push({ type: 'sunrise', date: tomorrowSunrise });
+                }
             }
-        }
-        if (todaySunrise > now && todaySunrise < endOfForecast) {
-            timelineEvents.push({ type: 'sunrise', date: todaySunrise });
-        }
-        if (todaySunset > now && todaySunset < endOfForecast) {
-            timelineEvents.push({ type: 'sunset', date: todaySunset });
+            if (todaySunrise > now && todaySunrise < endOfForecast) {
+                timelineEvents.push({ type: 'sunrise', date: todaySunrise });
+            }
+            if (todaySunset > now && todaySunset < endOfForecast) {
+                timelineEvents.push({ type: 'sunset', date: todaySunset });
+            }
         }
 
         // 2. Urutkan semua acara berdasarkan waktu
@@ -2903,7 +2912,7 @@ function openDetailModal(dayIndex) {
     // Render Summary Text
     const dailyCode = currentWeatherData.daily.weathercode[dayIndex];
     const isSnow = [71, 73, 75, 77, 85, 86].includes(dailyCode);
-    const rainSum = currentWeatherData.daily.precipitation_sum[dayIndex];
+    const rainSum = currentWeatherData.daily.precipitation_sum ? currentWeatherData.daily.precipitation_sum[dayIndex] : 0;
     
     let summary = extraDetailsHtml + `<div class="flex items-center gap-2"><i data-lucide="info" class="text-blue-400 w-4 h-4"></i> <p>Total presipitasi: ${rainSum}mm. `;
     if (isSnow) {
@@ -2916,9 +2925,11 @@ function openDetailModal(dayIndex) {
     
     // --- NEW: Astro Visualization (Sun Position) ---
     const nowTime = new Date().getTime();
-    const riseTime = new Date(currentWeatherData.daily.sunrise[dayIndex]).getTime();
-    const setTime = new Date(currentWeatherData.daily.sunset[dayIndex]).getTime();
     let sunPct = -1; // Default hidden
+    
+    if (currentWeatherData.daily.sunrise && currentWeatherData.daily.sunset) {
+        const riseTime = new Date(currentWeatherData.daily.sunrise[dayIndex]).getTime();
+        const setTime = new Date(currentWeatherData.daily.sunset[dayIndex]).getTime();
     
     // Only show for Today
     if (new Date().toDateString() === dateObj.toDateString()) {
@@ -2949,6 +2960,7 @@ function openDetailModal(dayIndex) {
                 </div>
             </div>
         `;
+    }
     }
 
     document.getElementById('rain-summary').innerHTML = summary;
@@ -2998,8 +3010,8 @@ function openDetailModal(dayIndex) {
         
         // 1. Analisa Bahaya (Warnings)
         const dCode = currentWeatherData.daily.weathercode[dayIndex];
-        const dWind = currentWeatherData.daily.windspeed_10m_max[dayIndex];
-        const dRain = currentWeatherData.daily.precipitation_sum[dayIndex];
+        const dWind = currentWeatherData.daily.windspeed_10m_max ? currentWeatherData.daily.windspeed_10m_max[dayIndex] : 0;
+        const dRain = currentWeatherData.daily.precipitation_sum ? currentWeatherData.daily.precipitation_sum[dayIndex] : 0;
         const dWave = currentWeatherData.hourly.wave_height ? Math.max(...currentWeatherData.hourly.wave_height.slice(dayIndex*24, (dayIndex+1)*24)) : 0;
 
         if([95, 96, 99].includes(dCode)) aiWarnings.push({ icon: 'cloud-lightning', text: "<b>BAHAYA PETIR:</b> Sebaiknya jangan melaut di area terbuka." });
