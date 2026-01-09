@@ -1262,23 +1262,6 @@
             const btn = document.getElementById('btnSaveSpot');
             const oldText = btn.innerText;
             
-            // 0. Validasi Lokasi (Anti-Gunung/Darat) - Skip untuk Kontribusi/Ulasan agar lebih cepat
-            if (!isContributionMode) {
-                btn.innerHTML = '<i data-lucide="map-pin" class="w-3 h-3 inline mr-1 animate-bounce"></i> Cek Lokasi...';
-                lucide.createIcons();
-                btn.disabled = true;
-                
-                const locCheck = await checkLocationValidity(tempLatlng.lat, tempLatlng.lng);
-                if(!locCheck.valid) {
-                    const proceed = confirm(`⚠️ Peringatan Lokasi\n\n${locCheck.reason}\nSistem mendeteksi ini bukan perairan.\n\nApakah Anda yakin lokasi ini benar (misal: Danau di Gunung)?`);
-                    if(!proceed) {
-                        btn.innerText = oldText;
-                        btn.disabled = false;
-                        return;
-                    }
-                }
-            }
-            
             // 0.5. Kompresi Gambar (PENTING: Mencegah Crash Memori iPhone)
             if (originalFile) {
                 btn.innerText = "Memproses...";
