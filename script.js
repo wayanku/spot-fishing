@@ -3236,6 +3236,12 @@
             const target = document.getElementById('view-' + pageId);
             if(target) {
                 target.classList.add('active');
+
+                // --- FIX: Refresh Data Home saat Navigasi ---
+                if(pageId === 'home') {
+                    if(typeof loadHomeFeed === 'function') loadHomeFeed();
+                    if(typeof loadHomeWidgetData === 'function') loadHomeWidgetData();
+                }
                 
                 // Highlight tombol nav
                 const navBtn = document.getElementById('nav-' + pageId);
