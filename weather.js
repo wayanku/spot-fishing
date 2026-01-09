@@ -277,6 +277,26 @@ function initWeatherSystem() {
         document.head.appendChild(metaApple);
     }
     metaApple.content = "black-translucent"; // Kunci agar background menyatu
+
+    // 3. iOS Web App Capable (Agar benar-benar full screen tanpa bar browser)
+    let metaCapable = document.querySelector('meta[name="apple-mobile-web-app-capable"]');
+    if (!metaCapable) {
+        metaCapable = document.createElement('meta');
+        metaCapable.name = "apple-mobile-web-app-capable";
+        metaCapable.content = "yes";
+        document.head.appendChild(metaCapable);
+    }
+
+    // --- FIX: Hilangkan Celah di Bawah Navigasi (Home Indicator Area) ---
+    // Memastikan background navigasi menutupi area paling bawah
+    const navFixStyle = document.createElement('style');
+    navFixStyle.innerHTML = `
+        div.fixed.bottom-0.z-50:not(#location-panel) {
+            padding-bottom: env(safe-area-inset-bottom) !important;
+            background-color: #0f172a; /* Warna Slate-900 agar menyatu */
+        }
+    `;
+    document.head.appendChild(navFixStyle);
 }
 
 // --- NEW: Audio Manager ---
