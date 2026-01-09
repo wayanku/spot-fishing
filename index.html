@@ -143,44 +143,8 @@
 
                 <!-- Feed -->
                 <h3 class="text-lg font-bold text-white mb-4">Terbaru di Bali</h3>
-                <div class="space-y-6">
-                    <!-- Feed Item 1 -->
-                    <div class="bg-slate-800/50 rounded-3xl p-4 border border-white/5">
-                        <div class="flex items-center gap-3 mb-3">
-                            <div class="w-8 h-8 rounded-full bg-slate-700 overflow-hidden"><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" class="w-full h-full"></div>
-                            <div>
-                                <p class="text-sm font-bold text-white">Budi Santoso</p>
-                                <p class="text-[10px] text-slate-400">2 jam yang lalu • Pantai Sanur</p>
-                            </div>
-                            <button class="ml-auto text-slate-500"><i data-lucide="more-horizontal" class="w-4 h-4"></i></button>
-                        </div>
-                        <div class="aspect-video rounded-2xl bg-slate-900 mb-3 overflow-hidden relative">
-                            <img src="https://images.unsplash.com/photo-1535591273668-578e31182c4f?q=80&w=1000&auto=format&fit=crop" class="w-full h-full object-cover">
-                            <div class="absolute bottom-2 right-2 bg-black/60 backdrop-blur-md px-2 py-1 rounded-lg text-[10px] font-bold text-white flex items-center gap-1">
-                                <i data-lucide="fish" class="w-3 h-3 text-emerald-400"></i> 5.2 KG
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-4">
-                            <button class="flex items-center gap-1 text-slate-400 hover:text-red-400 transition-colors"><i data-lucide="heart" class="w-5 h-5"></i> <span class="text-xs font-bold">24</span></button>
-                            <button class="flex items-center gap-1 text-slate-400 hover:text-blue-400 transition-colors"><i data-lucide="message-circle" class="w-5 h-5"></i> <span class="text-xs font-bold">5</span></button>
-                            <button class="ml-auto text-blue-400 text-xs font-bold" onclick="navigateTo('map')">Lihat Lokasi</button>
-                        </div>
-                    </div>
-                    <!-- Feed Item 2 -->
-                    <div class="bg-slate-800/50 rounded-3xl p-4 border border-white/5">
-                        <div class="flex items-center gap-3 mb-3">
-                            <div class="w-8 h-8 rounded-full bg-slate-700 overflow-hidden"><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=John" class="w-full h-full"></div>
-                            <div>
-                                <p class="text-sm font-bold text-white">Wayan Gede</p>
-                                <p class="text-[10px] text-slate-400">5 jam yang lalu • Nusa Penida</p>
-                            </div>
-                        </div>
-                        <p class="text-sm text-slate-300 mb-3">Arus lumayan kencang hari ini, tapi hasil memuaskan! GT 15kg landed.</p>
-                        <div class="flex items-center gap-4">
-                            <button class="flex items-center gap-1 text-slate-400 hover:text-red-400 transition-colors"><i data-lucide="heart" class="w-5 h-5"></i> <span class="text-xs font-bold">112</span></button>
-                            <button class="flex items-center gap-1 text-slate-400 hover:text-blue-400 transition-colors"><i data-lucide="message-circle" class="w-5 h-5"></i> <span class="text-xs font-bold">34</span></button>
-                        </div>
-                    </div>
+                <div id="home-feed-container" class="space-y-6">
+                    <div class="text-center text-slate-500 py-10 animate-pulse">Memuat feed terbaru...</div>
                 </div>
             </div>
         </div>
@@ -938,5 +902,499 @@
     <script src="weather.js"></script>
     <script src="script.js"></script>
     
+    <script>
+        // --- NEW: Dynamic Home Feed Logic ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Muat feed dan data widget secara paralel
+            loadHomeFeed();
+            loadHomeWidgetData(); // <-- FIX: Panggil fungsi untuk ambil data cuaca
+        });
+
+        async function loadHomeFeed() {
+            const container = document.getElementById('home-feed-container');
+            if(!container) return;
+            
+            // Gunakan URL Google Sheet yang sudah ada di script.js
+            // Fallback URL jika variabel tidak ditemukan
+            const SHEET_URL = (typeof GOOGLE_SCRIPT_URL !== 'undefined') ? GOOGLE_SCRIPT_URL : "https://script.google.com/macros/s/AKfycbyuRtzzICS1qoBxWKdOJpHeqWCUN6Wt04xAIi_sYQHd0wSxjc89eumDWAYYcKPrT8jV/exec";
+
+            // Helper Render (Agar bisa dipanggil 2x: Cache & Network)
+            const render = (rawData) => {
+                if (!Array.isArray(rawData)) return;
+
+                const feedItems = rawData.filter(item => item.photo).map(item => ({
+                    data: {
+                        ...item,
+                        image: item.photo,
+                        userName: item.uid ? item.uid.split('@')[0] : 'Pengguna',
+                        userPhoto: `https://api.dicebear.com/7.x/avataaars/svg?seed=${item.uid || 'User'}`,
+                        locationName: item.name || 'Lokasi Spot',
+                        likes: item.rating ? parseInt(item.rating) * 12 : 0,
+                        description: item.comment,
+                        weight: item.weight,
+                        lat: item.lat,
+                        lng: item.lng
+                    },
+                    time: item.createdAt ? new Date(item.createdAt) : new Date()
+                }));
+
+                feedItems.sort((a, b) => b.time - a.time);
+                const displayItems = feedItems.slice(0, 5);
+
+                container.innerHTML = '';
+                if (displayItems.length === 0) {
+                    container.innerHTML = '<div class="text-center text-slate-500 py-10">Belum ada postingan terbaru.</div>';
+                    return;
+                }
+
+                let widgetCount = 0;
+                displayItems.forEach((item, index) => {
+                    const d = item.data;
+                    const timeAgo = getTimeAgo(item.time);
+                    const weight = d.weight ? `${d.weight} KG` : null;
+                    const comment = d.description || d.comment || 'Spot baru ditambahkan!';
+
+                    const el = document.createElement('div');
+                    el.className = "bg-slate-800/50 rounded-3xl p-4 border border-white/5 mb-4 animate-in fade-in slide-in-from-bottom-4 duration-500";
+                    el.innerHTML = `
+                        <div class="flex items-center gap-3 mb-3">
+                            <div class="w-8 h-8 rounded-full bg-slate-700 overflow-hidden"><img src="${d.userPhoto}" class="w-full h-full object-cover"></div>
+                            <div><p class="text-sm font-bold text-white">${d.userName}</p><p class="text-[10px] text-slate-400">${timeAgo} • ${d.locationName}</p></div>
+                            <div class="ml-auto text-[10px] px-2 py-1 rounded-full bg-blue-500/20 text-blue-400 border border-white/5">Terbaru</div>
+                        </div>
+                        <div class="aspect-video rounded-2xl bg-slate-900 mb-3 overflow-hidden relative cursor-pointer group" onclick="if(typeof openImageLightbox === 'function') openImageLightbox('${d.image}')">
+                            <img src="${d.image}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy">
+                            ${weight ? `<div class="absolute bottom-2 right-2 bg-black/60 backdrop-blur-md px-2 py-1 rounded-lg text-[10px] font-bold text-white flex items-center gap-1"><i data-lucide="fish" class="w-3 h-3 text-emerald-400"></i> ${weight}</div>` : ''}
+                        </div>
+                        ${comment ? `<p class="text-sm text-slate-300 mb-3 line-clamp-2">${comment}</p>` : ''}
+                        <div class="flex items-center gap-4">
+                            <button class="flex items-center gap-1 text-slate-400 hover:text-red-400 transition-colors"><i data-lucide="heart" class="w-5 h-5"></i> <span class="text-xs font-bold">${d.likes || 0}</span></button>
+                            <button class="ml-auto text-blue-400 text-xs font-bold hover:underline" onclick="if(typeof navigateTo === 'function') { navigateTo('map'); if(typeof map !== 'undefined') map.flyTo([${d.lat || 0}, ${d.lng || 0}], 15); }">Lihat Lokasi</button>
+                        </div>
+                    `;
+                    container.appendChild(el);
+
+                    // --- NEW: Inject Widget (AI/Weather) ---
+                    // Sisipkan widget setelah postingan ke-1 (0), ke-3 (2), dan ke-5 (4)
+                    if (index === 0 || index === 2 || index === 4) {
+                        const widget = createHomeWidget(widgetCount);
+                        if(widget) {
+                            container.appendChild(widget);
+                            widgetCount++;
+                        }
+                    }
+                });
+                if(typeof lucide !== 'undefined') lucide.createIcons();
+            };
+
+            // 1. CACHE FIRST: Tampilkan data tersimpan (Instan)
+            const cached = localStorage.getItem('feed_cache');
+            if (cached) {
+                try { render(JSON.parse(cached)); } catch (e) { console.warn("Cache invalid"); }
+            }
+
+            // 2. NETWORK SECOND: Ambil data baru di background
+            try {
+                const res = await fetch(SHEET_URL);
+                const data = await res.json();
+
+                if (Array.isArray(data)) {
+                    // Update Cache & UI
+                    localStorage.setItem('feed_cache', JSON.stringify(data));
+                    render(data);
+                }
+            } catch (e) {
+                console.warn("Gagal fetch Google Sheet, bertahan dengan cache:", e);
+                // Jika cache kosong, coba fallback ke data lokal user
+                if (!cached) {
+                    const local = JSON.parse(localStorage.getItem('spots') || '[]');
+                    render(local);
+                }
+            }
+        }
+
+        // --- NEW: Fetch Weather Data specifically for Home Widget ---
+        async function loadHomeWidgetData() {
+            // Prioritaskan GPS, fallback ke cache, lalu IP
+            let lat = localStorage.getItem('lastLat');
+            let lng = localStorage.getItem('lastLng');
+
+            if (!lat || !lng) {
+                try {
+                    const pos = await new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 }));
+                    lat = pos.coords.latitude;
+                    lng = pos.coords.longitude;
+                } catch (e) {
+                    console.warn("GPS failed for widget, using IP estimate.");
+                    // Fallback to IP if everything else fails
+                    try {
+                        const res = await fetch('https://ipapi.co/json/');
+                        const data = await res.json();
+                        if (data.latitude) lat = data.latitude;
+                        if (data.longitude) lng = data.longitude;
+                    } catch (ipError) { /* Do nothing if IP fails */ }
+                }
+            }
+            if (!lat || !lng) return; // Cannot get location
+
+            // Fetch both weather and marine data in parallel
+            const [weatherRes, marineRes] = await Promise.allSettled([fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true&hourly=temperature_2m,precipitation_probability,weathercode,uv_index&daily=weathercode,temperature_2m_max,temperature_2m_min,sunrise,sunset&minutely_15=precipitation&timezone=auto`), fetch(`https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lng}&hourly=sea_level_height_msl&timezone=auto`)]);
+            
+            if (weatherRes.status === 'fulfilled') {
+                currentWeatherData = await weatherRes.value.json();
+                // --- FIX: Force Update Widget UI Immediately ---
+                const w1 = document.getElementById('home-weather-widget');
+                if(w1) { w1.innerHTML = getHomeWidgetContent(); w1.dataset.status = 'loaded'; }
+                
+                const w2 = document.getElementById('home-storybali-widget');
+                if(w2) { w2.innerHTML = getStoryBaliContent(); w2.dataset.status = 'loaded'; }
+                
+                if(typeof lucide !== 'undefined') lucide.createIcons();
+            }
+            if (marineRes.status === 'fulfilled') currentMarineData = await marineRes.value.json();
+        }
+
+        function getTimeAgo(date) { const s = Math.floor((new Date() - date)/1000); if(s<60) return "Baru saja"; const m=Math.floor(s/60); if(m<60) return m+" mnt lalu"; const h=Math.floor(m/60); if(h<24) return h+" jam lalu"; const d=Math.floor(h/24); return d+" hari lalu"; }
+
+        // --- NEW: Home Widget Generator ---
+        function createHomeWidget(index) {
+            const el = document.createElement('div');
+            el.className = "mb-4 animate-in fade-in slide-in-from-bottom-4 duration-500";
+            
+            // Widget 1: AI Weather Insight (Postingan Wayan - Cuaca)
+            if (index === 0) {
+                el.id = 'home-weather-widget'; // ID untuk update otomatis
+                el.innerHTML = getHomeWidgetContent();
+                
+                // Tandai status loading agar bisa di-update nanti jika data belum siap
+                if (typeof currentWeatherData === 'undefined' || !currentWeatherData) {
+                    el.dataset.status = 'loading';
+                } else {
+                    el.dataset.status = 'loaded';
+                }
+                return el;
+            }
+
+            // Widget 2: StoryBali (New Conversational Profile)
+            if (index === 1) {
+                el.id = 'home-storybali-widget';
+                el.innerHTML = getStoryBaliContent();
+                if (typeof currentWeatherData === 'undefined' || !currentWeatherData) {
+                    el.dataset.status = 'loading';
+                } else {
+                    el.dataset.status = 'loaded';
+                }
+                return el;
+            }
+
+            // Widget 3: Info Gempa / Safety (Postingan Wayan - Safety)
+            if (index === 2) {
+                // Tampilan Statis ala Postingan untuk Info Keselamatan
+                el.innerHTML = `
+                    <div class="bg-slate-800/50 rounded-3xl p-4 border border-white/5">
+                        <div class="flex items-center gap-3 mb-3">
+                            <div class="w-10 h-10 rounded-full bg-slate-700 overflow-hidden border border-white/10"><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Wayan" class="w-full h-full object-cover"></div>
+                            <div>
+                                <p class="text-sm font-bold text-white flex items-center gap-1">Wayan <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="#3b82f6" stroke="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg></p>
+                                <p class="text-[10px] text-slate-400">AI Safety • Info Laut</p>
+                            </div>
+                            <div class="ml-auto text-[10px] px-2 py-1 rounded-full bg-red-500/20 text-red-400 border border-white/5">Peringatan</div>
+                        </div>
+                        
+                        <div class="bg-slate-900/50 rounded-2xl p-4 mb-3 border border-white/5 relative overflow-hidden">
+                             <div class="flex items-center gap-3">
+                                <div class="bg-red-500/20 p-2 rounded-lg text-red-400"><i data-lucide="activity" class="w-6 h-6"></i></div>
+                                <div>
+                                    <h4 class="font-bold text-white text-sm">Pantau Gempa & Tsunami</h4>
+                                    <p class="text-xs text-slate-400">Selalu waspada saat memancing di pinggir pantai.</p>
+                                </div>
+                             </div>
+                        </div>
+                        
+                        <p class="text-sm text-slate-300 mb-3 leading-relaxed">
+                            Jangan lupa cek info gempa terkini sebelum berangkat. Keselamatan adalah prioritas utama, kawan! 🎣
+                        </p>
+                        
+                        <div class="flex items-center gap-4 border-t border-white/5 pt-3">
+                            <button class="flex items-center gap-1 text-slate-400 hover:text-red-400 transition-colors"><i data-lucide="heart" class="w-4 h-4"></i> <span class="text-xs font-bold">88</span></button>
+                            <button onclick="navigateTo('weather')" class="ml-auto text-xs font-bold text-blue-400 hover:text-white transition-colors">Cek Data Gempa</button>
+                        </div>
+                    </div>`;
+                return el;
+            }
+            return null;
+        }
+
+        // Helper: Generate Konten Widget AI (Dipisah agar bisa dipanggil ulang)
+        function getHomeWidgetContent() {
+            // Header Profile Wayan (Reusable)
+            const header = `
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-10 h-10 rounded-full bg-slate-700 overflow-hidden border border-white/10"><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Wayan" class="w-full h-full object-cover"></div>
+                    <div>
+                        <p class="text-sm font-bold text-white flex items-center gap-1">Wayan <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="#3b82f6" stroke="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg></p>
+                        <p class="text-[10px] text-slate-400">AI Fishing Assistant • Baru saja</p>
+                    </div>
+                    <div class="ml-auto text-[10px] px-2 py-1 rounded-full bg-blue-500/20 text-blue-400 border border-white/5">Saran AI</div>
+                </div>`;
+
+            // --- FALLBACK TAMPILAN LOADING (Skeleton Post) ---
+            if (typeof currentWeatherData === 'undefined' || !currentWeatherData || !currentWeatherData.current_weather) {
+                return `
+                    <div class="bg-slate-800/50 rounded-3xl p-4 border border-white/5">
+                        ${header}
+                        <div class="bg-slate-900/50 rounded-2xl h-32 mb-3 animate-pulse border border-white/5"></div>
+                        <div class="h-4 w-3/4 bg-slate-700 rounded animate-pulse mb-2"></div>
+                        <div class="h-4 w-1/2 bg-slate-700 rounded animate-pulse"></div>
+                    </div>`;
+            }
+
+            // --- TAMPILAN UTAMA (SETELAH DATA SIAP) ---
+            const wx = currentWeatherData.current_weather;
+            const hourly = currentWeatherData.hourly;
+            const daily = currentWeatherData.daily;
+            const now = new Date();
+            const currentHour = now.getHours();
+
+            // --- ANALISIS AI (Disederhanakan untuk ringkasan) ---
+            let status = "Kondisi Stabil";
+            let message = `Cuaca ${wx.windspeed < 15 ? 'tenang' : 'berangin'} (${wx.windspeed} km/h). Suhu ${Math.round(wx.temperature)}°C.`;
+            let icon = "check-circle";
+            let color = "text-emerald-400";
+            let bg = "bg-emerald-900/10 border-emerald-500/20"; // Darker bg for inner card
+
+            if (wx.weathercode >= 95) {
+                status = "BAHAYA PETIR"; message = "Badai petir terdeteksi! Segera cari tempat berlindung. Joran karbon menghantar listrik.";
+                icon = "cloud-lightning"; color = "text-red-500"; bg = "bg-red-900/10 border-red-500/20";
+            } else if (wx.windspeed > 25) {
+                status = "ANGIN KENCANG"; message = `Angin ${wx.windspeed} km/h. Waspada ombak tinggi.`;
+                icon = "wind"; color = "text-yellow-400"; bg = "bg-yellow-900/10 border-yellow-500/20";
+            } else if (wx.weathercode >= 51) {
+                status = "HUJAN"; message = "Hujan sedang turun. Hati-hati jalanan licin.";
+                icon = "cloud-rain"; color = "text-blue-400"; bg = "bg-blue-900/10 border-blue-500/20";
+            }
+
+            // --- DATA UNTUK MINI-CHART (6 Jam ke Depan) ---
+            const chartData = [];
+            const chartLabels = [];
+            for (let i = 0; i < 6; i++) {
+                const idx = currentHour + i;
+                if (idx < hourly.time.length) {
+                    chartLabels.push(`${(currentHour + i) % 24}:00`);
+                    chartData.push({
+                        temp: Math.round(hourly.temperature_2m[idx]),
+                        pop: hourly.precipitation_probability[idx]
+                    });
+                }
+            }
+
+            // --- FUNGSI RENDER MINI-CHART (SVG) ---
+            const renderMiniChart = () => {
+                if (chartData.length === 0) return '';
+                const w = 280, h = 80, pad = 5; // Lebar disesuaikan container
+                const temps = chartData.map(d => d.temp);
+                const minT = Math.min(...temps), maxT = Math.max(...temps);
+                const rangeT = (maxT - minT) || 1;
+
+                const getX = (i) => pad + (i / (chartData.length - 1)) * (w - 2 * pad);
+                const getTempY = (v) => h - pad - ((v - minT) / rangeT) * (h - 2 * pad - 20); 
+                const getRainY = (p) => h - ((p / 100) * (h * 0.5)); 
+
+                // 1. Rain Bars
+                let rainBars = chartData.map((d, i) =>
+                    `<rect x="${getX(i) - 8}" y="${getRainY(d.pop)}" width="16" height="${h - getRainY(d.pop)}" fill="#3b82f6" opacity="${d.pop > 10 ? '0.5' : '0.1'}" rx="2" />`
+                ).join('');
+
+                // 2. Temperature Line
+                let tempPath = `M ${getX(0)} ${getTempY(chartData[0].temp)}`;
+                for (let i = 1; i < chartData.length; i++) tempPath += ` L ${getX(i)} ${getTempY(chartData[i].temp)}`;
+
+                return `
+                    <svg viewBox="0 0 ${w} ${h}" class="w-full h-full overflow-visible" preserveAspectRatio="none">
+                        ${rainBars}
+                        <path d="${tempPath}" fill="none" stroke="#facc15" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));" />
+                        ${chartData.map((d, i) => `<circle cx="${getX(i)}" cy="${getTempY(d.temp)}" r="3" fill="#1e293b" stroke="#facc15" stroke-width="2" />`).join('')}
+                        ${chartData.map((d, i) => `<text x="${getX(i)}" y="${h+12}" font-size="10" fill="#64748b" text-anchor="middle">${chartLabels[i]}</text>`).join('')}
+                    </svg>`;
+            };
+
+            // --- DATA TAMBAHAN (UV & Humidity) ---
+            const uv = hourly.uv_index ? hourly.uv_index[currentHour] : '-';
+            const humidity = hourly.relativehumidity_2m ? hourly.relativehumidity_2m[currentHour] : '-';
+
+            // --- KONTEN FINAL (POST STYLE) ---
+            return `
+                <div class="bg-slate-800/50 rounded-3xl p-4 border border-white/5">
+                    ${header}
+                    
+                    <!-- Visual Content (Chart & Status) -->
+                    <div class="${bg} rounded-2xl p-4 mb-3 border relative overflow-hidden group cursor-pointer" onclick="navigateTo('weather')">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center gap-2">
+                                <div class="bg-slate-900/50 p-1.5 rounded-full ${color} shrink-0"><i data-lucide="${icon}" class="w-5 h-5"></i></div>
+                                <h4 class="font-bold text-white text-sm">AI: ${status}</h4>
+                            </div>
+                            <div class="flex items-center gap-3 text-[10px] text-slate-400 font-bold">
+                                <span>UV: <span class="text-white">${uv}</span></span>
+                                <span>Lembap: <span class="text-white">${humidity}%</span></span>
+                            </div>
+                        </div>
+                        
+                        <!-- Chart Area -->
+                        <div class="w-full h-20 relative">
+                            ${renderMiniChart()}
+                        </div>
+                    </div>
+
+                    <!-- Text Advice -->
+                    <p class="text-sm text-slate-300 mb-3 leading-relaxed">
+                        ${message}
+                    </p>
+
+                    <!-- Footer Actions -->
+                    <div class="flex items-center gap-4 border-t border-white/5 pt-3">
+                        <button class="flex items-center gap-1 text-slate-400 hover:text-red-400 transition-colors"><i data-lucide="heart" class="w-4 h-4"></i> <span class="text-xs font-bold">124</span></button>
+                        <button class="flex items-center gap-1 text-slate-400 hover:text-blue-400 transition-colors"><i data-lucide="message-circle" class="w-4 h-4"></i> <span class="text-xs font-bold">12</span></button>
+                        <button onclick="navigateTo('weather')" class="ml-auto text-xs font-bold text-blue-400 hover:text-white transition-colors flex items-center gap-1">Lihat Detail Cuaca <i data-lucide="arrow-right" class="w-3 h-3"></i></button>
+                    </div>
+                </div>`;
+        }
+
+        // --- NEW: StoryBali Widget Content (Conversational) ---
+        function getStoryBaliContent() {
+            // Fallback Loading
+            if (typeof currentWeatherData === 'undefined' || !currentWeatherData || !currentWeatherData.current_weather) {
+                return `
+                    <div class="bg-slate-800/50 rounded-3xl p-4 border border-white/5 animate-pulse">
+                        <div class="flex items-center gap-3 mb-3">
+                            <div class="w-10 h-10 rounded-full bg-slate-700"></div>
+                            <div class="h-4 w-32 bg-slate-700 rounded"></div>
+                        </div>
+                        <div class="h-20 bg-slate-700/50 rounded-xl"></div>
+                    </div>`;
+            }
+
+            const wx = currentWeatherData.current_weather;
+            const now = new Date();
+            const currentHour = now.getHours();
+            
+            // 1. Analisa Pasang Surut (Conversational)
+            let tideMsg = "Data laut lagi loading nih bro.";
+            let isGoodTide = false;
+            if (typeof currentMarineData !== 'undefined' && currentMarineData && currentMarineData.hourly) {
+                const tides = currentMarineData.hourly.sea_level_height_msl;
+                const tideNow = tides[currentHour];
+                const tideNext = tides[currentHour + 1];
+                if (tideNext > tideNow) {
+                    tideMsg = "Air laut lagi <b>Pasang Naik</b> nih, ikan biasanya lapar dan merapat ke pinggir.";
+                    isGoodTide = true;
+                } else {
+                    tideMsg = "Air laut sedang <b>Surut</b> perlahan. Coba cari lubuk yang agak dalam ya.";
+                }
+            }
+
+            // 2.5. Analisa Fase Bulan (jika ada)
+            let moonMsg = "";
+            if (typeof moonPhase !== 'undefined') {
+                // Fase Bulan Baru (0.0 - 0.05 atau 0.95 - 1.0)
+                if (moonPhase < 0.05 || moonPhase > 0.95) {
+                    moonMsg = "Langit gelap pas <b>Bulan Baru</b>, cocok buat mancing cumi atau ikan yang tertarik cahaya umpan.";
+                } 
+                // Fase Purnama (0.45 - 0.55)
+                else if (moonPhase > 0.45 && moonPhase < 0.55) {
+                    moonMsg = "Lagi <b>Bulan Purnama</b> bro! Arus pasang surut lagi kuat-kuatnya. Predator besar sering keluar cari makan.";
+                }
+            }
+
+            // 2. Analisa Cuaca & Saran (Conversational)
+            let greeting = "Halo Bro!";
+            let wxMsg = "";
+            let advice = "";
+            let buttonsHtml = '';
+            
+            if (wx.weathercode >= 95) {
+                greeting = "Waduh, Gawat Bro!";
+                wxMsg = "Ada <b>Badai Petir</b> di luar sana. Jangan nekat melaut ya, joran karbon itu magnet petir!";
+                advice = "Mending ngopi dulu di rumah sambil benerin tackle. Safety first!";
+                buttonsHtml = `<button onclick="navigateTo('weather')" class="flex-1 bg-red-600/20 text-red-300 text-xs font-bold py-2.5 rounded-lg border border-red-500/30 hover:bg-red-600/40 transition-colors flex items-center justify-center gap-1"><i data-lucide="cloud-lightning" class="w-4 h-4"></i> Lihat Detail Badai</button>`;
+            } else if (wx.weathercode >= 51) {
+                greeting = "Sedia Jas Hujan?";
+                wxMsg = "Hujan lagi turun membasahi spot. Agak licin dan pandangan terbatas.";
+                advice = "Kalau maksa berangkat, hati-hati masuk angin. Tapi biasanya ikan lele atau patin malah ganas pas hujan.";
+                buttonsHtml = `<button onclick="navigateTo('weather')" class="flex-1 bg-blue-600/20 text-blue-300 text-xs font-bold py-2.5 rounded-lg border border-blue-500/30 hover:bg-blue-600/40 transition-colors flex items-center justify-center gap-1"><i data-lucide="cloud-rain" class="w-4 h-4"></i> Cek Prediksi Hujan</button>`;
+            } else if (wx.windspeed > 25) {
+                greeting = "Angin Kencang Nih!";
+                wxMsg = `Angin ${wx.windspeed} km/h, ombak pasti goyang dombret di tengah.`;
+                advice = "Cari spot di muara atau teluk yang terlindung bukit biar aman dari angin.";
+                buttonsHtml = `<button onclick="navigateTo('weather')" class="flex-1 bg-yellow-600/20 text-yellow-300 text-xs font-bold py-2.5 rounded-lg border border-yellow-500/30 hover:bg-yellow-600/40 transition-colors flex items-center justify-center gap-1"><i data-lucide="wind" class="w-4 h-4"></i> Cek Arah Angin</button>`;
+            } else {
+                greeting = "Cuaca Mantap Jiwa!";
+                wxMsg = `Langit cerah, angin santai (${wx.windspeed} km/h). Asik banget buat casting atau dasaran.`;
+                advice = isGoodTide ? "Kombinasi cuaca cerah & air pasang = <b>Potensi Strike Besar!</b> Gas sekarang bro!" : "Cuaca bagus, meski air surut, masih oke buat mancing santai di pinggiran.";
+                buttonsHtml = `
+                    <button onclick="navigateTo('weather')" class="flex-1 bg-blue-600/20 text-blue-300 text-xs font-bold py-2.5 rounded-lg border border-blue-500/30 hover:bg-blue-600/40 transition-colors">Info Cuaca</button>
+                    <button onclick="if(typeof findNearestSpot === 'function') findNearestSpot()" class="flex-1 bg-emerald-600/20 text-emerald-300 text-xs font-bold py-2.5 rounded-lg border border-emerald-500/30 hover:bg-emerald-600/40 transition-colors">Cari Spot</button>
+                `;
+            }
+
+            return `
+                <div class="bg-gradient-to-br from-indigo-900 to-slate-900 rounded-3xl p-4 border border-indigo-500/30 relative overflow-hidden shadow-lg">
+                    <!-- Header -->
+                    <div class="flex items-center gap-3 mb-3 relative z-10">
+                        <div class="w-10 h-10 rounded-full bg-indigo-500 overflow-hidden border-2 border-white/20 shadow-md">
+                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=StoryBali&backgroundColor=b6e3f4" class="w-full h-full object-cover">
+                        </div>
+                        <div>
+                            <p class="text-sm font-bold text-white flex items-center gap-1">StoryBali <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="#3b82f6" stroke="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg></p>
+                            <p class="text-[10px] text-indigo-200">Teman Mancingmu • Live Update</p>
+                        </div>
+                    </div>
+
+                    <!-- Chat Bubble Style Content -->
+                    <div class="bg-white/5 rounded-2xl p-3 mb-3 border border-white/5 relative z-10 backdrop-blur-sm">
+                        <p class="text-sm font-bold text-white mb-1">"${greeting}"</p>
+                        <p class="text-xs text-slate-300 leading-relaxed mb-2">${wxMsg}</p>
+                        <div class="border-t border-white/10 pt-2 mt-2">
+                            <p class="text-xs text-slate-300 leading-relaxed flex items-start gap-2"><i data-lucide="waves" class="w-3 h-3 mt-0.5 text-blue-400"></i> ${tideMsg}</p>
+                            ${moonMsg ? `<p class="text-xs text-slate-300 leading-relaxed flex items-start gap-2 mt-2"><i data-lucide="moon" class="w-3 h-3 mt-0.5 text-yellow-400"></i> ${moonMsg}</p>` : ''}
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex items-center gap-2 mt-3 mb-3 relative z-10">
+                        ${buttonsHtml}
+                    </div>
+
+                    <!-- Advice Footer -->
+                    <div class="flex items-start gap-2 relative z-10 bg-emerald-500/10 p-2 rounded-xl border border-emerald-500/20">
+                        <div class="text-emerald-400 shrink-0"><i data-lucide="lightbulb" class="w-4 h-4"></i></div>
+                        <p class="text-xs text-emerald-100 italic leading-relaxed">"${advice}"</p>
+                    </div>
+
+                    <!-- Background Decoration -->
+                    <div class="absolute -bottom-6 -right-6 opacity-5 rotate-12"><i data-lucide="fish" class="w-40 h-40 text-white"></i></div>
+                </div>
+            `;
+        }
+
+        // Polling: Cek otomatis jika data cuaca baru masuk, lalu update widget
+        setInterval(() => {
+            const widget = document.getElementById('home-weather-widget');
+            // Hanya update jika widget ada DAN statusnya masih 'loading' (belum dapat data)
+            if (widget && widget.dataset.status === 'loading' && typeof currentWeatherData !== 'undefined' && currentWeatherData) {
+                widget.innerHTML = getHomeWidgetContent();
+                widget.dataset.status = 'loaded';
+                if(typeof lucide !== 'undefined') lucide.createIcons();
+            }
+
+            // Update StoryBali Widget
+            const storyWidget = document.getElementById('home-storybali-widget');
+            if (storyWidget && storyWidget.dataset.status === 'loading' && typeof currentWeatherData !== 'undefined' && currentWeatherData) {
+                 storyWidget.innerHTML = getStoryBaliContent();
+                 storyWidget.dataset.status = 'loaded';
+                 if(typeof lucide !== 'undefined') lucide.createIcons();
+            }
+        }, 2000);
+    </script>
 </body>
 </html>
