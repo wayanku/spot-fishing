@@ -891,46 +891,49 @@ function drawCelestialBodies() {
             // --- MODE SIANG (Realistic Glare & Lens Flare) ---
             const glareIntensity = (p - 0.3) / 0.7; // 0.0 -> 1.0
             
+            // RESPONSIVE SIZING: Gunakan ukuran layar untuk menentukan besarnya matahari
+            const minDim = Math.min(canvas.width, canvas.height);
+
             // 1. Main Sun Glare (Blinding Light - Not Round)
-            // iPhone Style: Cahaya sangat luas, putih bersih, dan menyatu dengan langit
-            const outerRadius = 300 + (glareIntensity * 500); // Radius sangat besar (300-800px)
+            // Radius dinamis: HP (kecil) vs Laptop (besar)
+            const outerRadius = (minDim * 0.4) + (glareIntensity * (minDim * 0.5)); 
             
             const grdMain = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, outerRadius);
             grdMain.addColorStop(0, "rgba(255, 255, 255, 1.0)"); // Inti Putih Solid
-            grdMain.addColorStop(0.04, "rgba(255, 255, 255, 0.95)"); // Glow Inti
-            grdMain.addColorStop(0.12, "rgba(255, 250, 230, 0.5)"); // Transisi Hangat
-            grdMain.addColorStop(0.3, "rgba(255, 255, 255, 0.15)"); // Glow Luar Halus
-            grdMain.addColorStop(0.6, "rgba(255, 255, 255, 0.02)"); // Fade Out Sangat Halus
+            grdMain.addColorStop(0.03, "rgba(255, 255, 255, 0.9)"); // Glow Inti Tajam
+            grdMain.addColorStop(0.08, "rgba(255, 250, 220, 0.5)"); // Transisi Hangat (Golden Tint)
+            grdMain.addColorStop(0.2, "rgba(255, 255, 255, 0.15)"); // Haze Putih
+            grdMain.addColorStop(0.5, "rgba(255, 255, 255, 0.01)"); // Fade Out
             grdMain.addColorStop(1, "rgba(255, 255, 255, 0)");
             
             ctx.fillStyle = grdMain;
             ctx.beginPath(); ctx.arc(sunX, sunY, outerRadius, 0, Math.PI * 2); ctx.fill();
 
-            // 2. Sun Rays / Beams (iPhone Style: Sinar Panjang & Lembut)
+            // 2. Sun Rays / Beams (Responsive)
             ctx.save();
             ctx.translate(sunX, sunY);
             ctx.rotate(Date.now() * 0.0001); // Rotasi sangat pelan & elegan
 
-            // FIX: Menggunakan Radial Gradient + Scale agar lembut di iPhone (tanpa filter blur)
             const rayCount = 8; 
             
             for (let i = 0; i < rayCount; i++) {
                 ctx.save();
                 ctx.rotate((Math.PI * 2 * i) / rayCount);
                 
-                // Panjang sinar bervariasi
                 const variation = (i % 2 === 0) ? 1.0 : 0.7;
-                const rayLen = (250 + (glareIntensity * 300)) * variation; 
-                const rayWidth = 35 + (glareIntensity * 15); // Lebih lebar agar gradasinya halus
+                // Panjang sinar responsif terhadap ukuran layar (tidak fix pixel)
+                // Agar proporsional di HP maupun Laptop
+                const rayLen = ((minDim * 0.15) + (glareIntensity * (minDim * 0.2))) * variation; 
+                const rayWidth = (minDim * 0.05) + (glareIntensity * (minDim * 0.02));
 
                 // Teknik: Scale unit circle menjadi oval panjang (Sinar)
                 ctx.scale(rayLen, rayWidth);
 
-                // Gradient Radial dari Pusat ke Luar (Otomatis pudar di semua sisi)
+                // Gradient Radial dari Pusat ke Luar
                 const grdRay = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
-                grdRay.addColorStop(0, "rgba(255, 255, 255, 0.4)"); // Inti Putih
-                grdRay.addColorStop(0.4, "rgba(255, 255, 255, 0.1)"); // Tengah Pudar
-                grdRay.addColorStop(1, "rgba(255, 255, 255, 0)"); // Pinggir Transparan
+                grdRay.addColorStop(0, "rgba(255, 255, 255, 0.5)"); // Lebih terang di pusat
+                grdRay.addColorStop(0.3, "rgba(255, 255, 255, 0.15)");
+                grdRay.addColorStop(1, "rgba(255, 255, 255, 0)");
 
                 ctx.fillStyle = grdRay;
                 ctx.beginPath(); ctx.arc(0, 0, 1, 0, Math.PI * 2); 
@@ -1046,6 +1049,14 @@ function drawCelestialBodies() {
     // --- Draw Moon (Bulan) ---
     // Muncul jika altitude > -0.1 & Tidak Hujan Deras
     if (moonAlt > -0.1 && wxCode < 51) { 
+        // LOGIKA BARU: Bulan jadi samar saat matahari terbit
+        let moonOpacity = 1.0;
+        if (sunAlt > -0.1) {
+            // Semakin tinggi matahari, semakin transparan (min 0.3 agar tetap terlihat samar)
+            moonOpacity = Math.max(0.3, 1.0 - (sunAlt * 3.0));
+        }
+        ctx.globalAlpha = moonOpacity; // Terapkan transparansi
+
         const radius = 25;
 
         // 1. Moon Glow (Atmosphere) - Lebih natural
@@ -1109,6 +1120,8 @@ function drawCelestialBodies() {
         ctx.beginPath(); ctx.arc(moonX + 8, moonY + 2, 3, 0, Math.PI*2); ctx.fill();
         ctx.beginPath(); ctx.arc(moonX - 2, moonY + 10, 5, 0, Math.PI*2); ctx.fill();
         ctx.restore();
+
+        ctx.globalAlpha = 1.0; // Reset transparansi untuk elemen berikutnya
     }
 }
 
