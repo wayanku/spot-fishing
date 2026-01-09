@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'fishing-spot-v2-final-ui-fix';
+const CACHE_NAME = 'fishing-spot-v12-auto-update'; // Naikkan versi untuk memicu update ini
 const ASSETS = [
     './',
     './index.html',
@@ -14,7 +14,10 @@ self.addEventListener('install', (event) => {
     self.skipWaiting(); // Langsung aktifkan SW baru
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
-            return cache.addAll(ASSETS);
+            // FIX: Gunakan { cache: 'reload' } untuk memaksa browser mengambil file terbaru dari server
+            // saat versi CACHE_NAME berubah, bukan mengambil dari disk cache browser yang lama.
+            const newAssets = ASSETS.map(url => new Request(url, { cache: 'reload' }));
+            return cache.addAll(newAssets);
         })
     );
 });
