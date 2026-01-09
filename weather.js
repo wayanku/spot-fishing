@@ -290,6 +290,10 @@ const weatherAudio = {
         if (!this.rain) this.init(); // Failsafe if preloading didn't run
         
         console.log("Attempting to unlock audio context...");
+        
+        // FIX: Pastikan volume 0 saat unlock agar tidak ada suara bocor/glitch
+        this.rain.volume = 0;
+
         // Trik untuk "membuka kunci" audio di browser mobile
         const promise = this.rain.play();
         if (promise !== undefined) {
@@ -2156,8 +2160,8 @@ function updateWeatherUI(data) {
                 const probNow = data.hourly.precipitation_probability[hIdx] || 0;
                 const probNext = data.hourly.precipitation_probability[hIdx + 1] || 0;
                 
-                // Ambang batas diturunkan drastis ke 5% agar sangat responsif
-                if (probNow >= 5 || probNext >= 10) hasRain = true;
+                // FIX: Naikkan threshold agar tidak dianggap hujan saat hanya mendung tipis (5% -> 40%)
+                if (probNow >= 40 || probNext >= 50) hasRain = true;
             }
             
             // 3. Cek Hourly Weather Code (Jika jam ini diprediksi hujan kode >= 51)
