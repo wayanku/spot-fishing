@@ -1729,7 +1729,6 @@
 
         function addContribution() {
             if(currentDetailSpot) {
-                tempLatlng = { lat: Number(currentDetailSpot.lat), lng: Number(currentDetailSpot.lng) };
                 document.getElementById('spotName').value = currentDetailSpot.name;
                 document.getElementById('spotWeight').value = ''; // Reset berat untuk kontribusi baru
                 
@@ -1739,6 +1738,9 @@
                 
                 closeSpotDetail();
                 openAddModal(true); // Pass true menandakan ini mode kontribusi
+                
+                // FIX: Set tempLatlng kembali setelah openAddModal karena fungsi tersebut memanggil closeLocationPanel -> navigateTo('map') yang mereset tempLatlng jadi null
+                tempLatlng = { lat: Number(currentDetailSpot.lat), lng: Number(currentDetailSpot.lng) };
             }
         }
 
