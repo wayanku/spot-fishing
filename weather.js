@@ -781,6 +781,16 @@ function drawSkyBackground() {
         const sky = document.getElementById('sky-gradient');
         if(sky) sky.style.background = newGradient;
         lastSkyGradient = newGradient;
+
+        // --- NEW: Update Status Bar Color (Transparent Effect) ---
+        // Mengubah warna status bar browser agar menyatu dengan langit
+        let metaTheme = document.querySelector('meta[name="theme-color"]');
+        if(!metaTheme) {
+            metaTheme = document.createElement('meta');
+            metaTheme.name = "theme-color";
+            document.head.appendChild(metaTheme);
+        }
+        metaTheme.content = top; // Status bar menyatu dengan langit
     }
 }
 
@@ -1334,6 +1344,15 @@ function stopWeatherEffect() {
     const sky = document.getElementById('sky-gradient');
     if(sky) sky.style.background = 'transparent';
     lastSkyGradient = ''; // FIX: Reset cache agar saat dibuka kembali background langsung dirender ulang
+
+    // Reset Status Bar ke default (Slate-900) saat keluar dari cuaca
+    let metaTheme = document.querySelector('meta[name="theme-color"]');
+    
+    // FIX: Cek tema aktif (Light/Dark) agar status bar kembali sesuai tema aplikasi
+    const isLight = document.body.classList.contains('light-mode');
+    const defaultColor = isLight ? "#ffffff" : "#0f172a";
+    
+    if(metaTheme) metaTheme.content = defaultColor;
 
     if(ctx && canvas) ctx.clearRect(0, 0, canvas.width, canvas.height);
     if(canvas) canvas.style.zIndex = "-1"; // Reset z-index saat stop
