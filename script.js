@@ -782,7 +782,6 @@
             if(typeof getUserWeather === 'function') getUserWeather(); // Ambil cuaca lokasi user saat ini
             loadSpots();
             setTimeout(initScrollDots, 500); // Init dots setelah layout render
-            setTimeout(initTour, 1500); // Mulai tour otomatis untuk user baru
             setTimeout(initCompass, 1000); // Inisialisasi Kompas Digital
             setTimeout(loadLayerPreferences, 2000); // Mengembalikan layer peta yang tersimpan
         }
