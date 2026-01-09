@@ -2873,8 +2873,29 @@
             window.addEventListener('load', () => {
                 // Gunakan './sw.js' agar kompatibel dengan Vercel (Root) maupun GitHub Pages (Subfolder)
                 navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('Service Worker registered!', reg.scope))
+                    .then(reg => {
+                        console.log('Service Worker registered!', reg.scope);
+                        // FIX: Paksa cek update ke server setiap kali aplikasi dibuka
+                        // Ini mengatasi masalah PWA yang "lama update"
+                        reg.update();
+                    })
                     .catch(err => console.log('Service Worker registration failed:', err));
+
+                // FIX: Auto-reload halaman jika Service Worker baru selesai diinstall
+                // User akan melihat loading sebentar lalu aplikasi ter-refresh ke versi baru
+                let refreshing;
+                navigator.serviceWorker.addEventListener('controllerchange', () => {
+                    if (refreshing) return;
+                    refreshing = true;
+                    
+                    // Tampilkan notifikasi kecil sebelum reload
+                    const toast = document.createElement('div');
+                    toast.className = "fixed top-24 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-4 py-2 rounded-full text-xs font-bold shadow-xl z-[3000] flex items-center gap-2 animate-bounce";
+                    toast.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg> Mengupdate Aplikasi...`;
+                    document.body.appendChild(toast);
+                    
+                    setTimeout(() => window.location.reload(), 1500);
+                });
             });
         }
 
