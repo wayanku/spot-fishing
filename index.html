@@ -939,6 +939,9 @@
             const container = document.getElementById('home-feed-container');
             if(!container) return;
             
+            // Reset cache postingan eksternal agar selalu update saat refresh feed (Navigasi)
+            externalPostDataCache = {};
+            
             // Gunakan URL Google Sheet yang sudah ada di script.js
             // Fallback URL jika variabel tidak ditemukan
             const SHEET_URL = (typeof GOOGLE_SCRIPT_URL !== 'undefined') ? GOOGLE_SCRIPT_URL : "https://script.google.com/macros/s/AKfycbyuRtzzICS1qoBxWKdOJpHeqWCUN6Wt04xAIi_sYQHd0wSxjc89eumDWAYYcKPrT8jV/exec";
@@ -1831,9 +1834,18 @@
         }
 
         // --- NEW: External Feed Post (Wikipedia & TheMealDB) ---
+        // Cache memori untuk menyimpan data postingan eksternal agar tidak berubah-ubah saat re-render
+        let externalPostDataCache = {};
+
         async function loadExternalFeedPost(containerId, mode = 'random') {
             const container = document.getElementById(containerId);
             if(!container) return;
+
+            // 1. CEK CACHE: Jika data untuk mode ini sudah ada, pakai yang lama (biar tidak kedip/ganti konten)
+            if (externalPostDataCache[mode]) {
+                renderExternalPostUI(container, externalPostDataCache[mode]);
+                return;
+            }
 
             // Tentukan tipe konten berdasarkan mode
             let sourceType;
@@ -1845,6 +1857,8 @@
                 sourceType = Math.floor(Math.random() * 3); // Random semua
             }
             
+            let postData = null;
+
             try {
                 // --- SUMBER 1: TheMealDB (Resep Seafood) ---
                 if (sourceType === 0) {
@@ -1852,7 +1866,7 @@
                     const data = await res.json();
                     const meal = data.meals[Math.floor(Math.random() * data.meals.length)];
                     
-                    renderExternalPostUI(container, {
+                    postData = {
                         userName: "Chef Nelayan",
                         userAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Chef",
                         location: "Dapur Umum",
@@ -1860,7 +1874,7 @@
                         caption: `<b>${meal.strMeal}</b><br>Habis strike langsung dimasak! Siapa yang mau coba resep seafood ini? 🍤🐟 #CatchAndCook`,
                         sourceName: "Resep Seafood",
                         likes: Math.floor(Math.random() * 500) + 100
-                    });
+                    };
 
                 } else if (sourceType === 1) {
                     // --- SUMBER 2: Wikipedia (Fakta Ikan) ---
@@ -1871,37 +1885,50 @@
 
                     if (data.title && data.extract) {
                         const img = data.thumbnail ? data.thumbnail.source : 'https://cdn-icons-png.flaticon.com/512/1998/1998610.png';
-                        renderExternalPostUI(container, {
+                        
+                        // Logic Truncate Text (Baca Selengkapnya) agar feed tidak kepanjangan
+                        let captionHtml = `<b>${data.title}</b><br>${data.extract}`;
+                        if (data.extract.length > 120) {
+                            const uniqueId = Math.random().toString(36).substr(2, 9);
+                            const shortText = data.extract.substring(0, 120) + "...";
+                            
+                            captionHtml = `<b>${data.title}</b><br>
+                                <span id="short-${uniqueId}">
+                                    ${shortText} 
+                                    <span onclick="document.getElementById('short-${uniqueId}').classList.add('hidden'); document.getElementById('full-${uniqueId}').classList.remove('hidden');" class="text-slate-500 cursor-pointer font-bold hover:text-white text-xs">baca selengkapnya</span>
+                                </span>
+                                <span id="full-${uniqueId}" class="hidden animate-in fade-in">
+                                    ${data.extract}
+                                </span>`;
+                        }
+
+                        postData = {
                             userName: "Ensiklopedia Laut",
                             userAvatar: "https://upload.wikimedia.org/wikipedia/commons/6/63/Wikipedia-logo.png",
                             location: "Fakta Unik",
                             image: img,
-                            caption: `<b>${data.title}</b><br>${data.extract}`,
+                            caption: captionHtml,
                             sourceName: "Wikipedia",
                             likes: Math.floor(Math.random() * 200) + 50
-                        });
+                        };
                     }
                 } else if (sourceType === 2) {
                     // --- SUMBER 3: YouTube Highlights (Video Pilihan) ---
                     // Koleksi Video Otomatis (Tutorial, Hiburan, Tips)
                     // Aplikasi akan memilih satu secara acak dari daftar ini
                     const videos = [
-                        { id: "8X2kIfS6fb8", title: "Cara Ikat Kail Pancing Paling Kuat (Snell Knot)", author: "Tutorial Simpul" },
-                        { id: "FeK9iC0y9II", title: "Teknik Jigging Untuk Pemula", author: "Mancing Pro" },
-                        { id: "pGg2F_rQ_kM", title: "Strike Ikan Monster! Mancing Mania", author: "Trans7 Official" },
-                        { id: "Wq4s7R0b8q8", title: "Sensasi Tarikan Ikan Sungai Kalimantan", author: "Gondrong Labanan" },
-                        { id: "0wCC3aLXdOw", title: "Cara Membuat Rangkaian Pancing Dasaran", author: "Daeng Mancing" },
-                        { id: "L_XJ_s5IsQc", title: "Tips Memilih Joran Pancing yang Tepat", author: "Dunia Pancing" },
-                        { id: "tiX_k7st8xs", title: "Rangkaian Pancing Anti Kusut", author: "Tips Jitu" },
-                        { id: "Q7k2k5y5", title: "Cara Menyambung PE ke Leader (FG Knot)", author: "Knot Master" },
-                        { id: "a1b2c3d4", title: "Suara Alam: Mancing Tenang ASMR", author: "Relax Fishing" },
-                        { id: "z9y8x7w6", title: "Tips Membaca Tanda Alam Saat Mancing", author: "Kapten Laut" }
+                        // ID Video YouTube diambil dari URL (v=...)
+                        { id: "pjzUb5QRKuk", title: "Cara Ikat Kail Pancing (FG Knot)", author: "Knot Master" },
+                        { id: "Hu0vJ_lPjwc", title: "Sensasi Strike Ikan Toman", author: "Gondrong Labanan" },
+                        { id: "7wJj5y6z8k0", title: "Mancing Mania Mantap!", author: "Trans7 Official" },
+                        { id: "J_8mdH20qTQ", title: "Teknik Casting Gabus", author: "Dunia Pancing" },
+                        { id: "qQ1tQ5w6e7s", title: "Tips Memilih Joran", author: "Dudit Widodo" }
                     ];
                     
                     // Pilih satu video secara acak
                     const vid = videos[Math.floor(Math.random() * videos.length)];
                     
-                    renderExternalPostUI(container, {
+                    postData = {
                         userName: vid.author,
                         userAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Youtube",
                         location: "YouTube Channel",
@@ -1909,7 +1936,13 @@
                         caption: `<b>${vid.title}</b><br>Tonton video pilihan hari ini! Jangan lupa like & subscribe channel aslinya ya. 🎥🎣`,
                         sourceName: "YouTube",
                         likes: Math.floor(Math.random() * 2000) + 1000
-                    });
+                    };
+                }
+
+                // 2. SIMPAN KE CACHE & RENDER
+                if (postData) {
+                    externalPostDataCache[mode] = postData;
+                    renderExternalPostUI(container, postData);
                 }
             } catch (e) {
                 console.warn("Gagal load external post", e);
