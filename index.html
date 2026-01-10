@@ -1067,7 +1067,7 @@
                 }
 
                 // Tentukan posisi video secara acak (antara index 2, 3, atau 4)
-                const videoPostIndex = Math.floor(Math.random() * 3) + 2;
+                // const videoPostIndex = 2; // Dipindahkan ke logika loop di bawah
 
                 displayItems.forEach((item, index) => {
                     const d = item.data;
@@ -1174,8 +1174,8 @@
                         loadExternalFeedPost('external-feed-post-mix', 'mix'); // Mode Mix (Resep/Wiki)
                     }
 
-                    // --- POSISI 2: Video (Posisi Acak) ---
-                    if (index === videoPostIndex) {
+                    // --- POSISI 2: Video (Di bawah postingan ke-3) ---
+                    if (index === 2) {
                         const vidEl = document.createElement('div');
                         vidEl.id = 'external-feed-post-video';
                         vidEl.className = "mb-4 border-b border-white/5 pb-4";
@@ -1957,6 +1957,7 @@
         // --- NEW: External Feed Post (Wikipedia & TheMealDB) ---
         // Cache memori untuk menyimpan data postingan eksternal agar tidak berubah-ubah saat re-render
         let externalPostDataCache = {};
+        let fishWatchDataCache = null; // Cache untuk data FishWatch (agar tidak fetch ulang terus)
         let usedWikiKeywords = []; // Menyimpan kata kunci Wikipedia yang sudah ditampilkan agar tidak duplikat
 
         async function loadExternalFeedPost(containerId, mode = 'random') {
@@ -1979,11 +1980,18 @@
             // Tentukan tipe konten berdasarkan mode
             let sourceType;
             if (mode === 'video') {
-                sourceType = 2; // Force Video
+                // Random antara Wikimedia (4), NASA (5), Internet Archive (6), atau Pure Nature (7)
+                const videoTypes = [4, 5, 6, 7];
+                sourceType = videoTypes[Math.floor(Math.random() * videoTypes.length)];
+            } else if (mode === 'wiki') {
+                sourceType = 1; // Force Wiki (Fallback)
             } else if (mode === 'mix') {
-                sourceType = Math.floor(Math.random() * 2); // 0 (Resep) atau 1 (Wiki)
+                // Random antara 0 (Resep), 1 (Wiki), atau 3 (Ensiklopedia)
+                const types = [0, 1, 3];
+                sourceType = types[Math.floor(Math.random() * types.length)];
             } else {
-                sourceType = Math.floor(Math.random() * 3); // Random semua
+                const types = [0, 1, 3, 4, 5, 6, 7]; // Random semua (termasuk Nature)
+                sourceType = types[Math.floor(Math.random() * types.length)];
             }
             
             let postData = null;
@@ -1991,7 +1999,17 @@
             try {
                 // --- SUMBER 1: TheMealDB (Resep Seafood) ---
                 if (sourceType === 0) {
-                    const res = await fetch('https://www.themealdb.com/api/json/v1/1/filter.php?c=Seafood');
+                    // Random: 70% Seafood Global, 30% Masakan Indonesia
+                    const useIndo = Math.random() < 0.3;
+                    let url = 'https://www.themealdb.com/api/json/v1/1/filter.php?c=Seafood';
+                    let sourceLabel = "Resep Seafood";
+                    
+                    if (useIndo) {
+                        url = 'https://www.themealdb.com/api/json/v1/1/filter.php?a=Indonesian';
+                        sourceLabel = "Kuliner Nusantara";
+                    }
+
+                    const res = await fetch(url);
                     const data = await res.json();
                     const simpleMeal = data.meals[Math.floor(Math.random() * data.meals.length)];
                     
@@ -2026,7 +2044,7 @@
                         location: "Dapur Umum",
                         image: meal.strMealThumb,
                         caption: captionHtml,
-                        sourceName: "Resep Seafood",
+                        sourceName: sourceLabel,
                         likes: Math.floor(Math.random() * 500) + 100
                     };
 
@@ -2050,7 +2068,11 @@
                         "Mancing_dasaran", "Popping_(memancing)", "Rawai", "Jala", "Bubu", "Rumpon",
                         // Lokasi & Ekosistem
                         "Laut", "Sungai", "Danau", "Rawa", "Waduk", "Muara", "Pantai", "Hutan_bakau", "Padang_lamun", 
-                        "Palung_laut", "Samudra", "Teluk", "Selat", "Tanjung", "Delta_sungai"
+                        "Palung_laut", "Samudra", "Teluk", "Selat", "Tanjung", "Delta_sungai",
+                        // Destinasi Indonesia
+                        "Danau_Toba", "Taman_Nasional_Bunaken", "Kepulauan_Raja_Ampat", "Taman_Nasional_Komodo", 
+                        "Taman_Nasional_Wakatobi", "Kepulauan_Derawan", "Karimunjawa", "Nusa_Penida", "Gili_Trawangan",
+                        "Laut_Banda", "Selat_Bali", "Teluk_Cenderawasih", "Pulau_Weh", "Taman_Nasional_Ujung_Kulon"
                     ];
                     
                     // Filter kata kunci yang belum dipakai
@@ -2097,31 +2119,236 @@
                             likes: Math.floor(Math.random() * 200) + 50
                         };
                     }
-                } else if (sourceType === 2) {
-                    // --- SUMBER 3: YouTube Highlights (Video Pilihan) ---
-                    // Koleksi Video Otomatis (Tutorial, Hiburan, Tips)
-                    // Aplikasi akan memilih satu secara acak dari daftar ini
-                    const videos = [
-                        // ID Video YouTube diambil dari URL (v=...)
-                        { id: "pjzUb5QRKuk", title: "Cara Ikat Kail Pancing (FG Knot)", author: "Knot Master" },
-                        { id: "Hu0vJ_lPjwc", title: "Sensasi Strike Ikan Toman", author: "Gondrong Labanan" },
-                        { id: "7wJj5y6z8k0", title: "Mancing Mania Mantap!", author: "Trans7 Official" },
-                        { id: "J_8mdH20qTQ", title: "Teknik Casting Gabus", author: "Dunia Pancing" },
-                        { id: "qQ1tQ5w6e7s", title: "Tips Memilih Joran", author: "Dudit Widodo" }
+                } else if (sourceType === 3) {
+                    // --- SUMBER 4: FishWatch API (Ensiklopedia Ikan - No 1) ---
+                    // Menggunakan CORS Proxy karena API ini kadang memblokir akses langsung dari browser
+                    if (!fishWatchDataCache) {
+                        try {
+                            // Gunakan allorigins (JSON Wrapper) agar lebih stabil dan tidak error SyntaxError jika API down/HTML
+                            const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent('https://www.fishwatch.gov/api/species')}`);
+                            if (!res.ok) throw new Error("Network response was not ok");
+                            const wrapper = await res.json();
+                            
+                            if (wrapper && wrapper.contents) {
+                                fishWatchDataCache = JSON.parse(wrapper.contents);
+                            } else {
+                                throw new Error("Invalid wrapper response");
+                            }
+                        } catch (e) {
+                            console.warn("FishWatch API failed, fallback to Wiki", e);
+                            delete externalPostDataCache[mode]; // Reset status loading agar tidak stuck
+                            return loadExternalFeedPost(containerId, 'wiki'); // Fallback ke Wiki
+                        }
+                    }
+
+                    if (fishWatchDataCache && Array.isArray(fishWatchDataCache) && fishWatchDataCache.length > 0) {
+                        // Pilih ikan secara acak
+                        const fish = fishWatchDataCache[Math.floor(Math.random() * fishWatchDataCache.length)];
+                        
+                        // Ekstrak Data (Bersihkan tag HTML yang mungkin terbawa)
+                        const name = fish['Species Name'];
+                        const sciName = fish['Scientific Name'];
+                        const habitat = fish['Habitat'] ? fish['Habitat'].replace(/<[^>]*>?/gm, '').substring(0, 120) + '...' : 'Habitat laut.';
+                        const desc = fish['Physical Description'] ? fish['Physical Description'].replace(/<[^>]*>?/gm, '').substring(0, 150) + '...' : 'Deskripsi tidak tersedia.';
+                        
+                        let imgUrl = 'https://cdn-icons-png.flaticon.com/512/1998/1998610.png';
+                        if (fish['Image Gallery'] && fish['Image Gallery'][0] && fish['Image Gallery'][0].src) {
+                            imgUrl = fish['Image Gallery'][0].src;
+                        }
+
+                        postData = {
+                            userName: "Ahli Biologi Laut",
+                            userAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Professor",
+                            location: "Ensiklopedia Ikan",
+                            image: imgUrl,
+                            caption: `<b>${name}</b> <i>(${sciName})</i><br><br>🧬 <b>Fakta Biologis:</b><br>${desc}<br><br>🌊 <b>Habitat:</b> ${habitat}`,
+                            sourceName: "FishWatch NOAA",
+                            likes: Math.floor(Math.random() * 300) + 100
+                        };
+                    }
+                } else if (sourceType === 4) {
+                    // --- SUMBER 5: Wikimedia Commons Video (Tanpa API Key) ---
+                    const videoKeywords = [
+                        // Laut & Air
+                        "fish", "underwater", "coral_reef", "shark", "diving", "marine_biology", "aquarium", "sea_turtle", "whale", "dolphin", "jellyfish", "octopus", "deep_sea", "scuba", "fishing", "fisherman", "river", "lake", "waterfall", "mountain river", "forest stream", "ocean waves", "sunset beach", "fishing boat", "casting fishing", "fly fishing",
+                        // Hewan Darat & Udara
+                        "bird", "eagle", "owl", "kingfisher", "penguin", "seal", "sea lion", "tiger", "elephant", "orangutan", "deer", "bear", "wolf", "fox", "snow leopard", "polar bear", "panda", "koala", "kangaroo", "crocodile", "snake", "lizard", "frog", "butterfly", "bee", "dragonfly",
+                        // Geologi & Alam
+                        "volcano", "eruption", "glacier", "iceberg", "desert", "jungle", "rainforest", "canyon", "cave", "mountain climbing", "hiking nature", "forest wildlife", "nature landscape", "northern lights", "aurora borealis", "star timelapse", "milky way",
+                        // National Geographic Style
+                        "National Geographic", "Nat Geo", "wildlife cinematography", "nature documentary", "cinematic nature",
+                        // Indonesia
+                        "Indonesia nature", "Bali beach", "Raja Ampat underwater", "Komodo island nature", "Bunaken diving", "Lake Toba", "Mount Bromo nature", "Indonesian fisherman", "traditional fishing indonesia", "sailing indonesia"
                     ];
+                    const keyword = videoKeywords[Math.floor(Math.random() * videoKeywords.length)];
                     
-                    // Pilih satu video secara acak
-                    const vid = videos[Math.floor(Math.random() * videos.length)];
+                    // Cari video format .webm (lebih kompatibel)
+                    // Tambahkan Timeout Controller
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 6000); // 6 detik timeout
                     
-                    postData = {
-                        userName: vid.author,
-                        userAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Youtube",
-                        location: "YouTube Channel",
-                        videoUrl: `https://www.youtube.com/embed/${vid.id}?autoplay=0&controls=1&rel=0&playsinline=1&mute=1`,
-                        caption: `<b>${vid.title}</b><br>Tonton video pilihan hari ini! Jangan lupa like & subscribe channel aslinya ya. 🎥🎣`,
-                        sourceName: "YouTube",
-                        likes: Math.floor(Math.random() * 2000) + 1000
-                    };
+                    const res = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=filetype:video+${keyword}&gsrnamespace=6&prop=imageinfo&iiprop=url|extmetadata&format=json&origin=*&gsrlimit=20`, { signal: controller.signal });
+                    clearTimeout(timeoutId);
+                    
+                    const data = await res.json();
+                    
+                    if (data.query && data.query.pages) {
+                        const pages = Object.values(data.query.pages);
+                        const videoPage = pages[Math.floor(Math.random() * pages.length)];
+                        
+                        if (videoPage && videoPage.imageinfo && videoPage.imageinfo[0]) {
+                            const info = videoPage.imageinfo[0];
+                            const meta = info.extmetadata;
+                            
+                            // Bersihkan deskripsi
+                            let desc = meta.ImageDescription ? meta.ImageDescription.value : "Video alam bawah laut.";
+                            desc = desc.replace(/<[^>]*>?/gm, '').substring(0, 150) + "...";
+                            
+                            postData = {
+                                userName: "Videografer Alam",
+                                userAvatar: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4a/Commons-logo.svg/1024px-Commons-logo.svg.png",
+                                location: "Wikimedia Commons",
+                                videoFile: info.url, // URL File Video Langsung
+                                caption: `<b>${meta.ObjectName ? meta.ObjectName.value : 'Video Alam'}</b><br>${desc}`,
+                                sourceName: "Wikimedia Commons",
+                                likes: Math.floor(Math.random() * 300) + 50
+                            };
+                        }
+                    }
+                } else if (sourceType === 5) {
+                    // --- SUMBER 6: NASA Video API (Public) ---
+                    const nasaKeywords = [
+                        "ocean", "sea", "coral reef", "underwater", "marine life", "earth ocean", "jellyfish", "shark",
+                        "space", "galaxy", "nebula", "planet", "earth from space", "sun", "moon", "mars", "jupiter", "saturn", "astronaut", "iss", "spacewalk", "solar flare", "aurora", "magnetic field", "black hole", "supernova", "asteroid", "comet", "meteor"
+                    ];
+                    const keyword = nasaKeywords[Math.floor(Math.random() * nasaKeywords.length)];
+                    
+                    try {
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 6000);
+                        
+                        const res = await fetch(`https://images-api.nasa.gov/search?q=${keyword}&media_type=video`, { signal: controller.signal });
+                        clearTimeout(timeoutId);
+                        
+                        const data = await res.json();
+                        
+                        if (data.collection && data.collection.items && data.collection.items.length > 0) {
+                            const items = data.collection.items;
+                            const item = items[Math.floor(Math.random() * items.length)];
+                            const meta = item.data[0];
+                            const collectionUrl = item.href;
+                            
+                            // Fetch actual video files
+                            const videoRes = await fetch(collectionUrl);
+                            const videoFiles = await videoRes.json();
+                            // Find mp4, prefer medium or mobile
+                            const mp4 = videoFiles.find(f => f.endsWith('~medium.mp4')) || 
+                                        videoFiles.find(f => f.endsWith('~mobile.mp4')) || 
+                                        videoFiles.find(f => f.endsWith('.mp4'));
+                                        
+                            if (mp4) {
+                                postData = {
+                                    userName: "NASA Ocean",
+                                    userAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=NASA",
+                                    location: "NASA Archives",
+                                    videoFile: mp4,
+                                    caption: `<b>${meta.title}</b><br>${meta.description ? meta.description.substring(0, 150) + '...' : 'Video laut dari NASA.'}`,
+                                    sourceName: "NASA",
+                                    likes: Math.floor(Math.random() * 500) + 200
+                                };
+                            }
+                        }
+                    } catch(e) { console.warn("NASA API failed", e); }
+                } else if (sourceType === 6) {
+                    // --- SUMBER 7: Internet Archive (Fishing & Nature - Public Domain) ---
+                    const queries = [
+                        "fishing", "fly fishing", "bass fishing", "ocean life", "coral reef", "river nature", "underwater camera", "national park nature", "wildlife documentary", "fishing trip", "sport fishing", "amazon river fishing", "alaska fishing", "trout fishing", "salmon fishing", "nature scenery", "forest wildlife", "Indonesia nature", "Bali travel", "Java sea", "Sumatra wildlife", "Borneo nature",
+                        "birds documentary", "volcano documentary", "glacier documentary", "space exploration", "nature documentary", "geology", "deep sea", "prehistoric animals", "dinosaur documentary", "ancient civilizations", "world history",
+                        "National Geographic", "Nat Geo", "National Geographic documentary", "wildlife cinematography", "cinematic nature", "planet earth", "blue planet"
+                    ];
+                    const query = queries[Math.floor(Math.random() * queries.length)];
+                    
+                    try {
+                        // Cari video MP4 (Urutkan berdasarkan download terbanyak agar kualitas bagus)
+                        const searchUrl = `https://archive.org/advancedsearch.php?q=${encodeURIComponent('(' + query + ') AND mediatype:movies')}&fl[]=identifier&fl[]=title&fl[]=description&sort[]=downloads+desc&rows=25&page=1&output=json`;
+                        
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 8000); // Archive agak lambat, kasih 8 detik
+                        const res = await fetch(searchUrl, { signal: controller.signal });
+                        clearTimeout(timeoutId);
+                        
+                        const data = await res.json();
+                        
+                        if (data.response && data.response.docs && data.response.docs.length > 0) {
+                            // Coba cari video yang valid (maksimal 5 percobaan acak)
+                            let found = false;
+                            let attempts = 0;
+                            while(!found && attempts < 5) {
+                                const doc = data.response.docs[Math.floor(Math.random() * data.response.docs.length)];
+                                const identifier = doc.identifier;
+                                attempts++;
+
+                                // Ambil metadata file untuk mencari .mp4
+                                const metaRes = await fetch(`https://archive.org/metadata/${identifier}`);
+                                const metaData = await metaRes.json();
+                                
+                                if (metaData.files) {
+                                    const mp4File = metaData.files.find(f => f.name.toLowerCase().endsWith('.mp4'));
+                                    if (mp4File) {
+                                        postData = {
+                                            userName: "Arsip Alam",
+                                            userAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Archive",
+                                            location: "Internet Archive",
+                                            videoFile: `https://archive.org/download/${identifier}/${mp4File.name}`,
+                                            caption: `<b>${doc.title}</b><br>${doc.description ? doc.description.replace(/<[^>]*>?/gm, '').substring(0, 150) + '...' : 'Video dokumenter alam.'}`,
+                                            sourceName: "Internet Archive",
+                                            likes: Math.floor(Math.random() * 100) + 20
+                                        };
+                                        found = true;
+                                    }
+                                }
+                            }
+                        }
+                    } catch(e) { console.warn("Archive.org API failed", e); }
+                } else if (sourceType === 7) {
+                    // --- SUMBER 8: Pure Nature (Alam Semesta - Wikimedia) ---
+                    const natureKeywords = [
+                        "mountain landscape", "forest river", "waterfall nature", "sunset clouds", "rain forest", 
+                        "snow mountain", "desert landscape", "flower blooming", "birds flying", "wildlife nature", 
+                        "ocean waves beach", "drone landscape", "autumn forest", "spring meadow", "northern lights",
+                        "jungle sounds", "calm river", "foggy forest", "green hills", "nature timelapse"
+                    ];
+                    const keyword = natureKeywords[Math.floor(Math.random() * natureKeywords.length)];
+                    
+                    try {
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 6000);
+                        
+                        const res = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=filetype:video+${keyword}&gsrnamespace=6&prop=imageinfo&iiprop=url|extmetadata&format=json&origin=*&gsrlimit=20`, { signal: controller.signal });
+                        clearTimeout(timeoutId);
+                        
+                        const data = await res.json();
+                        
+                        if (data.query && data.query.pages) {
+                            const pages = Object.values(data.query.pages);
+                            const videoPage = pages[Math.floor(Math.random() * pages.length)];
+                            
+                            if (videoPage && videoPage.imageinfo && videoPage.imageinfo[0]) {
+                                const info = videoPage.imageinfo[0];
+                                const meta = info.extmetadata;
+                                
+                                postData = {
+                                    userName: "Nature Relax",
+                                    userAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Nature",
+                                    location: "Alam Liar",
+                                    videoFile: info.url,
+                                    caption: `<b>${meta.ObjectName ? meta.ObjectName.value : 'Pemandangan Alam'}</b><br>${meta.ImageDescription ? meta.ImageDescription.value.replace(/<[^>]*>?/gm, '').substring(0, 100) + '...' : 'Video relaksasi alam.'}`,
+                                    sourceName: "Nature Archives",
+                                    likes: Math.floor(Math.random() * 800) + 200
+                                };
+                            }
+                        }
+                    } catch(e) { console.warn("Nature API failed", e); }
                 }
 
                 // 2. SIMPAN KE CACHE & RENDER
@@ -2132,10 +2359,43 @@
                     if(currentContainer) renderExternalPostUI(currentContainer, postData);
                 } else {
                     delete externalPostDataCache[mode]; // Hapus status loading jika gagal
+                    
+                    // --- AUTO RETRY LOGIC ---
+                    // Jika gagal load (timeout/kosong), coba lagi otomatis setelah 500ms
+                    console.log("Konten eksternal gagal/timeout, mencoba sumber lain...");
+                    setTimeout(() => loadExternalFeedPost(containerId, mode), 500);
                 }
             } catch (e) {
                 console.warn("Gagal load external post", e);
                 container.style.display = 'none';
+                
+                // Retry juga saat error catch (misal network error)
+                delete externalPostDataCache[mode];
+                setTimeout(() => loadExternalFeedPost(containerId, mode), 1000);
+            }
+        }
+
+        // Helper: Toggle Video Play/Pause (TikTok Style)
+        window.toggleVideo = function(container) {
+            const video = container.querySelector('video');
+            const icon = container.querySelector('.play-icon');
+            if (video.paused) {
+                video.play();
+                icon.classList.add('opacity-0', 'scale-150'); // Efek menghilang membesar
+            } else {
+                video.pause();
+                icon.classList.remove('opacity-0', 'scale-150'); // Muncul kembali
+            }
+        }
+
+        // Helper: Refresh Video (Ganti Video Baru)
+        window.refreshVideo = function(containerId) {
+            const container = document.getElementById(containerId);
+            if(container) {
+                const btn = container.querySelector('.refresh-btn i');
+                if(btn) btn.classList.add('animate-spin'); // Visual feedback
+                delete externalPostDataCache['video']; // Hapus cache lama
+                loadExternalFeedPost(containerId, 'video'); // Load baru
             }
         }
 
@@ -2166,8 +2426,18 @@
                 <div class="w-full bg-neutral-900 relative group overflow-hidden">
                     ${d.videoUrl ? 
                         `<div class="aspect-[4/5] w-full"><iframe src="${d.videoUrl}" class="w-full h-full border-0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>` 
-                        : 
-                        `<img src="${d.image}" class="w-full h-auto max-h-[600px] object-cover min-h-[300px]" loading="lazy">`
+                        : (d.videoFile ? 
+                            `<div class="aspect-[4/5] w-full flex items-center justify-center bg-black relative cursor-pointer overflow-hidden" onclick="toggleVideo(this)">
+                                <video src="${d.videoFile}" class="w-full h-full object-contain" playsinline loop></video>
+                                <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                    <div class="play-icon bg-black/40 rounded-full p-4 backdrop-blur-sm transition-all duration-300"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
+                                </div>
+                                <button onclick="event.stopPropagation(); refreshVideo('${container.id}')" class="refresh-btn absolute top-3 right-3 z-20 bg-black/40 hover:bg-black/60 text-white p-2 rounded-full backdrop-blur-md transition-all border border-white/10">
+                                    <i data-lucide="refresh-cw" class="w-5 h-5"></i>
+                                </button>
+                             </div>`
+                            : `<img src="${d.image}" class="w-full h-auto max-h-[600px] object-cover min-h-[300px]" loading="lazy">`
+                        )
                     }
                     <div class="absolute bottom-3 right-3 bg-black/70 backdrop-blur-md px-2 py-1 rounded-md text-xs font-bold text-white flex items-center gap-1"><i data-lucide="globe" class="w-3 h-3 text-blue-400"></i> ${d.sourceName}</div>
                 </div>
