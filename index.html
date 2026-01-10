@@ -2545,11 +2545,8 @@
                         .catch(e => { 
                             console.error("Play error", e); 
                             if(spinner) spinner.classList.add('hidden');
-                            // FIX: Auto refresh jika format video tidak didukung/rusak
-                            if (e.name === 'NotSupportedError' || e.name === 'NotAllowedError') {
-                                const parent = container.closest('[id^="external-feed-post"]');
-                                if (parent && window.refreshVideo) refreshVideo(parent.id);
-                            }
+                            // FIX: Auto refresh dimatikan agar user bisa memilih sendiri
+                            // Biarkan user menekan tombol refresh manual jika video error
                         });
                 }
             } else {
@@ -2599,7 +2596,7 @@
                         `<div class="aspect-[4/5] w-full"><iframe src="${d.videoUrl}" class="w-full h-full border-0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>` 
                         : (d.videoFile ? 
                             `<div class="aspect-[4/5] w-full flex items-center justify-center bg-black relative cursor-pointer overflow-hidden" onclick="toggleVideo(this)">
-                                <video src="${d.videoFile}" poster="${d.thumbnail || ''}" class="w-full h-full object-contain" playsinline loop preload="metadata" onwaiting="this.parentElement.querySelector('.loading-spinner')?.classList.remove('hidden')" onplaying="this.parentElement.querySelector('.loading-spinner')?.classList.add('hidden')" onerror="refreshVideo('${container.id}')"></video>
+                                <video src="${d.videoFile}" poster="${d.thumbnail || ''}" class="w-full h-full object-contain" playsinline loop preload="metadata" onwaiting="this.parentElement.querySelector('.loading-spinner')?.classList.remove('hidden')" onplaying="this.parentElement.querySelector('.loading-spinner')?.classList.add('hidden')"></video>
                                 <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
                                     <div class="play-icon bg-black/40 rounded-full p-4 backdrop-blur-sm transition-all duration-300"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
                                     <div class="loading-spinner hidden absolute"><i data-lucide="loader" class="w-10 h-10 text-white animate-spin"></i></div>
