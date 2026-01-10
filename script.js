@@ -3349,6 +3349,7 @@
         let reelsObserver = null;
         let shownReelIds = new Set(); // Melacak video yang sudah ditampilkan agar tidak duplikat
         let isLoadingReels = false; // Lock untuk mencegah loading ganda (L)
+        let reelProviderIndex = 0; // Counter untuk rotasi sumber video (Round Robin)
 
         function initReels() {
             if (reelsInitialized) return;
@@ -3733,8 +3734,13 @@
                 }
 
                 // Filter: Hanya video valid yang belum tampil
-                const available = videos.filter(v => v.video && !shownReelIds.has(v.video)); // Gunakan URL sebagai ID unik
+                let available = videos.filter(v => v.video && !shownReelIds.has(v.video)); // Gunakan URL sebagai ID unik
                 
+                // Jika semua video sudah ditonton, reset (recycle) agar bisa diputar ulang
+                if (available.length === 0 && videos.length > 0) {
+                    available = videos.filter(v => v.video);
+                }
+
                 if (available.length > 0) {
                     const item = available[Math.floor(Math.random() * available.length)];
                     shownReelIds.add(item.video);
@@ -3752,18 +3758,22 @@
                 throw new Error("No sheet videos available");
             };
 
-            // --- EXECUTION LOGIC (RANDOMIZED) ---
-            // Tambahkan fetchSheetReels ke dalam daftar provider agar konten Feed bisa muncul di Reels
-            const providers = [fetchSheetReels, fetchPixabay, fetchPexels, fetchNasa];
+            // --- EXECUTION LOGIC (ROUND ROBIN / SELANG-SELING) ---
+            // Urutan: NASA -> Pexels -> Sheet -> Pixabay -> Ulang
+            const providers = [fetchNasa, fetchPexels, fetchSheetReels, fetchPixabay];
             
-            // Fisher-Yates Shuffle untuk mengacak urutan provider
-            for (let i = providers.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [providers[i], providers[j]] = [providers[j], providers[i]];
-            }
+            // Tentukan provider utama berdasarkan urutan giliran
+            const startIndex = reelProviderIndex % providers.length;
+            reelProviderIndex++; 
 
-            // Coba satu per satu sesuai urutan acak
-            for (const provider of providers) {
+            // Urutkan ulang array agar provider utama ada di depan (Fallback ke yang lain jika gagal)
+            const orderedProviders = [
+                ...providers.slice(startIndex),
+                ...providers.slice(0, startIndex)
+            ];
+
+            // Coba satu per satu sesuai urutan rotasi
+            for (const provider of orderedProviders) {
                 try {
                     const result = await provider();
                     if (result) {
