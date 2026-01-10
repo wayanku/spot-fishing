@@ -2314,7 +2314,7 @@
                             const items = data.collection.items;
                             const item = items[Math.floor(Math.random() * items.length)];
                             const meta = item.data[0];
-                            const collectionUrl = item.href;
+                            const collectionUrl = item.href.replace("http:", "https:");
                             
                             const videoRes = await fetch(collectionUrl);
                             const videoFiles = await videoRes.json();
@@ -2326,7 +2326,7 @@
                                     userName: "NatGeo Ocean",
                                     userAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Ocean",
                                     location: "Samudra",
-                                    videoFile: mp4,
+                                    videoFile: mp4.replace("http:", "https:"),
                                     thumbnail: thumb,
                                     caption: `<b>${meta.title}</b><br>${meta.description ? meta.description.substring(0, 120) + '...' : 'Keindahan laut dari arsip NASA.'}`,
                                     sourceName: "National Geographic",
@@ -2370,7 +2370,7 @@
                             const items = data.collection.items;
                             const item = items[Math.floor(Math.random() * items.length)];
                             const meta = item.data[0];
-                            const collectionUrl = item.href;
+                            const collectionUrl = item.href.replace("http:", "https:");
                             
                             // Fetch actual video files
                             const videoRes = await fetch(collectionUrl);
@@ -2384,7 +2384,7 @@
                                     userName: "NASA Space",
                                     userAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Space",
                                     location: "Luar Angkasa",
-                                    videoFile: mp4,
+                                    videoFile: mp4.replace("http:", "https:"),
                                     thumbnail: thumb,
                                     caption: `<b>${meta.title}</b><br>${meta.description ? meta.description.substring(0, 120) + '...' : 'Video luar angkasa NASA.'}`,
                                     sourceName: "NASA TV",
@@ -2426,7 +2426,7 @@
                             const items = data.collection.items;
                             const item = items[Math.floor(Math.random() * items.length)];
                             const meta = item.data[0];
-                            const collectionUrl = item.href;
+                            const collectionUrl = item.href.replace("http:", "https:");
                             
                             const videoRes = await fetch(collectionUrl);
                             const videoFiles = await videoRes.json();
@@ -2438,7 +2438,7 @@
                                     userName: "NASA Earth",
                                     userAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Earth",
                                     location: "Orbit Bumi",
-                                    videoFile: mp4,
+                                    videoFile: mp4.replace("http:", "https:"),
                                     thumbnail: thumb,
                                     caption: `<b>${meta.title}</b><br>${meta.description ? meta.description.substring(0, 120) + '...' : 'Pemandangan Bumi dari angkasa.'}`,
                                     sourceName: "NASA",
@@ -2480,7 +2480,7 @@
                             const items = data.collection.items;
                             const item = items[Math.floor(Math.random() * items.length)];
                             const meta = item.data[0];
-                            const collectionUrl = item.href;
+                            const collectionUrl = item.href.replace("http:", "https:");
                             
                             const videoRes = await fetch(collectionUrl);
                             const videoFiles = await videoRes.json();
@@ -2492,7 +2492,7 @@
                                     userName: "NatGeo Wild",
                                     userAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Nature",
                                     location: "Fenomena Alam",
-                                    videoFile: mp4,
+                                    videoFile: mp4.replace("http:", "https:"),
                                     thumbnail: thumb,
                                     caption: `<b>${meta.title}</b><br>${meta.description ? meta.description.substring(0, 120) + '...' : 'Fenomena alam dari arsip NASA.'}`,
                                     sourceName: "National Geographic",
@@ -2596,7 +2596,7 @@
                         `<div class="aspect-[4/5] w-full"><iframe src="${d.videoUrl}" class="w-full h-full border-0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>` 
                         : (d.videoFile ? 
                             `<div class="aspect-[4/5] w-full flex items-center justify-center bg-black relative cursor-pointer overflow-hidden" onclick="toggleVideo(this)">
-                                <video src="${d.videoFile}" poster="${d.thumbnail || ''}" class="w-full h-full object-contain" playsinline loop preload="metadata" onwaiting="this.parentElement.querySelector('.loading-spinner')?.classList.remove('hidden')" onplaying="this.parentElement.querySelector('.loading-spinner')?.classList.add('hidden')"></video>
+                                <video src="${d.videoFile}" poster="${d.thumbnail || ''}" class="w-full h-full object-contain" playsinline loop crossorigin="anonymous" preload="metadata" onwaiting="this.parentElement.querySelector('.loading-spinner')?.classList.remove('hidden')" onplaying="this.parentElement.querySelector('.loading-spinner')?.classList.add('hidden')" onerror="this.parentElement.innerHTML='<div class=\\'flex items-center justify-center h-full text-slate-500 text-xs\\'>Video tidak tersedia</div>'"></video>
                                 <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
                                     <div class="play-icon bg-black/40 rounded-full p-4 backdrop-blur-sm transition-all duration-300"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
                                     <div class="loading-spinner hidden absolute"><i data-lucide="loader" class="w-10 h-10 text-white animate-spin"></i></div>
