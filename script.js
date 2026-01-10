@@ -752,11 +752,23 @@
         function initApp() {
             // LOGIN DINONAKTIFKAN: Langsung masuk sebagai Guest
             console.warn("LOGIN DINONAKTIFKAN: Menjalankan aplikasi dalam Mode Tamu.");
-            currentUser = { email: 'Guest', uid: 'guest_user', displayName: 'Guest', photoURL: `https://api.dicebear.com/7.x/avataaars/svg?seed=guest_user` };
+            
+            // --- MODIFIED: Load Saved Name & Avatar ---
+            const savedName = localStorage.getItem('guest_name') || 'Guest';
+            currentUser = { 
+                email: 'Guest', 
+                uid: 'guest_user', 
+                displayName: savedName, 
+                photoURL: `https://api.dicebear.com/7.x/avataaars/svg?seed=${savedName}` 
+            };
             
             // Update Profile Image di Home
             const profileImg = document.getElementById('home-profile-img');
             if(profileImg) profileImg.src = currentUser.photoURL;
+            
+            // Update Profile Image di Navigasi Bawah
+            const navImg = document.getElementById('nav-profile-img');
+            if(navImg) navImg.src = currentUser.photoURL;
 
             // Tampilkan konten, sembunyikan login overlay
             document.getElementById('auth-overlay').classList.add('hidden');
@@ -792,7 +804,7 @@
 
         // --- PROFILE & LOGIN MENU ---
         function openProfile() {
-            navigateTo('settings'); // Buka menu pengaturan saat foto profil diklik
+            navigateTo('profile'); // Buka halaman profil ala Instagram
         }
 
         function closeAuthOverlay() {
@@ -3300,6 +3312,11 @@
                 if(pageId === 'reels') {
                     if(typeof initReels === 'function') initReels();
                 }
+
+                // Khusus Profile: Load data user & grid
+                if(pageId === 'profile') {
+                    if(typeof loadUserProfile === 'function') loadUserProfile();
+                }
             }
         }
 
@@ -3575,4 +3592,108 @@
             // --- FINAL FALLBACK (Jika semua gagal) ---
             const staticVid = "https://images-assets.nasa.gov/video/ARC_20191025_A_E_SeaIce/ARC_20191025_A_E_SeaIce~medium.mp4";
             renderVideo(staticVid, "Konten Cadangan (Offline Mode)", "System", 0, 0, 'System');
+        }
+
+        // --- PROFILE PAGE LOGIC ---
+        function loadUserProfile() {
+            const img = document.getElementById('profile-image');
+            const name = document.getElementById('profile-name');
+            const username = document.getElementById('profile-username');
+            const postsCount = document.getElementById('profile-posts-count');
+            const bio = document.getElementById('profile-bio');
+            
+            if(currentUser) {
+                if(img) img.src = currentUser.photoURL;
+                if(name) name.innerText = currentUser.displayName || 'Pengguna';
+                if(username) username.innerText = '@' + (currentUser.uid === 'guest_user' ? 'guest' : currentUser.uid.split('@')[0]);
+                
+                // Load Bio
+                if(bio) {
+                    const savedBio = localStorage.getItem('user_bio') || "🎣 Hobby Mancing & Petualang<br>📍 Bali, Indonesia<br>🌊 Laut adalah rumah keduaku.";
+                    bio.innerHTML = savedBio;
+                }
+                
+                // Update Nav Image juga saat load profile
+                const navImg = document.getElementById('nav-profile-img');
+                if(navImg) navImg.src = currentUser.photoURL;
+            }
+
+            const grid = document.getElementById('profile-grid');
+            if(grid) {
+                grid.innerHTML = '';
+                // Ambil spot lokal sebagai postingan user (Simulasi)
+                const localSpots = JSON.parse(localStorage.getItem('spots') || '[]');
+                const userSpots = localSpots; 
+                
+                if(postsCount) postsCount.innerText = userSpots.length;
+
+                if(userSpots.length === 0) {
+                     grid.innerHTML = '<div class="col-span-3 flex flex-col items-center justify-center py-20 text-slate-500"><div class="bg-neutral-800 p-4 rounded-full mb-3"><i data-lucide="camera" class="w-8 h-8 opacity-50"></i></div><p class="text-xs">Belum ada postingan</p></div>';
+                } else {
+                    userSpots.forEach(spot => {
+                        const div = document.createElement('div');
+                        div.className = 'aspect-square bg-neutral-800 relative group overflow-hidden cursor-pointer border border-black';
+                        div.onclick = () => {
+                            openSpotDetail([spot]); // Buka detail spot
+                        };
+                        
+                        const imgUrl = spot.photo || 'https://via.placeholder.com/150?text=No+Image';
+                        div.innerHTML = `
+                            <img src="${imgUrl}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1 text-white font-bold">
+                                <i data-lucide="heart" class="w-5 h-5 fill-white"></i> <span>${spot.likes || 0}</span>
+                            </div>
+                        `;
+                        grid.appendChild(div);
+                    });
+                }
+            }
+            if(typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        // --- EDIT PROFILE LOGIC ---
+        function openEditProfile() {
+            const modal = document.getElementById('editProfileModal');
+            const nameInput = document.getElementById('edit-name');
+            const bioInput = document.getElementById('edit-bio');
+            const imgPreview = document.getElementById('edit-profile-preview');
+            
+            if(currentUser) {
+                nameInput.value = currentUser.displayName;
+                imgPreview.src = currentUser.photoURL;
+                
+                // Ambil bio dari storage, konversi <br> kembali ke newline untuk textarea
+                const currentBio = localStorage.getItem('user_bio') || "🎣 Hobby Mancing & Petualang\n📍 Bali, Indonesia\n🌊 Laut adalah rumah keduaku.";
+                bioInput.value = currentBio.replace(/<br\s*\/?>/gi, '\n');
+            }
+            
+            modal.classList.remove('translate-y-full');
+        }
+
+        function closeEditProfile() {
+            document.getElementById('editProfileModal').classList.add('translate-y-full');
+        }
+
+        function saveProfile() {
+            const name = document.getElementById('edit-name').value.trim();
+            const bio = document.getElementById('edit-bio').value.trim();
+            
+            if(!name) { alert("Nama tidak boleh kosong"); return; }
+            
+            // Simpan ke LocalStorage (Nama ini otomatis dipakai di komentar)
+            localStorage.setItem('guest_name', name);
+            localStorage.setItem('user_bio', bio.replace(/\n/g, '<br>')); // Simpan bio dengan <br>
+            
+            // Update currentUser object
+            if(currentUser) {
+                currentUser.displayName = name;
+                currentUser.photoURL = `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`;
+                
+                // Update Nav Image langsung
+                const navImg = document.getElementById('nav-profile-img');
+                if(navImg) navImg.src = currentUser.photoURL;
+            }
+            
+            loadUserProfile(); // Refresh tampilan profil
+            closeEditProfile();
         }
