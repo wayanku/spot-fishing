@@ -1122,7 +1122,7 @@
             
             // Gunakan URL Google Sheet yang sudah ada di script.js
             // Fallback URL jika variabel tidak ditemukan
-            const SHEET_URL = (typeof GOOGLE_SCRIPT_URL !== 'undefined') ? GOOGLE_SCRIPT_URL : "https://script.google.com/macros/s/AKfycbz_NYhhB5K0tCTI1jMqoLj2oEiHd82CexE0d9PNBVH-teoRVRkDmWqLeC6RZGWGTtvs/exec";
+            const SHEET_URL = (typeof GOOGLE_SCRIPT_URL !== 'undefined') ? GOOGLE_SCRIPT_URL : "https://script.google.com/macros/s/AKfycbybJe6cBuciSnj4j4hmm3nN4C860Sen9RVht6b1O5cZoRpkwvBoDLw6jTkYa4tmUas1/exec";
 
             // Helper: Ubah Link YouTube jadi Embed
             const getEmbedUrl = (url) => {
@@ -2810,7 +2810,7 @@
             localStorage.setItem('liked_' + postId, 'true');
 
             // Kirim ke Google Sheet
-            const SHEET_URL = (typeof GOOGLE_SCRIPT_URL !== 'undefined') ? GOOGLE_SCRIPT_URL : "https://script.google.com/macros/s/AKfycbz_NYhhB5K0tCTI1jMqoLj2oEiHd82CexE0d9PNBVH-teoRVRkDmWqLeC6RZGWGTtvs/exec";
+            const SHEET_URL = (typeof GOOGLE_SCRIPT_URL !== 'undefined') ? GOOGLE_SCRIPT_URL : "https://script.google.com/macros/s/AKfycbybJe6cBuciSnj4j4hmm3nN4C860Sen9RVht6b1O5cZoRpkwvBoDLw6jTkYa4tmUas1/exec";
             
             fetch(SHEET_URL, {
                 method: 'POST',
@@ -2961,7 +2961,7 @@
             input.value = ''; // Clear input immediately
 
             // Kirim ke Google Sheet
-            const SHEET_URL = (typeof GOOGLE_SCRIPT_URL !== 'undefined') ? GOOGLE_SCRIPT_URL : "https://script.google.com/macros/s/AKfycbz_NYhhB5K0tCTI1jMqoLj2oEiHd82CexE0d9PNBVH-teoRVRkDmWqLeC6RZGWGTtvs/exec";
+            const SHEET_URL = (typeof GOOGLE_SCRIPT_URL !== 'undefined') ? GOOGLE_SCRIPT_URL : "https://script.google.com/macros/s/AKfycbybJe6cBuciSnj4j4hmm3nN4C860Sen9RVht6b1O5cZoRpkwvBoDLw6jTkYa4tmUas1/exec";
             
             // Tampilkan feedback visual
             const toast = document.createElement('div');
