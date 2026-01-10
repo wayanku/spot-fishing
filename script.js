@@ -223,7 +223,7 @@
         setTimeout(() => changeLanguage(localStorage.getItem('appLang') || 'id'), 100);
 
         // --- CONFIGURATION ---
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbybJe6cBuciSnj4j4hmm3nN4C860Sen9RVht6b1O5cZoRpkwvBoDLw6jTkYa4tmUas1/exec"; 
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzDgpGXHWgT8ZXh14GF1m9vWoxhMiJBAThfVOPlsONIXnrwZqrx46rpUvl0uOYJnkC6/exec"; 
         const IMGBB_API_KEY = "7e6f3ce63649d305ccaceea00c28266d"; // Daftar gratis di api.imgbb.com
 
         // --- AI SETUP (Web Worker & Lazy Loading) ---
@@ -3566,8 +3566,50 @@
                 throw new Error("NASA data empty");
             };
 
+            // --- NEW: Fetch from Google Sheet (Community Reels) ---
+            const fetchSheetReels = async () => {
+                let videos = [];
+                // 1. Coba ambil dari Cache Feed (agar hemat kuota & cepat)
+                try {
+                    const cached = JSON.parse(localStorage.getItem('feed_cache') || '{}');
+                    videos = cached.videos || [];
+                } catch (e) {}
+
+                // 2. Jika cache kosong atau tidak ada video, fetch manual
+                if (videos.length === 0) {
+                    try {
+                        const res = await fetch(`${GOOGLE_SCRIPT_URL}?type=all&t=${Date.now()}`);
+                        const data = await res.json();
+                        if (data && data.videos) {
+                            videos = data.videos;
+                            // Update cache parsial (opsional, hati-hati menimpa spots)
+                        }
+                    } catch(e) { throw new Error("Sheet fetch failed"); }
+                }
+
+                // Filter: Hanya video valid yang belum tampil
+                const available = videos.filter(v => v.video && !shownReelIds.has(v.video)); // Gunakan URL sebagai ID unik
+                
+                if (available.length > 0) {
+                    const item = available[Math.floor(Math.random() * available.length)];
+                    shownReelIds.add(item.video);
+                    
+                    return {
+                        url: item.video, // Link dari kolom 'video' di Sheet
+                        title: item.caption || "Video Komunitas",
+                        user: item.name || item.user || "Member", // Baca kolom Nama (C)
+                        likes: Math.floor(Math.random() * 100) + 10,
+                        comments: 0,
+                        sourceLabel: 'Community Reel',
+                        thumbnail: '' // Video sheet biasanya tidak punya thumbnail khusus
+                    };
+                }
+                throw new Error("No sheet videos available");
+            };
+
             // --- EXECUTION LOGIC (RANDOMIZED) ---
-            const providers = [fetchPixabay, fetchPexels, fetchNasa];
+            // Tambahkan fetchSheetReels ke dalam daftar provider
+            const providers = [fetchSheetReels, fetchPixabay, fetchPexels, fetchNasa];
             
             // Fisher-Yates Shuffle untuk mengacak urutan provider
             for (let i = providers.length - 1; i > 0; i--) {
