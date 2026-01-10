@@ -223,7 +223,7 @@
         setTimeout(() => changeLanguage(localStorage.getItem('appLang') || 'id'), 100);
 
         // --- CONFIGURATION ---
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwmGjR-UmBDARNmEcLQg44Es-bAhF3VoLybSPJLfupflR1OxC1doIMXamf_XGUh8pHt/exec"; 
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz_NYhhB5K0tCTI1jMqoLj2oEiHd82CexE0d9PNBVH-teoRVRkDmWqLeC6RZGWGTtvs/exec"; 
         const IMGBB_API_KEY = "7e6f3ce63649d305ccaceea00c28266d"; // Daftar gratis di api.imgbb.com
 
         // --- AI SETUP (Web Worker & Lazy Loading) ---
@@ -1752,10 +1752,15 @@
             // 2. Ambil Data Google Sheets (Async) & Merge
             if(GOOGLE_SCRIPT_URL.startsWith("http")) {
                 try {
-                    const res = await fetch(GOOGLE_SCRIPT_URL);
+                    // FIX: Tambahkan timestamp (?t=...) agar data peta selalu update (Like/Komen baru muncul)
+                    const res = await fetch(`${GOOGLE_SCRIPT_URL}?t=${Date.now()}`);
                     const data = await res.json();
                     
                     data.forEach(item => {
+                        // FIX: Handle Comma in Coordinates (Data Lama)
+                        if(typeof item.lat === 'string') item.lat = parseFloat(item.lat.replace(',', '.'));
+                        if(typeof item.lng === 'string') item.lng = parseFloat(item.lng.replace(',', '.'));
+
                         const key = item.spotId || (item.lat + ',' + item.lng);
                         if(!groupedSpots[key]) groupedSpots[key] = [];
                         groupedSpots[key].push(item);
