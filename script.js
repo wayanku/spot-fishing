@@ -792,7 +792,7 @@
 
         // --- PROFILE & LOGIN MENU ---
         function openProfile() {
-            // Login dinonaktifkan, fungsi ini tidak melakukan apa-apa.
+            navigateTo('settings'); // Buka menu pengaturan saat foto profil diklik
         }
 
         function closeAuthOverlay() {
@@ -3295,6 +3295,11 @@
                         }
                     }
                 }
+
+                // Khusus Reels: Init jika belum
+                if(pageId === 'reels') {
+                    if(typeof initReels === 'function') initReels();
+                }
             }
         }
 
@@ -3314,3 +3319,184 @@
             // FIX: Jalankan aplikasi utama saat load agar Auth Listener aktif
             initApp();
         });
+
+        // --- REELS FEATURE LOGIC ---
+        let reelsInitialized = false;
+        let reelsObserver = null;
+
+        function initReels() {
+            if (reelsInitialized) return;
+            reelsInitialized = true;
+
+            const container = document.getElementById('reels-container');
+            if (!container) return;
+
+            // Setup Observer untuk Autoplay saat scroll
+            reelsObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    const video = entry.target.querySelector('video');
+                    if (!video) return;
+
+                    if (entry.isIntersecting) {
+                        // Play saat masuk layar
+                        // FIX: User request "ga usah mute otomatis"
+                        video.muted = false; 
+                        video.play().catch(() => {});
+                    } else {
+                        // Pause & Reset saat keluar layar
+                        video.pause();
+                        video.currentTime = 0;
+                    }
+                });
+            }, { threshold: 0.6 }); // 60% video terlihat baru play
+
+            // Load batch pertama
+            loadReelsBatch();
+            
+            // Infinite Scroll sederhana
+            container.addEventListener('scroll', () => {
+                if (container.scrollTop + container.clientHeight >= container.scrollHeight - 100) {
+                    loadReelsBatch();
+                }
+            });
+        }
+
+        async function loadReelsBatch() {
+            const container = document.getElementById('reels-container');
+            // Tambah 3 placeholder loading
+            for (let i = 0; i < 3; i++) {
+                const el = document.createElement('div');
+                el.className = "w-full h-full snap-start relative bg-black flex items-center justify-center border-b border-white/10 shrink-0";
+                el.innerHTML = '<div class="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full"></div>';
+                container.appendChild(el);
+                fetchReelContent(el);
+            }
+        }
+
+        async function fetchReelContent(container) {
+            // 1. Data Tips & Trik (Teks) - Agar konten tetap relevan dengan mancing
+            const fishingTips = [
+                {
+                    title: "Tips: Waktu terbaik casting adalah saat 'Golden Hour' (Sunset) agar ikan predator naik ke permukaan.",
+                    user: "Kapten Jack",
+                    likes: "1.2k",
+                    comments: "45"
+                },
+                {
+                    title: "Trik: Gunakan umpan hidup (udang/ikan kecil) jika air sedang keruh.",
+                    user: "MasterStrike",
+                    likes: "2.5k",
+                    comments: "120"
+                },
+                {
+                    title: "Info: Ikan karang suka bersembunyi di celah bebatuan. Gunakan leader yang kuat agar tidak putus gesek karang.",
+                    user: "RockFishing",
+                    likes: "890",
+                    comments: "30"
+                },
+                {
+                    title: "Teknik: Jigging di kedalaman 40m sangat efektif untuk ikan Tenggiri dan Kuwe.",
+                    user: "JiggingPro",
+                    likes: "3.1k",
+                    comments: "210"
+                },
+                {
+                    title: "Edukasi: Jangan buang sampah plastik ke laut! Jaga spot kita tetap bersih kawan.",
+                    user: "KonservasiLaut",
+                    likes: "5k",
+                    comments: "500"
+                }
+            ];
+
+            const tip = fishingTips[Math.floor(Math.random() * fishingTips.length)];
+            
+            // 2. Cari Video Background (NASA API - Sumber Paling Stabil & Gratis)
+            // Kita cari video bertema laut/air sebagai ilustrasi visual
+            const keywords = ["ocean", "coral reef", "fish", "underwater", "waves", "sea life", "marine"];
+            const keyword = keywords[Math.floor(Math.random() * keywords.length)];
+            
+            try {
+                const res = await fetch(`https://images-api.nasa.gov/search?q=${keyword}&media_type=video`);
+                const data = await res.json();
+                
+                
+                if (data.collection && data.collection.items && data.collection.items.length > 0) {
+                    // Ambil item acak
+                    const item = data.collection.items[Math.floor(Math.random() * data.collection.items.length)];
+                    const collectionUrl = item.href.replace("http:", "https:");
+                    
+                    const videoRes = await fetch(collectionUrl);
+                    const videoFiles = await videoRes.json();
+                    // Cari file MP4 medium atau original
+                    const mp4 = videoFiles.find(f => f.endsWith('~medium.mp4')) || videoFiles.find(f => f.endsWith('.mp4'));
+                    
+                    if (mp4) {
+                        const videoUrl = mp4.replace("http:", "https:");
+                        
+                        container.innerHTML = `
+                            <video src="${videoUrl}" class="w-full h-full object-cover" loop playsinline></video>
+                            <div class="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/90 pointer-events-none"></div>
+                            
+                            <!-- Overlay Info (Posisi Diturunkan: bottom-0 + padding) -->
+                            <div class="absolute bottom-0 left-0 w-full p-4 pb-6 z-10 pointer-events-none bg-gradient-to-t from-black/80 to-transparent">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-cyan-400 p-[1.5px]">
+                                        <div class="w-full h-full rounded-full bg-black flex items-center justify-center overflow-hidden"><i data-lucide="user" class="w-5 h-5 text-white"></i></div>
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <p class="text-white font-bold text-sm drop-shadow-md leading-none">@${tip.user}</p>
+                                        <p class="text-[10px] text-slate-300 leading-none mt-0.5">Disarankan untukmu</p>
+                                    </div>
+                                    <button class="ml-2 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold text-white border border-white/10 pointer-events-auto hover:bg-white/30 transition-colors">Follow</button>
+                                </div>
+                                <p class="text-white text-sm leading-snug drop-shadow-md font-medium line-clamp-3 pr-16 opacity-90">${tip.title}</p>
+                                <div class="flex items-center gap-2 mt-3 text-xs text-white/70">
+                                    <span class="flex items-center gap-1"><i data-lucide="music" class="w-3 h-3"></i> Original Sound - Fishing Spot</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Side Actions (Posisi Diturunkan & Dirapikan) -->
+                            <div class="absolute right-2 bottom-8 flex flex-col gap-3 items-center z-20 pb-4">
+                                <button class="flex flex-col items-center gap-1 group">
+                                    <div class="p-2.5 bg-black/40 backdrop-blur-md rounded-full group-active:scale-90 transition-all border border-white/10 hover:bg-black/60">
+                                        <i data-lucide="heart" class="w-6 h-6 text-white fill-white/10 group-hover:fill-red-500 group-hover:text-red-500 transition-colors"></i>
+                                    </div>
+                                    <span class="text-[10px] font-bold text-white drop-shadow-md">${tip.likes}</span>
+                                </button>
+                                
+                                <button class="flex flex-col items-center gap-1 group">
+                                    <div class="p-2.5 bg-black/40 backdrop-blur-md rounded-full group-active:scale-90 transition-all border border-white/10 hover:bg-black/60">
+                                        <i data-lucide="message-circle" class="w-6 h-6 text-white fill-white/10"></i>
+                                    </div>
+                                    <span class="text-[10px] font-bold text-white drop-shadow-md">${tip.comments}</span>
+                                </button>
+                                
+                                <button class="flex flex-col items-center gap-1 group">
+                                    <div class="p-2.5 bg-black/40 backdrop-blur-md rounded-full group-active:scale-90 transition-all border border-white/10 hover:bg-black/60">
+                                        <i data-lucide="share-2" class="w-6 h-6 text-white"></i>
+                                    </div>
+                                    <span class="text-[10px] font-bold text-white drop-shadow-md">Share</span>
+                                </button>
+
+                                <button class="flex flex-col items-center gap-1 group mt-2" onclick="const v=this.closest('.relative').querySelector('video'); v.muted=!v.muted; this.querySelector('i').setAttribute('data-lucide', v.muted?'volume-x':'volume-2'); lucide.createIcons();">
+                                    <div class="p-2.5 bg-black/40 backdrop-blur-md rounded-full group-active:scale-90 transition-all border border-white/10 hover:bg-black/60">
+                                        <i data-lucide="volume-2" class="w-5 h-5 text-white"></i>
+                                    </div>
+                                </button>
+                            </div>`;
+                        
+                        reelsObserver.observe(container);
+                        if(typeof lucide !== 'undefined') lucide.createIcons();
+                        
+                        // Click to Play/Pause
+                        const v = container.querySelector('video');
+                        container.onclick = (e) => { if(!e.target.closest('button')) v.paused ? v.play() : v.pause(); };
+                        return;
+                    }
+                }
+                // Retry if no video found
+                fetchReelContent(container);
+            } catch(e) {
+                container.innerHTML = '<div class="flex items-center justify-center h-full text-slate-500 text-xs">Gagal memuat video</div>';
+            }
+        }
