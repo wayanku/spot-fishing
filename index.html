@@ -124,8 +124,9 @@
 
         <!-- === HALAMAN 1: HOME (FEED) === -->
         <div id="view-home" class="view-section active">
-            <div class="pt-4 pb-24">
-                <div class="flex items-center justify-between mb-2 px-4 md:px-6">
+            <!-- Header (Relative - Ikut Scroll) -->
+            <div id="home-header" class="relative z-50 bg-black/90 backdrop-blur-md pt-4 pb-2 px-4 md:px-6 border-b border-white/5 transition-all duration-300">
+                <div class="flex items-center justify-between">
                     <!-- Left: Add Button -->
                     <button onclick="openAddModal()" class="p-2 text-slate-200 hover:text-white transition-colors">
                         <i data-lucide="plus-square" class="w-7 h-7"></i>
@@ -137,7 +138,18 @@
                         <i data-lucide="heart" class="w-7 h-7"></i>
                     </button>
                 </div>
-                
+            </div>
+
+            <!-- Pull to Refresh Spinner (Behind Content) -->
+            <div id="ptr-spinner" class="absolute left-1/2 -translate-x-1/2 z-0 w-full flex justify-center pt-6" style="top: 60px;">
+                <div id="ptr-icon" class="bg-white text-black p-2 rounded-full shadow-xl border border-black/10 scale-0 transition-transform duration-200">
+                    <i data-lucide="loader" class="w-5 h-5 animate-spin"></i>
+                </div>
+            </div>
+
+            <!-- Content Wrapper (Scrollable & Pullable) -->
+            <div id="home-content-wrapper" class="relative z-10 bg-black pb-24 min-h-[calc(100vh-80px)] transition-transform duration-300 ease-out">
+                <div class="pt-4">
                 <!-- Stories / Highlights -->
                 <div id="ai-stories-container" class="flex gap-4 overflow-x-auto no-scrollbar mb-2 pb-2 px-4 md:px-6">
                     <!-- Skeleton Loading Story -->
@@ -181,6 +193,7 @@
                             <div class="h-2 w-3/4 bg-neutral-800 rounded"></div>
                         </div>
                     </div>
+                </div>
                 </div>
             </div>
         </div>
@@ -1097,6 +1110,68 @@
             // Muat feed dan data widget secara paralel
             loadHomeFeed();
             loadHomeWidgetData(); // <-- FIX: Panggil fungsi untuk ambil data cuaca
+            
+            // --- NEW: PULL TO REFRESH LOGIC ---
+            const homeView = document.getElementById('view-home');
+            const contentWrapper = document.getElementById('home-content-wrapper');
+            const ptrIcon = document.getElementById('ptr-icon');
+            let ptrStartY = 0;
+            let isPulling = false;
+
+            if (homeView && contentWrapper && ptrIcon) {
+                homeView.addEventListener('touchstart', (e) => {
+                    if (homeView.scrollTop <= 0) {
+                        ptrStartY = e.touches[0].clientY;
+                    }
+                }, {passive: true});
+
+                homeView.addEventListener('touchmove', (e) => {
+                    const y = e.touches[0].clientY;
+                    const diff = y - ptrStartY;
+                    
+                    // Hanya aktifkan jika scroll di paling atas dan tarik ke bawah
+                    if (homeView.scrollTop <= 0 && diff > 0) {
+                        isPulling = true;
+                        // Visual feedback (Tarik spinner ke bawah)
+                        if (diff < 200) { 
+                            contentWrapper.style.transform = `translateY(${diff * 0.4}px)`;
+                            ptrIcon.style.transform = `scale(${Math.min(1, diff / 100)})`;
+                        }
+                    } else {
+                        isPulling = false;
+                        contentWrapper.style.transform = `translateY(0)`;
+                        ptrIcon.style.transform = `scale(0)`;
+                    }
+                }, {passive: true});
+
+                homeView.addEventListener('touchend', async (e) => {
+                    if (!isPulling) return;
+                    isPulling = false;
+                    const y = e.changedTouches[0].clientY;
+                    const diff = y - ptrStartY;
+
+                    if (diff > 100 && homeView.scrollTop <= 0) { // Threshold refresh
+                        // Trigger Refresh Animation
+                        contentWrapper.style.transform = `translateY(60px)`; // Tahan posisi
+                        ptrIcon.style.transform = `scale(1)`;
+                        if (navigator.vibrate) navigator.vibrate(50);
+
+                        await loadHomeFeed(); // Refresh Feed
+                        if(typeof loadHomeWidgetData === 'function') loadHomeWidgetData(); // Refresh Widget
+                        
+                        // Reset UI setelah selesai
+                        setTimeout(() => {
+                            contentWrapper.style.transform = `translateY(0)`;
+                            ptrIcon.style.transform = `scale(0)`;
+                        }, 500);
+                    } else {
+                        // Batal (Tarik kurang jauh)
+                        contentWrapper.style.transform = `translateY(0)`;
+                        ptrIcon.style.transform = `scale(0)`;
+                    }
+                    ptrStartY = 0;
+                });
+            }
         });
 
         // Template Skeleton Feed (Reusable)
@@ -1233,6 +1308,21 @@
                 if(typeof lucide !== 'undefined') lucide.createIcons();
             }
         };
+
+        // --- NEW: Open Reel from Feed Data ---
+        function openReelFromFeed(mode, container) {
+            const data = externalPostDataCache[mode];
+            if (data) {
+                let startTime = 0;
+                let isMuted = false;
+                if (container) {
+                    const v = container.querySelector('video');
+                    if (v) { startTime = v.currentTime; isMuted = v.muted; }
+                }
+                // Pass status video ke fungsi Reels
+                openReelWithVideo(data, startTime, isMuted);
+            }
+        }
 
         async function loadHomeFeed() {
             const container = document.getElementById('home-feed-container');
@@ -1427,10 +1517,8 @@
                         extEl.className = "mb-4 border-b border-white/5 pb-4";
                         container.appendChild(extEl);
                         loadExternalFeedPost('external-feed-post-mix', 'mix'); // Mode Mix (Resep/Wiki)
-                    }
-
-                    // --- POSISI 2: Video (Di bawah postingan ke-3) ---
-                    if (index === 2) {
+                        
+                        // --- POSISI 2: Video (Di bawah postingan Wikipedia) ---
                         const vidEl = document.createElement('div');
                         vidEl.id = 'external-feed-post-video';
                         vidEl.className = "mb-4 border-b border-white/5 pb-4";
@@ -2235,9 +2323,8 @@
             // Tentukan tipe konten berdasarkan mode
             let sourceType;
             if (mode === 'video') {
-                // Random antara Kategori NASA (4-7)
-                const videoTypes = [4, 5, 6, 7];
-                sourceType = videoTypes[Math.floor(Math.random() * videoTypes.length)];
+                // NEW: Fetch from Sheet (Source Type 8) - Video Komunitas
+                sourceType = 8;
             } else if (mode === 'wiki') {
                 sourceType = 1; // Force Wiki (Fallback)
             } else if (mode === 'mix') {
@@ -2637,6 +2724,38 @@
                             }
                         }
                     } catch(e) { console.warn("NASA Nature failed", e); }
+                } else if (sourceType === 8) {
+                    // --- SUMBER 9: Google Sheet Video (Community Reels) ---
+                    let videos = [];
+                    try {
+                        const cached = JSON.parse(localStorage.getItem('feed_cache') || '{}');
+                        videos = cached.videos || [];
+                    } catch (e) {}
+
+                    if (videos.length === 0) {
+                        try {
+                            const SHEET_URL = (typeof GOOGLE_SCRIPT_URL !== 'undefined') ? GOOGLE_SCRIPT_URL : "https://script.google.com/macros/s/AKfycbybJe6cBuciSnj4j4hmm3nN4C860Sen9RVht6b1O5cZoRpkwvBoDLw6jTkYa4tmUas1/exec";
+                            const res = await fetch(`${SHEET_URL}?type=all&t=${Date.now()}`);
+                            const data = await res.json();
+                            if (data && data.videos) videos = data.videos;
+                        } catch(e) {}
+                    }
+                    
+                    if (videos.length > 0) {
+                        const item = videos[Math.floor(Math.random() * videos.length)];
+                        if (item.video) {
+                             postData = {
+                                userName: item.name || item.user || "Member Komunitas",
+                                userAvatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${item.name || 'User'}`,
+                                location: "Reels Komunitas",
+                                videoFile: item.video,
+                                thumbnail: '', 
+                                caption: `<b>${item.caption || 'Video Komunitas'}</b>`,
+                                sourceName: "Komunitas",
+                                likes: Math.floor(Math.random() * 100) + 10
+                            };
+                        }
+                    }
                 }
 
                 // 2. SIMPAN KE CACHE & RENDER
@@ -2644,7 +2763,7 @@
                     externalPostDataCache[mode] = postData; // Simpan ke cache agar render berikutnya (Network) pakai data yang sama
                     // Re-query container karena elemen DOM mungkin sudah diganti oleh render ulang
                     const currentContainer = document.getElementById(containerId);
-                    if(currentContainer) renderExternalPostUI(currentContainer, postData);
+                    if(currentContainer) renderExternalPostUI(currentContainer, postData, mode);
                 } else {
                     delete externalPostDataCache[mode]; // Hapus status loading jika gagal
                     
@@ -2704,7 +2823,7 @@
         }
 
         // Helper: Render Tampilan Postingan (Sama persis dengan Feed User)
-        function renderExternalPostUI(container, d) {
+        function renderExternalPostUI(container, d, mode) {
             container.className = "bg-black mb-1 pb-2 border-b border-neutral-800";
             container.innerHTML = `
                 <!-- Header -->
@@ -2731,26 +2850,19 @@
                     ${d.videoUrl ? 
                         `<div class="aspect-[4/5] w-full"><iframe src="${d.videoUrl}" class="w-full h-full border-0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>` 
                         : (d.videoFile ? 
-                            `<div class="aspect-[4/5] w-full flex items-center justify-center bg-black relative cursor-pointer overflow-hidden" onclick="toggleVideo(this)">
-                                <video src="${d.videoFile}" poster="${d.thumbnail || ''}" class="w-full h-full object-contain" playsinline loop crossorigin="anonymous" preload="metadata" onwaiting="this.parentElement.querySelector('.loading-spinner')?.classList.remove('hidden')" onplaying="this.parentElement.querySelector('.loading-spinner')?.classList.add('hidden')" onerror="this.parentElement.innerHTML='<div class=\\'flex items-center justify-center h-full text-slate-500 text-xs\\'>Video tidak tersedia</div>'"></video>
+                            `<div class="aspect-[4/5] w-full flex items-center justify-center bg-black relative cursor-pointer overflow-hidden" onclick="openReelFromFeed('${mode}', this)">
+                                <video src="${d.videoFile}" poster="${d.thumbnail || ''}" class="w-full h-full object-cover" playsinline loop crossorigin="anonymous" autoplay muted onwaiting="this.parentElement.querySelector('.loading-spinner')?.classList.remove('hidden')" onplaying="this.parentElement.querySelector('.loading-spinner')?.classList.add('hidden')" onerror="this.parentElement.innerHTML='<div class=\\'flex items-center justify-center h-full text-slate-500 text-xs\\'>Video tidak tersedia</div>'"></video>
                                 <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                    <div class="play-icon bg-black/40 rounded-full p-4 backdrop-blur-sm transition-all duration-300"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
                                     <div class="loading-spinner hidden absolute"><i data-lucide="loader" class="w-10 h-10 text-white animate-spin"></i></div>
                                 </div>
-                                <button onclick="event.stopPropagation(); refreshVideo('${container.id}')" class="refresh-btn absolute top-3 right-3 z-20 bg-black/40 hover:bg-black/60 text-white p-2 rounded-full backdrop-blur-md transition-all border border-white/10">
-                                    <i data-lucide="refresh-cw" class="w-5 h-5"></i>
+                                <!-- NEW: Mute Button -->
+                                <button onclick="event.stopPropagation(); toggleMute(this)" class="absolute bottom-3 right-3 z-20 bg-black/40 hover:bg-black/60 text-white p-2 rounded-full backdrop-blur-md transition-all border border-white/10">
+                                    <i data-lucide="volume-x" class="w-5 h-5"></i>
                                 </button>
-                                <!-- NEW: Subtitle Button -->
-                                <button onclick="event.stopPropagation(); toggleVideoSubtitles(this, 'caption-${container.id}')" class="absolute bottom-3 left-3 z-20 bg-black/40 hover:bg-black/60 text-white px-3 py-1.5 rounded-full backdrop-blur-md transition-all border border-white/10 text-[10px] font-bold flex items-center gap-1.5 group">
-                                    <i data-lucide="captions" class="w-3.5 h-3.5 group-hover:scale-110 transition-transform"></i> Indo Sub
-                                </button>
-                                <!-- NEW: Subtitle Overlay -->
-                                <div class="subtitle-overlay hidden absolute bottom-14 left-4 right-4 bg-black/70 text-white text-center text-xs p-3 rounded-xl backdrop-blur-md transition-all duration-300 pointer-events-none border border-white/10 shadow-lg leading-relaxed z-10"></div>
                              </div>`
                             : `<img src="${d.image}" class="w-full h-auto max-h-[600px] object-cover min-h-[300px]" loading="lazy">`
                         )
                     }
-                    <div class="absolute bottom-3 right-3 bg-black/70 backdrop-blur-md px-2 py-1 rounded-md text-xs font-bold text-white flex items-center gap-1"><i data-lucide="globe" class="w-3 h-3 text-blue-400"></i> ${d.sourceName}</div>
                     
                     <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
                         <i data-lucide="heart" class="w-24 h-24 text-white fill-white opacity-0 transform scale-0 transition-all duration-300 double-tap-heart drop-shadow-2xl"></i>
