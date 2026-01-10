@@ -1078,77 +1078,83 @@
 
                     const el = document.createElement('div');
                     
-                    // Render Komentar (Max 3 terbaru)
-                    let commentsHtml = '';
+                    // Generate Daftar Komentar (Hidden by default)
+                    let commentsListHtml = '';
                     if (d.comments && d.comments.length > 0) {
-                        commentsHtml = `<div class="mt-2 space-y-1">` + 
-                            d.comments.slice(-3).map(c => `<p class="text-xs text-slate-300"><span class="font-bold text-white mr-1">${c.userName}</span>${c.text}</p>`).join('') +
-                            (d.comments.length > 3 ? `<p class="text-[10px] text-slate-500 mt-1 cursor-pointer">Lihat semua ${d.comments.length} komentar</p>` : '') +
+                        commentsListHtml = `<div id="comments-list-${postId}" class="hidden mt-2 space-y-1 animate-in fade-in slide-in-from-top-1">` + 
+                            d.comments.map(c => `<p class="text-xs text-slate-300"><span class="font-bold text-white mr-1">${c.userName}</span>${c.text}</p>`).join('') +
                         `</div>`;
                     }
 
                     // Instagram Style: Full width, no card wrapper
-                    el.className = "mb-4 border-b border-white/5 pb-4 animate-in fade-in slide-in-from-bottom-8 duration-700";
+                    el.className = "bg-black mb-1 pb-2 border-b border-neutral-800 animate-in fade-in slide-in-from-bottom-8 duration-700";
                     el.innerHTML = `
                         <!-- Header -->
-                        <div class="flex items-center gap-3 px-4 py-3">
-                            <div class="w-10 h-10 rounded-full p-[2px] bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500">
-                                <div class="w-full h-full rounded-full border-2 border-slate-900 overflow-hidden bg-slate-800">
+                        <div class="flex items-center justify-between px-3 py-2.5">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded-full p-[1.5px] bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500">
+                                    <div class="w-full h-full rounded-full border border-black overflow-hidden bg-neutral-800">
                                     <img src="${d.userPhoto}" class="w-full h-full object-cover">
                                 </div>
                             </div>
-                            <div class="flex-1 min-w-0">
-                                <div class="flex items-center">
-                                    <p class="text-sm font-bold text-white truncate mr-0.5">${d.userName}</p>
+                            <div>
+                                <div class="flex items-center gap-1">
+                                    <p class="text-sm font-semibold text-white truncate">${d.userName}</p>
                                     ${verifiedBadge}
                                 </div>
-                                <button onclick="if(typeof navigateTo === 'function') { navigateTo('map'); if(typeof map !== 'undefined') map.flyTo([${d.lat || 0}, ${d.lng || 0}], 15); }" class="text-[10px] text-blue-400 font-bold truncate hover:text-blue-300 transition-colors flex items-center gap-1 text-left max-w-full">
-                                    <i data-lucide="map-pin" class="w-3 h-3 shrink-0"></i> Lihat Spot
+                                <button onclick="if(typeof navigateTo === 'function') { navigateTo('map'); if(typeof map !== 'undefined') map.flyTo([${d.lat || 0}, ${d.lng || 0}], 15); }" class="text-xs text-blue-400 font-bold truncate hover:text-blue-300 transition-colors block text-left max-w-[200px]">
+                                    Lihat Lokasi Spot
                                 </button>
                             </div>
-                            <button class="text-slate-500 hover:text-white"><i data-lucide="more-horizontal" class="w-5 h-5"></i></button>
                         </div>
+                        <button class="text-white"><i data-lucide="more-horizontal" class="w-5 h-5"></i></button>
+                    </div>
 
-                        <!-- Media (Video Prioritas, kalau tidak ada baru Gambar) -->
-                        <div class="w-full aspect-[4/5] bg-slate-800 relative group overflow-hidden">
+                        <!-- Media -->
+                        <div class="w-full bg-neutral-900 relative group overflow-hidden">
                             ${embedUrl ? 
-                                `<iframe src="${embedUrl}" class="w-full h-full border-0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>` 
+                                `<div class="aspect-[4/5] w-full"><iframe src="${embedUrl}" class="w-full h-full border-0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>` 
                                 : 
-                                `<img src="${d.image}" class="w-full h-full object-cover transition-transform duration-700" loading="lazy">`
+                                `<img src="${d.image}" class="w-full h-auto max-h-[600px] object-cover min-h-[300px]" loading="lazy">`
                             }
-                            ${!embedUrl && weight ? `<div class="absolute bottom-3 right-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] font-bold text-white flex items-center gap-1 border border-white/10 shadow-lg"><i data-lucide="fish" class="w-3 h-3 text-emerald-400"></i> ${weight}</div>` : ''}
+                            ${!embedUrl && weight ? `<div class="absolute bottom-3 right-3 bg-black/70 backdrop-blur-md px-2 py-1 rounded-md text-xs font-bold text-white flex items-center gap-1"><i data-lucide="fish" class="w-3 h-3 text-emerald-400"></i> ${weight}</div>` : ''}
                         </div>
 
                         <!-- Actions & Caption -->
-                        <div class="px-4 pt-3">
-                            <div class="flex items-center justify-between mb-3">
-                                <div class="flex items-center gap-5">
-                                    <button onclick="handleLike('${postId}', this)" class="text-white hover:text-red-500 transition-colors group">
+                        <div class="px-3 pt-3">
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="flex items-center gap-4">
+                                    <button onclick="handleLike('${postId}', this)" class="text-white hover:text-white/70 transition-colors group">
                                         <i data-lucide="heart" class="w-6 h-6 group-active:scale-75 transition-transform ${isPostLiked(postId) ? 'fill-red-500 text-red-500' : ''}"></i>
                                     </button>
-                                    <button onclick="toggleCommentSection('${postId}')" class="text-white hover:text-blue-400 transition-colors"><i data-lucide="message-circle" class="w-6 h-6"></i></button>
-                                    <button onclick="handleShare('${d.locationName}', '${comment}', '${d.image}')" class="text-white hover:text-emerald-400 transition-colors"><i data-lucide="send" class="w-6 h-6"></i></button>
+                                    <button onclick="toggleCommentSection('${postId}')" class="text-white hover:text-white/70 transition-colors"><i data-lucide="message-circle" class="w-6 h-6 -rotate-90"></i></button>
+                                    <button onclick="handleShare('${d.locationName}', '${comment}', '${d.image}')" class="text-white hover:text-white/70 transition-colors"><i data-lucide="send" class="w-6 h-6"></i></button>
                                 </div>
+                                <button onclick="handleSavePost('${postId}', this)" class="text-white hover:text-white/70 transition-colors group">
+                                    <i data-lucide="bookmark" class="w-6 h-6 group-active:scale-75 transition-transform ${isPostSaved(d.lat, d.lng) ? 'fill-white text-white' : ''}"></i>
+                                </button>
                             </div>
                             
-                            <p class="text-sm font-bold text-white mb-1"><span id="likes-count-${postId}">${d.likes || 0}</span> suka</p>
+                            <p class="text-sm font-semibold text-white mb-1"><span id="likes-count-${postId}">${d.likes || 0}</span> suka</p>
                             
-                            <div class="text-sm text-slate-300 leading-relaxed mb-1">
-                                <span class="font-bold text-white mr-1">${d.userName}</span> ${comment}
+                            <div class="text-sm text-white leading-snug mb-1">
+                                <span class="font-semibold mr-1">${d.userName}</span>${comment}
                             </div>
                             
-                            <p class="text-[10px] text-slate-500 uppercase tracking-wide mt-2">${timeAgo}</p>
+                            ${d.comments && d.comments.length > 0 ? `<button onclick="toggleCommentsList('${postId}')" class="text-sm text-neutral-400 mb-1">Lihat semua ${d.comments.length} komentar</button>` : ''}
                             
-                            <!-- Comments List -->
-                            ${commentsHtml}
+                            <!-- Comments List Container -->
+                            ${commentsListHtml}
+
+                            <p class="text-[10px] text-neutral-500 uppercase tracking-wide mb-3">${timeAgo}</p>
 
                             <!-- Comment Input Section (Hidden by default) -->
-                            <div id="comment-section-${postId}" class="hidden mt-3 flex items-center gap-3 pt-3 border-t border-white/10 animate-in fade-in slide-in-from-top-2 duration-300">
-                                <div class="w-8 h-8 rounded-full bg-slate-800 overflow-hidden shrink-0 border border-white/10">
+                            <div id="comment-section-${postId}" class="hidden mt-2 flex items-center gap-3 border-t border-white/10 pt-3">
+                                <div class="w-7 h-7 rounded-full bg-slate-800 overflow-hidden shrink-0 border border-white/10">
                                     <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=${localStorage.getItem('guest_name') || 'Guest'}" class="w-full h-full object-cover">
                                 </div>
-                                <input type="text" id="comment-input-${postId}" class="bg-transparent border-none text-sm text-white flex-1 focus:outline-none placeholder-slate-500" placeholder="Tambahkan komentar..." onkeypress="if(event.key === 'Enter') submitComment('${postId}')">
-                                <button onclick="submitComment('${postId}')" class="text-blue-400 text-xs font-bold hover:text-white transition-colors">Kirim</button>
+                                <input type="text" id="comment-input-${postId}" class="bg-transparent border-none text-sm text-white flex-1 focus:outline-none placeholder-neutral-500" placeholder="Tambahkan komentar..." onkeypress="if(event.key === 'Enter') submitComment('${postId}')">
+                                <button onclick="submitComment('${postId}')" class="text-blue-400 text-xs font-semibold hover:text-white transition-colors">Kirim</button>
                             </div>
                         </div>
                     `;
@@ -2130,52 +2136,57 @@
 
         // Helper: Render Tampilan Postingan (Sama persis dengan Feed User)
         function renderExternalPostUI(container, d) {
+            container.className = "bg-black mb-1 pb-2 border-b border-neutral-800";
             container.innerHTML = `
                 <!-- Header -->
-                <div class="flex items-center gap-3 px-4 py-3 animate-in fade-in duration-500">
-                    <div class="w-10 h-10 rounded-full p-[2px] bg-gradient-to-tr from-blue-400 to-emerald-400">
-                        <div class="w-full h-full rounded-full border-2 border-slate-900 overflow-hidden bg-white">
+                <div class="flex items-center justify-between px-3 py-2.5 animate-in fade-in duration-500">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-full p-[1.5px] bg-gradient-to-tr from-blue-400 to-emerald-400">
+                            <div class="w-full h-full rounded-full border border-black overflow-hidden bg-white">
                             <img src="${d.userAvatar}" class="w-full h-full object-contain">
                         </div>
                     </div>
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center">
-                            <p class="text-sm font-bold text-white truncate mr-0.5">${d.userName}</p>
-                            <svg class="w-3.5 h-3.5 ml-1 text-blue-500 fill-current" viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-1.9 14.7L6 12.6l1.5-1.5 2.6 2.6 6.4-6.4 1.5 1.5-7.9 7.9z"/></svg>
+                    <div>
+                        <div class="flex items-center gap-1">
+                            <p class="text-sm font-semibold text-white truncate">${d.userName}</p>
+                            <svg class="w-3 h-3 text-blue-500 fill-current" viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-1.9 14.7L6 12.6l1.5-1.5 2.6 2.6 6.4-6.4 1.5 1.5-7.9 7.9z"/></svg>
                         </div>
-                        <p class="text-[10px] text-slate-400 font-medium">${d.location}</p>
+                        <p class="text-xs text-white/80 font-medium">${d.location}</p>
                     </div>
-                    <button class="text-slate-500 hover:text-white"><i data-lucide="more-horizontal" class="w-5 h-5"></i></button>
                 </div>
+                <button class="text-white"><i data-lucide="more-horizontal" class="w-5 h-5"></i></button>
+            </div>
 
                 <!-- Media (Video or Image) -->
-                <div class="w-full aspect-[4/5] bg-slate-800 relative group overflow-hidden">
+                <div class="w-full bg-neutral-900 relative group overflow-hidden">
                     ${d.videoUrl ? 
-                        `<iframe src="${d.videoUrl}" class="w-full h-full border-0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>` 
+                        `<div class="aspect-[4/5] w-full"><iframe src="${d.videoUrl}" class="w-full h-full border-0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>` 
                         : 
-                        `<img src="${d.image}" class="w-full h-full object-cover transition-transform duration-700" loading="lazy">`
+                        `<img src="${d.image}" class="w-full h-auto max-h-[600px] object-cover min-h-[300px]" loading="lazy">`
                     }
-                    <div class="absolute bottom-3 right-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] font-bold text-white flex items-center gap-1 border border-white/10 shadow-lg"><i data-lucide="globe" class="w-3 h-3 text-blue-400"></i> ${d.sourceName}</div>
+                    <div class="absolute bottom-3 right-3 bg-black/70 backdrop-blur-md px-2 py-1 rounded-md text-xs font-bold text-white flex items-center gap-1"><i data-lucide="globe" class="w-3 h-3 text-blue-400"></i> ${d.sourceName}</div>
                 </div>
 
                 <!-- Actions & Caption -->
-                <div class="px-4 pt-3">
-                    <div class="flex items-center justify-between mb-3">
-                        <div class="flex items-center gap-5">
-                            <button class="text-white hover:text-red-500 transition-colors"><i data-lucide="heart" class="w-6 h-6"></i></button>
-                            <button class="text-white hover:text-blue-400 transition-colors"><i data-lucide="message-circle" class="w-6 h-6"></i></button>
-                            <button class="text-white hover:text-emerald-400 transition-colors"><i data-lucide="send" class="w-6 h-6"></i></button>
+                <div class="px-3 pt-3">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center gap-4">
+                            <button class="text-white hover:text-white/70 transition-colors"><i data-lucide="heart" class="w-6 h-6"></i></button>
+                            <button class="text-white hover:text-white/70 transition-colors"><i data-lucide="message-circle" class="w-6 h-6 -rotate-90"></i></button>
+                            <button class="text-white hover:text-white/70 transition-colors"><i data-lucide="send" class="w-6 h-6 -rotate-45 -mt-1"></i></button>
                         </div>
-                        <button class="text-white hover:text-yellow-400 transition-colors"><i data-lucide="bookmark" class="w-6 h-6"></i></button>
+                        <button onclick="alert('Fitur simpan untuk postingan eksternal akan segera hadir!')" class="text-white hover:text-white/70 transition-colors">
+                            <i data-lucide="bookmark" class="w-6 h-6"></i>
+                        </button>
                     </div>
                     
-                    <p class="text-sm font-bold text-white mb-1">${d.likes} suka</p>
+                    <p class="text-sm font-semibold text-white mb-1">${d.likes} suka</p>
                     
-                    <div class="text-sm text-slate-300 leading-relaxed mb-1">
-                        <span class="font-bold text-white mr-1">${d.userName}</span> ${d.caption}
+                    <div class="text-sm text-white leading-snug mb-1">
+                        <span class="font-semibold mr-1">${d.userName}</span> ${d.caption}
                     </div>
                     
-                    <p class="text-[10px] text-slate-500 uppercase tracking-wide mt-2">Disponsori • Baru saja</p>
+                    <p class="text-[10px] text-neutral-500 uppercase tracking-wide mt-2">Disponsori • Baru saja</p>
                 </div>
             `;
             if(typeof lucide !== 'undefined') lucide.createIcons();
@@ -2286,6 +2297,12 @@
             return localStorage.getItem('liked_' + postId) === 'true';
         }
 
+        // 1.5 Cek apakah user sudah save post ini (Berdasarkan Lokasi)
+        function isPostSaved(lat, lng) {
+            const favs = JSON.parse(localStorage.getItem('favorites') || '[]');
+            return favs.some(f => parseFloat(f.lat).toFixed(5) === parseFloat(lat).toFixed(5) && parseFloat(f.lng).toFixed(5) === parseFloat(lng).toFixed(5));
+        }
+
         // 2. Handle Like
         function handleLike(postId, btnElement) {
             if (isPostLiked(postId)) {
@@ -2333,6 +2350,12 @@
                 navigator.clipboard.writeText(window.location.href);
                 alert("Link disalin ke clipboard!");
             }
+        }
+
+        // 4.1 Toggle Comments List (Show/Hide existing comments)
+        function toggleCommentsList(postId) {
+            const list = document.getElementById(`comments-list-${postId}`);
+            if(list) list.classList.toggle('hidden');
         }
 
         // 4. Toggle Comment Section
@@ -2389,6 +2412,74 @@
                 toast.innerText = "Gagal mengirim.";
                 setTimeout(() => toast.remove(), 2000);
             });
+        }
+
+        // 6. Handle Save Post (Bookmark)
+        function handleSavePost(postId, btnElement) {
+            // Cari data post dari Cache
+            let postData = null;
+            try {
+                const cached = JSON.parse(localStorage.getItem('feed_cache') || '{}');
+                const spots = Array.isArray(cached) ? cached : (cached.spots || []);
+                const foundItem = spots.find(item => item.id === postId);
+                if (foundItem) postData = foundItem;
+            } catch(e) {}
+
+            // Fallback: Cek di Global Grouped Spots
+            if (!postData && typeof groupedSpots !== 'undefined') {
+                for (const key in groupedSpots) {
+                    const found = groupedSpots[key].find(s => s.id === postId);
+                    if (found) { postData = found; break; }
+                }
+            }
+
+            if (!postData) {
+                alert("Gagal menyimpan: Data tidak ditemukan.");
+                return;
+            }
+
+            // Format data untuk favorites (Pastikan koordinat berupa angka)
+            const latVal = (typeof postData.lat === 'string') ? parseFloat(postData.lat.replace(',', '.')) : postData.lat;
+            const lngVal = (typeof postData.lng === 'string') ? parseFloat(postData.lng.replace(',', '.')) : postData.lng;
+
+            const favItem = {
+                name: postData.name || 'Spot Mancing',
+                lat: latVal,
+                lng: lngVal,
+                photo: postData.photo || '',
+                comment: postData.comment || ''
+            };
+
+            // Simpan ke LocalStorage 'favorites'
+            let favs = JSON.parse(localStorage.getItem('favorites') || '[]');
+            const existingIndex = favs.findIndex(f => parseFloat(f.lat).toFixed(5) === parseFloat(favItem.lat).toFixed(5) && parseFloat(f.lng).toFixed(5) === parseFloat(favItem.lng).toFixed(5));
+            
+            let isSaved = false;
+            if (existingIndex >= 0) {
+                favs.splice(existingIndex, 1); // Hapus jika sudah ada
+            } else {
+                favs.push(favItem); // Tambah jika belum ada
+                isSaved = true;
+            }
+            localStorage.setItem('favorites', JSON.stringify(favs));
+
+            // Update UI Icon & Toast
+            const icon = btnElement.querySelector('svg');
+            if(icon) {
+                if (isSaved) {
+                    icon.classList.add('fill-yellow-400', 'text-yellow-400', 'animate-shake');
+                    setTimeout(() => icon.classList.remove('animate-shake'), 500);
+                } else {
+                    icon.classList.remove('fill-yellow-400', 'text-yellow-400');
+                }
+            }
+            
+            const toast = document.createElement('div');
+            toast.className = "fixed top-24 left-1/2 -translate-x-1/2 bg-neutral-900 text-white px-4 py-2 rounded-full text-xs font-bold shadow-xl z-[3000] flex items-center gap-2 border border-white/10";
+            toast.innerHTML = isSaved ? `<i data-lucide="bookmark" class="w-4 h-4 text-yellow-400 fill-yellow-400"></i> Disimpan ke Favorit` : `<i data-lucide="bookmark-minus" class="w-4 h-4"></i> Dihapus dari Favorit`;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2000);
+            if(typeof lucide !== 'undefined') lucide.createIcons();
         }
 
         // Polling: Cek otomatis jika data cuaca baru masuk, lalu update widget
