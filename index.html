@@ -985,6 +985,58 @@
                 </div>
             </div>`;
 
+        // --- NEW: Translation Feature ---
+        window.translateCaption = async function(btn, elementId) {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+
+            // Toggle back to original
+            if (btn.dataset.translated === "true") {
+                el.innerHTML = btn.dataset.original;
+                btn.innerText = "Terjemahkan";
+                btn.dataset.translated = "false";
+                return;
+            }
+
+            // Save original HTML
+            if (!btn.dataset.original) {
+                btn.dataset.original = el.innerHTML;
+            }
+
+            const originalText = el.innerText; // Get plain text
+            const originalBtnText = btn.innerText;
+            
+            btn.innerText = "Menterjemahkan...";
+            btn.disabled = true;
+            btn.classList.add("animate-pulse");
+
+            try {
+                // Use Google Translate via CORS Proxy
+                const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=id&dt=t&q=${encodeURIComponent(originalText)}`;
+                const res = await fetch('https://corsproxy.io/?' + encodeURIComponent(url));
+                const data = await res.json();
+
+                if (data && data[0]) {
+                    let translated = "";
+                    data[0].forEach(item => { if (item[0]) translated += item[0]; });
+                    
+                    // Replace newlines with <br>
+                    el.innerHTML = translated.replace(/\n/g, '<br>');
+                    btn.innerText = "Lihat Asli";
+                    btn.dataset.translated = "true";
+                } else {
+                    throw new Error("Translation failed");
+                }
+            } catch (e) {
+                console.error(e);
+                btn.innerText = "Gagal";
+                setTimeout(() => { btn.innerText = originalBtnText; }, 2000);
+            } finally {
+                btn.disabled = false;
+                btn.classList.remove("animate-pulse");
+            }
+        };
+
         async function loadHomeFeed() {
             const container = document.getElementById('home-feed-container');
             if(!container) return;
@@ -1143,8 +1195,10 @@
                             <p class="text-sm font-semibold text-white mb-1"><span id="likes-count-${postId}">${d.likes || 0}</span> suka</p>
                             
                             <div class="text-sm text-white leading-snug mb-1">
-                                <span class="font-semibold mr-1">${d.userName}</span>${comment}
+                                <span class="font-semibold mr-1">${d.userName}</span>
+                                <span id="caption-${postId}">${comment}</span>
                             </div>
+                            <button onclick="translateCaption(this, 'caption-${postId}')" class="text-[10px] font-bold text-slate-500 hover:text-white mb-2 cursor-pointer">Terjemahkan</button>
                             
                             ${d.comments && d.comments.length > 0 ? `<button onclick="toggleCommentsList('${postId}')" class="text-sm text-neutral-400 mb-1">Lihat semua ${d.comments.length} komentar</button>` : ''}
                             
@@ -1980,7 +2034,7 @@
             // Tentukan tipe konten berdasarkan mode
             let sourceType;
             if (mode === 'video') {
-                // Random antara Wikimedia (4), NASA (5), Internet Archive (6), atau Pure Nature (7)
+                // Random antara Kategori NASA (4, 5, 6, 7)
                 const videoTypes = [4, 5, 6, 7];
                 sourceType = videoTypes[Math.floor(Math.random() * videoTypes.length)];
             } else if (mode === 'wiki') {
@@ -1990,7 +2044,7 @@
                 const types = [0, 1, 3];
                 sourceType = types[Math.floor(Math.random() * types.length)];
             } else {
-                const types = [0, 1, 3, 4, 5, 6, 7]; // Random semua (termasuk Nature)
+                const types = [0, 1, 3, 4, 5, 6, 7]; // Random semua
                 sourceType = types[Math.floor(Math.random() * types.length)];
             }
             
@@ -2167,69 +2221,57 @@
                         };
                     }
                 } else if (sourceType === 4) {
-                    // --- SUMBER 5: Wikimedia Commons Video (Tanpa API Key) ---
-                    const videoKeywords = [
-                        // Laut & Air
-                        "fish", "underwater", "coral_reef", "shark", "diving", "marine_biology", "aquarium", "sea_turtle", "whale", "dolphin", "jellyfish", "octopus", "deep_sea", "scuba", "fishing", "fisherman", "river", "lake", "waterfall", "mountain river", "forest stream", "ocean waves", "sunset beach", "fishing boat", "casting fishing", "fly fishing",
-                        // Hewan Darat & Udara
-                        "bird", "eagle", "owl", "kingfisher", "penguin", "seal", "sea lion", "tiger", "elephant", "orangutan", "deer", "bear", "wolf", "fox", "snow leopard", "polar bear", "panda", "koala", "kangaroo", "crocodile", "snake", "lizard", "frog", "butterfly", "bee", "dragonfly",
-                        // Geologi & Alam
-                        "volcano", "eruption", "glacier", "iceberg", "desert", "jungle", "rainforest", "canyon", "cave", "mountain climbing", "hiking nature", "forest wildlife", "nature landscape", "northern lights", "aurora borealis", "star timelapse", "milky way",
-                        // National Geographic Style
-                        "National Geographic", "Nat Geo", "wildlife cinematography", "nature documentary", "cinematic nature",
-                        // Indonesia
-                        "Indonesia nature", "Bali beach", "Raja Ampat underwater", "Komodo island nature", "Bunaken diving", "Lake Toba", "Mount Bromo nature", "Indonesian fisherman", "traditional fishing indonesia", "sailing indonesia"
+                    // --- SUMBER 5: NASA OCEAN (Laut & Air) ---
+                    // Menggantikan Wikimedia yang kurang bagus
+                    const keywords = [
+                        "ocean", "coral reef", "sea life", "underwater", "jellyfish", "shark", "whale", "dolphin", "sea turtle", "pacific ocean", "atlantic ocean", "waves"
                     ];
-                    const keyword = videoKeywords[Math.floor(Math.random() * videoKeywords.length)];
-                    
-                    // Cari video format .webm (lebih kompatibel)
-                    // Tambahkan Timeout Controller
-                    const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 6000); // 6 detik timeout
-                    
-                    const res = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=filetype:video+${keyword}&gsrnamespace=6&prop=imageinfo&iiprop=url|extmetadata&format=json&origin=*&gsrlimit=20`, { signal: controller.signal });
-                    clearTimeout(timeoutId);
-                    
-                    const data = await res.json();
-                    
-                    if (data.query && data.query.pages) {
-                        const pages = Object.values(data.query.pages);
-                        const videoPage = pages[Math.floor(Math.random() * pages.length)];
-                        
-                        if (videoPage && videoPage.imageinfo && videoPage.imageinfo[0]) {
-                            const info = videoPage.imageinfo[0];
-                            const meta = info.extmetadata;
-                            
-                            // Bersihkan deskripsi
-                            let desc = meta.ImageDescription ? meta.ImageDescription.value : "Video alam bawah laut.";
-                            desc = desc.replace(/<[^>]*>?/gm, '').substring(0, 150) + "...";
-                            
-                            postData = {
-                                userName: "Videografer Alam",
-                                userAvatar: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4a/Commons-logo.svg/1024px-Commons-logo.svg.png",
-                                location: "Wikimedia Commons",
-                                videoFile: info.url, // URL File Video Langsung
-                                caption: `<b>${meta.ObjectName ? meta.ObjectName.value : 'Video Alam'}</b><br>${desc}`,
-                                sourceName: "Wikimedia Commons",
-                                likes: Math.floor(Math.random() * 300) + 50
-                            };
-                        }
-                    }
-                } else if (sourceType === 5) {
-                    // --- SUMBER 6: NASA Video API (Public) ---
-                    const nasaKeywords = [
-                        "ocean", "sea", "coral reef", "underwater", "marine life", "earth ocean", "jellyfish", "shark",
-                        "space", "galaxy", "nebula", "planet", "earth from space", "sun", "moon", "mars", "jupiter", "saturn", "astronaut", "iss", "spacewalk", "solar flare", "aurora", "magnetic field", "black hole", "supernova", "asteroid", "comet", "meteor"
-                    ];
-                    const keyword = nasaKeywords[Math.floor(Math.random() * nasaKeywords.length)];
+                    const keyword = keywords[Math.floor(Math.random() * keywords.length)];
                     
                     try {
                         const controller = new AbortController();
                         const timeoutId = setTimeout(() => controller.abort(), 6000);
-                        
                         const res = await fetch(`https://images-api.nasa.gov/search?q=${keyword}&media_type=video`, { signal: controller.signal });
                         clearTimeout(timeoutId);
+                        const data = await res.json();
                         
+                        if (data.collection && data.collection.items && data.collection.items.length > 0) {
+                            const items = data.collection.items;
+                            const item = items[Math.floor(Math.random() * items.length)];
+                            const meta = item.data[0];
+                            const collectionUrl = item.href;
+                            
+                            const videoRes = await fetch(collectionUrl);
+                            const videoFiles = await videoRes.json();
+                            const mp4 = videoFiles.find(f => f.endsWith('~medium.mp4')) || videoFiles.find(f => f.endsWith('.mp4'));
+                            const thumb = item.links ? item.links.find(l => l.rel === 'preview')?.href : '';
+
+                            if (mp4) {
+                                postData = {
+                                    userName: "NASA Ocean",
+                                    userAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Ocean",
+                                    location: "Samudra",
+                                    videoFile: mp4,
+                                    thumbnail: thumb,
+                                    caption: `<b>${meta.title}</b><br>${meta.description ? meta.description.substring(0, 120) + '...' : 'Keindahan laut dari arsip NASA.'}`,
+                                    sourceName: "NASA Ocean",
+                                    likes: Math.floor(Math.random() * 500) + 200
+                                };
+                            }
+                        }
+                    } catch(e) { console.warn("NASA Ocean failed", e); }
+                } else if (sourceType === 5) {
+                    // --- SUMBER 6: NASA SPACE (Luar Angkasa) ---
+                    const keywords = [
+                        "galaxy", "nebula", "planet", "sun", "moon", "mars", "jupiter", "saturn", "astronaut", "iss", "spacewalk", "solar flare", "black hole", "supernova"
+                    ];
+                    const keyword = keywords[Math.floor(Math.random() * keywords.length)];
+                    
+                    try {
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 6000);
+                        const res = await fetch(`https://images-api.nasa.gov/search?q=${keyword}&media_type=video`, { signal: controller.signal });
+                        clearTimeout(timeoutId);
                         const data = await res.json();
                         
                         if (data.collection && data.collection.items && data.collection.items.length > 0) {
@@ -2241,114 +2283,104 @@
                             // Fetch actual video files
                             const videoRes = await fetch(collectionUrl);
                             const videoFiles = await videoRes.json();
-                            // Find mp4, prefer medium or mobile
-                            const mp4 = videoFiles.find(f => f.endsWith('~medium.mp4')) || 
-                                        videoFiles.find(f => f.endsWith('~mobile.mp4')) || 
-                                        videoFiles.find(f => f.endsWith('.mp4'));
+                            const mp4 = videoFiles.find(f => f.endsWith('~medium.mp4')) || videoFiles.find(f => f.endsWith('.mp4'));
                                         
+                            const thumb = item.links ? item.links.find(l => l.rel === 'preview')?.href : '';
+
                             if (mp4) {
                                 postData = {
-                                    userName: "NASA Ocean",
-                                    userAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=NASA",
-                                    location: "NASA Archives",
+                                    userName: "NASA Space",
+                                    userAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Space",
+                                    location: "Luar Angkasa",
                                     videoFile: mp4,
-                                    caption: `<b>${meta.title}</b><br>${meta.description ? meta.description.substring(0, 150) + '...' : 'Video laut dari NASA.'}`,
-                                    sourceName: "NASA",
+                                    thumbnail: thumb,
+                                    caption: `<b>${meta.title}</b><br>${meta.description ? meta.description.substring(0, 120) + '...' : 'Video luar angkasa NASA.'}`,
+                                    sourceName: "NASA Space",
                                     likes: Math.floor(Math.random() * 500) + 200
                                 };
                             }
                         }
                     } catch(e) { console.warn("NASA API failed", e); }
                 } else if (sourceType === 6) {
-                    // --- SUMBER 7: Internet Archive (Fishing & Nature - Public Domain) ---
-                    const queries = [
-                        "fishing", "fly fishing", "bass fishing", "ocean life", "coral reef", "river nature", "underwater camera", "national park nature", "wildlife documentary", "fishing trip", "sport fishing", "amazon river fishing", "alaska fishing", "trout fishing", "salmon fishing", "nature scenery", "forest wildlife", "Indonesia nature", "Bali travel", "Java sea", "Sumatra wildlife", "Borneo nature",
-                        "birds documentary", "volcano documentary", "glacier documentary", "space exploration", "nature documentary", "geology", "deep sea", "prehistoric animals", "dinosaur documentary", "ancient civilizations", "world history",
-                        "National Geographic", "Nat Geo", "National Geographic documentary", "wildlife cinematography", "cinematic nature", "planet earth", "blue planet"
+                    // --- SUMBER 7: NASA EARTH (Pemandangan Bumi) ---
+                    // Menggantikan Internet Archive yang "ngaco"
+                    const keywords = [
+                        "earth from space", "earth view", "blue marble", "atmosphere", "clouds from space", "island from space", "coastline space", "river delta space"
                     ];
-                    const query = queries[Math.floor(Math.random() * queries.length)];
-                    
-                    try {
-                        // Cari video MP4 (Urutkan berdasarkan download terbanyak agar kualitas bagus)
-                        const searchUrl = `https://archive.org/advancedsearch.php?q=${encodeURIComponent('(' + query + ') AND mediatype:movies')}&fl[]=identifier&fl[]=title&fl[]=description&sort[]=downloads+desc&rows=25&page=1&output=json`;
-                        
-                        const controller = new AbortController();
-                        const timeoutId = setTimeout(() => controller.abort(), 8000); // Archive agak lambat, kasih 8 detik
-                        const res = await fetch(searchUrl, { signal: controller.signal });
-                        clearTimeout(timeoutId);
-                        
-                        const data = await res.json();
-                        
-                        if (data.response && data.response.docs && data.response.docs.length > 0) {
-                            // Coba cari video yang valid (maksimal 5 percobaan acak)
-                            let found = false;
-                            let attempts = 0;
-                            while(!found && attempts < 5) {
-                                const doc = data.response.docs[Math.floor(Math.random() * data.response.docs.length)];
-                                const identifier = doc.identifier;
-                                attempts++;
-
-                                // Ambil metadata file untuk mencari .mp4
-                                const metaRes = await fetch(`https://archive.org/metadata/${identifier}`);
-                                const metaData = await metaRes.json();
-                                
-                                if (metaData.files) {
-                                    const mp4File = metaData.files.find(f => f.name.toLowerCase().endsWith('.mp4'));
-                                    if (mp4File) {
-                                        postData = {
-                                            userName: "Arsip Alam",
-                                            userAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Archive",
-                                            location: "Internet Archive",
-                                            videoFile: `https://archive.org/download/${identifier}/${mp4File.name}`,
-                                            caption: `<b>${doc.title}</b><br>${doc.description ? doc.description.replace(/<[^>]*>?/gm, '').substring(0, 150) + '...' : 'Video dokumenter alam.'}`,
-                                            sourceName: "Internet Archive",
-                                            likes: Math.floor(Math.random() * 100) + 20
-                                        };
-                                        found = true;
-                                    }
-                                }
-                            }
-                        }
-                    } catch(e) { console.warn("Archive.org API failed", e); }
-                } else if (sourceType === 7) {
-                    // --- SUMBER 8: Pure Nature (Alam Semesta - Wikimedia) ---
-                    const natureKeywords = [
-                        "mountain landscape", "forest river", "waterfall nature", "sunset clouds", "rain forest", 
-                        "snow mountain", "desert landscape", "flower blooming", "birds flying", "wildlife nature", 
-                        "ocean waves beach", "drone landscape", "autumn forest", "spring meadow", "northern lights",
-                        "jungle sounds", "calm river", "foggy forest", "green hills", "nature timelapse"
-                    ];
-                    const keyword = natureKeywords[Math.floor(Math.random() * natureKeywords.length)];
+                    const keyword = keywords[Math.floor(Math.random() * keywords.length)];
                     
                     try {
                         const controller = new AbortController();
                         const timeoutId = setTimeout(() => controller.abort(), 6000);
-                        
-                        const res = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=filetype:video+${keyword}&gsrnamespace=6&prop=imageinfo&iiprop=url|extmetadata&format=json&origin=*&gsrlimit=20`, { signal: controller.signal });
+                        const res = await fetch(`https://images-api.nasa.gov/search?q=${keyword}&media_type=video`, { signal: controller.signal });
                         clearTimeout(timeoutId);
-                        
                         const data = await res.json();
                         
-                        if (data.query && data.query.pages) {
-                            const pages = Object.values(data.query.pages);
-                            const videoPage = pages[Math.floor(Math.random() * pages.length)];
+                        if (data.collection && data.collection.items && data.collection.items.length > 0) {
+                            const items = data.collection.items;
+                            const item = items[Math.floor(Math.random() * items.length)];
+                            const meta = item.data[0];
+                            const collectionUrl = item.href;
                             
-                            if (videoPage && videoPage.imageinfo && videoPage.imageinfo[0]) {
-                                const info = videoPage.imageinfo[0];
-                                const meta = info.extmetadata;
-                                
+                            const videoRes = await fetch(collectionUrl);
+                            const videoFiles = await videoRes.json();
+                            const mp4 = videoFiles.find(f => f.endsWith('~medium.mp4')) || videoFiles.find(f => f.endsWith('.mp4'));
+                            const thumb = item.links ? item.links.find(l => l.rel === 'preview')?.href : '';
+
+                            if (mp4) {
                                 postData = {
-                                    userName: "Nature Relax",
-                                    userAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Nature",
-                                    location: "Alam Liar",
-                                    videoFile: info.url,
-                                    caption: `<b>${meta.ObjectName ? meta.ObjectName.value : 'Pemandangan Alam'}</b><br>${meta.ImageDescription ? meta.ImageDescription.value.replace(/<[^>]*>?/gm, '').substring(0, 100) + '...' : 'Video relaksasi alam.'}`,
-                                    sourceName: "Nature Archives",
-                                    likes: Math.floor(Math.random() * 800) + 200
+                                    userName: "NASA Earth",
+                                    userAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Earth",
+                                    location: "Orbit Bumi",
+                                    videoFile: mp4,
+                                    thumbnail: thumb,
+                                    caption: `<b>${meta.title}</b><br>${meta.description ? meta.description.substring(0, 120) + '...' : 'Pemandangan Bumi dari angkasa.'}`,
+                                    sourceName: "NASA Earth",
+                                    likes: Math.floor(Math.random() * 600) + 300
                                 };
                             }
                         }
-                    } catch(e) { console.warn("Nature API failed", e); }
+                    } catch(e) { console.warn("NASA Earth failed", e); }
+                } else if (sourceType === 7) {
+                    // --- SUMBER 8: NASA NATURE (Fenomena Alam) ---
+                    // Menggantikan Pure Nature (Wikimedia)
+                    const keywords = [
+                        "aurora borealis", "northern lights", "hurricane", "storm", "volcano", "glacier", "iceberg", "lightning", "tornado", "river", "mountain"
+                    ];
+                    const keyword = keywords[Math.floor(Math.random() * keywords.length)];
+                    
+                    try {
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 6000);
+                        const res = await fetch(`https://images-api.nasa.gov/search?q=${keyword}&media_type=video`, { signal: controller.signal });
+                        clearTimeout(timeoutId);
+                        const data = await res.json();
+                        
+                        if (data.collection && data.collection.items && data.collection.items.length > 0) {
+                            const items = data.collection.items;
+                            const item = items[Math.floor(Math.random() * items.length)];
+                            const meta = item.data[0];
+                            const collectionUrl = item.href;
+                            
+                            const videoRes = await fetch(collectionUrl);
+                            const videoFiles = await videoRes.json();
+                            const mp4 = videoFiles.find(f => f.endsWith('~medium.mp4')) || videoFiles.find(f => f.endsWith('.mp4'));
+                            const thumb = item.links ? item.links.find(l => l.rel === 'preview')?.href : '';
+
+                            if (mp4) {
+                                postData = {
+                                    userName: "NASA Nature",
+                                    userAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Nature",
+                                    location: "Fenomena Alam",
+                                    videoFile: mp4,
+                                    thumbnail: thumb,
+                                    caption: `<b>${meta.title}</b><br>${meta.description ? meta.description.substring(0, 120) + '...' : 'Fenomena alam dari arsip NASA.'}`,
+                                    sourceName: "NASA Nature",
+                                    likes: Math.floor(Math.random() * 400) + 150
+                                };
+                            }
+                        }
+                    } catch(e) { console.warn("NASA Nature failed", e); }
                 }
 
                 // 2. SIMPAN KE CACHE & RENDER
@@ -2379,9 +2411,26 @@
         window.toggleVideo = function(container) {
             const video = container.querySelector('video');
             const icon = container.querySelector('.play-icon');
+            const spinner = container.querySelector('.loading-spinner');
+            
+            if (!video) return;
+
             if (video.paused) {
-                video.play();
-                icon.classList.add('opacity-0', 'scale-150'); // Efek menghilang membesar
+                if(spinner) spinner.classList.remove('hidden'); // Show spinner while loading
+                const playPromise = video.play();
+                if (playPromise !== undefined) {
+                    playPromise
+                        .then(() => { icon.classList.add('opacity-0', 'scale-150'); if(spinner) spinner.classList.add('hidden'); })
+                        .catch(e => { 
+                            console.error("Play error", e); 
+                            if(spinner) spinner.classList.add('hidden');
+                            // FIX: Auto refresh jika format video tidak didukung/rusak
+                            if (e.name === 'NotSupportedError' || e.name === 'NotAllowedError') {
+                                const parent = container.closest('[id^="external-feed-post"]');
+                                if (parent && window.refreshVideo) refreshVideo(parent.id);
+                            }
+                        });
+                }
             } else {
                 video.pause();
                 icon.classList.remove('opacity-0', 'scale-150'); // Muncul kembali
@@ -2428,9 +2477,10 @@
                         `<div class="aspect-[4/5] w-full"><iframe src="${d.videoUrl}" class="w-full h-full border-0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>` 
                         : (d.videoFile ? 
                             `<div class="aspect-[4/5] w-full flex items-center justify-center bg-black relative cursor-pointer overflow-hidden" onclick="toggleVideo(this)">
-                                <video src="${d.videoFile}" class="w-full h-full object-contain" playsinline loop></video>
+                                <video src="${d.videoFile}" poster="${d.thumbnail || ''}" class="w-full h-full object-contain" playsinline loop preload="metadata" onwaiting="this.parentElement.querySelector('.loading-spinner')?.classList.remove('hidden')" onplaying="this.parentElement.querySelector('.loading-spinner')?.classList.add('hidden')" onerror="refreshVideo('${container.id}')"></video>
                                 <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
                                     <div class="play-icon bg-black/40 rounded-full p-4 backdrop-blur-sm transition-all duration-300"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
+                                    <div class="loading-spinner hidden absolute"><i data-lucide="loader" class="w-10 h-10 text-white animate-spin"></i></div>
                                 </div>
                                 <button onclick="event.stopPropagation(); refreshVideo('${container.id}')" class="refresh-btn absolute top-3 right-3 z-20 bg-black/40 hover:bg-black/60 text-white p-2 rounded-full backdrop-blur-md transition-all border border-white/10">
                                     <i data-lucide="refresh-cw" class="w-5 h-5"></i>
@@ -2458,8 +2508,10 @@
                     <p class="text-sm font-semibold text-white mb-1">${d.likes} suka</p>
                     
                     <div class="text-sm text-white leading-snug mb-1">
-                        <span class="font-semibold mr-1">${d.userName}</span> ${d.caption}
+                        <span class="font-semibold mr-1">${d.userName}</span>
+                        <span id="caption-${container.id}">${d.caption}</span>
                     </div>
+                    <button onclick="translateCaption(this, 'caption-${container.id}')" class="text-[10px] font-bold text-slate-500 hover:text-white mb-2 cursor-pointer">Terjemahkan</button>
                     
                     <p class="text-[10px] text-neutral-500 uppercase tracking-wide mt-2">Disponsori • Baru saja</p>
                 </div>
