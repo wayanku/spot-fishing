@@ -1,5 +1,4 @@
-
-const CACHE_NAME = 'fishing-spot-v9-video-fix-2'; // Naikkan versi untuk memicu update ini
+const CACHE_NAME = 'fishing-spot-v22-random-api'; // Naikkan versi untuk memicu update ini
 const ASSETS = [
     './',
     './index.html',
@@ -46,7 +45,8 @@ self.addEventListener('fetch', (event) => {
     // --- FIX: AUDIO & API BYPASS ---
     // File audio dari GitHub & API Eksternal harus bypass SW agar tidak error saat offline/CORS
     if (url.hostname.includes('raw.githubusercontent.com') || 
-        url.hostname.includes('rainviewer.com')) {
+        url.hostname.includes('rainviewer.com') ||
+        url.hostname.includes('script.google.com')) { // FIX: Bypass Google Script Proxy
         return;
     }
 
