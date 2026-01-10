@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'fishing-spot-v9-video-fix-21'; // Naikkan versi untuk memicu update ini
+const CACHE_NAME = 'fishing-spot-v9-video-fix-2'; // Naikkan versi untuk memicu update ini
 const ASSETS = [
     './',
     './index.html',
