@@ -3443,7 +3443,7 @@
                     <div class="absolute inset-0 flex items-center justify-center bg-black z-0">
                         <div class="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full"></div>
                     </div>
-                    <video src="${url}" poster="${thumbnail}" class="w-full h-full object-cover relative z-10" loop playsinline preload="metadata" onloadeddata="this.previousElementSibling.classList.add('hidden')"></video>
+                    <video src="${url}" poster="${thumbnail}" class="w-full h-full object-cover relative z-10" loop playsinline preload="auto" onloadeddata="this.previousElementSibling.classList.add('hidden')"></video>
                     <div class="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/90 pointer-events-none"></div>
                     <div class="absolute bottom-0 left-0 w-full p-4 pb-6 z-10 pointer-events-none bg-gradient-to-t from-black/80 to-transparent">
                         <div class="flex items-center gap-2 mb-2">
@@ -3582,7 +3582,10 @@
                         const data = await res.json();
                         if (data && data.videos) {
                             videos = data.videos;
-                            // Update cache parsial (opsional, hati-hati menimpa spots)
+                            // Update cache agar request berikutnya instan
+                            const currentCache = JSON.parse(localStorage.getItem('feed_cache') || '{}');
+                            currentCache.videos = videos;
+                            localStorage.setItem('feed_cache', JSON.stringify(currentCache));
                         }
                     } catch(e) { throw new Error("Sheet fetch failed"); }
                 }
