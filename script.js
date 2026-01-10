@@ -3274,13 +3274,8 @@
 
                 // --- FIX: Refresh Data Home saat Navigasi ---
                 if(pageId === 'home') {
-                    // Logika 2 Menit: Hanya refresh jika sudah lewat 2 menit (120000 ms) sejak keluar
-                    const now = Date.now();
-                    const lastLeave = window.lastHomeLeaveTime || 0;
-                    
-                    if (lastLeave === 0 || (now - lastLeave > 120000)) {
-                        if(typeof loadHomeFeed === 'function') loadHomeFeed();
-                    }
+                    // Selalu refresh feed saat masuk ke Home (Sesuai permintaan: Selalu Terbaru)
+                    if(typeof loadHomeFeed === 'function') loadHomeFeed();
                     if(typeof loadHomeWidgetData === 'function') loadHomeWidgetData();
                 }
                 
@@ -3386,7 +3381,8 @@
             
             // Infinite Scroll sederhana
             container.addEventListener('scroll', () => {
-                if (container.scrollTop + container.clientHeight >= container.scrollHeight - 100) {
+                // FIX: Increased threshold to 200px to trigger loading earlier
+                if (container.scrollTop + container.clientHeight >= container.scrollHeight - 200) {
                     loadReelsBatch();
                 }
             });
@@ -3689,20 +3685,49 @@
                 // 1. Coba ambil dari Cache Feed (agar hemat kuota & cepat)
                 try {
                     const cached = JSON.parse(localStorage.getItem('feed_cache') || '{}');
-                    videos = cached.videos || [];
+                    
+                    // Ambil video khusus (Reels)
+                    const sheetVideos = cached.videos || [];
+                    
+                    // Ambil video dari Feed Spots (Postingan User)
+                    const feedSpots = (cached.spots || []).filter(s => s.video);
+                    const formattedSpots = feedSpots.map(s => ({
+                        video: s.video,
+                        caption: s.comment || s.name,
+                        user: s.uid ? s.uid.split('@')[0] : 'User',
+                        name: s.name, // Fallback name
+                        likes: s.likes || 0,
+                        photo: s.photo // Thumbnail from spot photo
+                    }));
+
+                    // Gabungkan keduanya
+                    videos = [...sheetVideos, ...formattedSpots];
                 } catch (e) {}
 
                 // 2. Jika cache kosong atau tidak ada video, fetch manual
                 if (videos.length === 0) {
                     try {
-                        const res = await fetch(`${GOOGLE_SCRIPT_URL}?type=all&t=${Date.now()}`);
+                        // Use global URL if available
+                        const url = (typeof GOOGLE_SCRIPT_URL !== 'undefined') ? GOOGLE_SCRIPT_URL : "https://script.google.com/macros/s/AKfycbybJe6cBuciSnj4j4hmm3nN4C860Sen9RVht6b1O5cZoRpkwvBoDLw6jTkYa4tmUas1/exec";
+                        const res = await fetch(`${url}?type=all&t=${Date.now()}`);
                         const data = await res.json();
+                        
+                        // Handle videos list
                         if (data && data.videos) {
                             videos = data.videos;
-                            // Update cache agar request berikutnya instan
-                            const currentCache = JSON.parse(localStorage.getItem('feed_cache') || '{}');
-                            currentCache.videos = videos;
-                            localStorage.setItem('feed_cache', JSON.stringify(currentCache));
+                        }
+                        
+                        // Handle spots list from fetch (Feed Posts)
+                        if (data && (data.spots || Array.isArray(data))) {
+                             const spots = Array.isArray(data) ? data : data.spots;
+                             const spotVideos = spots.filter(s => s.video).map(s => ({
+                                video: s.video,
+                                caption: s.comment || s.name,
+                                user: s.uid ? s.uid.split('@')[0] : 'User',
+                                likes: s.likes || 0,
+                                photo: s.photo
+                             }));
+                             videos = [...videos, ...spotVideos];
                         }
                     } catch(e) { throw new Error("Sheet fetch failed"); }
                 }
@@ -3721,14 +3746,14 @@
                         likes: Math.floor(Math.random() * 100) + 10,
                         comments: 0,
                         sourceLabel: 'Community Reel',
-                        thumbnail: '' // Video sheet biasanya tidak punya thumbnail khusus
+                        thumbnail: item.photo || '' // Use photo as thumbnail if available
                     };
                 }
                 throw new Error("No sheet videos available");
             };
 
             // --- EXECUTION LOGIC (RANDOMIZED) ---
-            // Tambahkan fetchSheetReels ke dalam daftar provider
+            // Tambahkan fetchSheetReels ke dalam daftar provider agar konten Feed bisa muncul di Reels
             const providers = [fetchSheetReels, fetchPixabay, fetchPexels, fetchNasa];
             
             // Fisher-Yates Shuffle untuk mengacak urutan provider
