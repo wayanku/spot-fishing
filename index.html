@@ -1037,6 +1037,71 @@
             }
         };
 
+        // Helper: Toggle Mute (New Feature)
+        window.toggleMute = function(btn) {
+            const container = btn.closest('.relative');
+            const video = container.querySelector('video');
+            if(video) {
+                video.muted = !video.muted;
+                btn.innerHTML = video.muted ? '<i data-lucide="volume-x" class="w-5 h-5"></i>' : '<i data-lucide="volume-2" class="w-5 h-5"></i>';
+                if(typeof lucide !== 'undefined') lucide.createIcons();
+            }
+        };
+
+        // --- NEW: Video Subtitle Feature ---
+        window.toggleVideoSubtitles = async function(btn, captionId) {
+            const container = btn.closest('.relative');
+            const overlay = container.querySelector('.subtitle-overlay');
+            const captionEl = document.getElementById(captionId);
+            
+            if (!overlay || !captionEl) return;
+
+            // Toggle Off
+            if (!overlay.classList.contains('hidden')) {
+                overlay.classList.add('hidden');
+                btn.classList.remove('bg-blue-600', 'border-blue-500');
+                btn.classList.add('bg-black/40', 'border-white/10');
+                return;
+            }
+
+            // Toggle On
+            overlay.classList.remove('hidden');
+            btn.classList.remove('bg-black/40', 'border-white/10');
+            btn.classList.add('bg-blue-600', 'border-blue-500');
+            
+            // Check if already translated
+            if (overlay.dataset.translated === "true") return;
+
+            const originalBtnHtml = btn.innerHTML;
+            overlay.innerHTML = '<div class="flex items-center justify-center gap-2"><i data-lucide="loader" class="w-3 h-3 animate-spin"></i> <span class="opacity-80">Menerjemahkan suara...</span></div>';
+            btn.innerHTML = '<i data-lucide="loader" class="w-3 h-3 animate-spin"></i> Loading...';
+            if(typeof lucide !== 'undefined') lucide.createIcons();
+
+            const originalText = captionEl.innerText.trim();
+            
+            try {
+                // Use Google Translate via CORS Proxy
+                const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=id&dt=t&q=${encodeURIComponent(originalText)}`;
+                const res = await fetch('https://corsproxy.io/?' + encodeURIComponent(url));
+                const data = await res.json();
+
+                if (data && data[0]) {
+                    let translated = "";
+                    data[0].forEach(item => { if (item[0]) translated += item[0]; });
+                    overlay.innerText = translated;
+                    overlay.dataset.translated = "true";
+                } else {
+                    overlay.innerText = "Gagal menerjemahkan.";
+                }
+            } catch (e) {
+                console.error(e);
+                overlay.innerText = "Gagal memuat subtitle.";
+            } finally {
+                btn.innerHTML = originalBtnHtml;
+                if(typeof lucide !== 'undefined') lucide.createIcons();
+            }
+        };
+
         async function loadHomeFeed() {
             const container = document.getElementById('home-feed-container');
             if(!container) return;
@@ -2034,8 +2099,8 @@
             // Tentukan tipe konten berdasarkan mode
             let sourceType;
             if (mode === 'video') {
-                // Random antara Kategori NASA & Alam (4, 5, 6, 7, 8)
-                const videoTypes = [4, 5, 6, 7, 8];
+                // Random antara Kategori NASA & Alam (4-12)
+                const videoTypes = [4, 5, 6, 7, 8, 9, 10, 11, 12];
                 sourceType = videoTypes[Math.floor(Math.random() * videoTypes.length)];
             } else if (mode === 'wiki') {
                 sourceType = 1; // Force Wiki (Fallback)
@@ -2044,7 +2109,7 @@
                 const types = [0, 1, 3];
                 sourceType = types[Math.floor(Math.random() * types.length)];
             } else {
-                const types = [0, 1, 3, 4, 5, 6, 7, 8]; // Random semua
+                const types = [0, 1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]; // Random semua
                 sourceType = types[Math.floor(Math.random() * types.length)];
             }
             
@@ -2395,38 +2460,42 @@
                     } catch(e) { console.warn("NASA Nature failed", e); }
                 } else if (sourceType === 8) {
                     // --- SUMBER 9: WILDLIFE (Hewan) ---
+                    // REVISI: Menggunakan Wikimedia Commons agar hasil pencarian hewan lebih akurat & banyak
                     const keywords = [
-                        "polar bear", "penguin", "eagle", "bird migration", "wildlife", "animal tracking", "bison", "elk", "bear", 
-                        "wolf", "seal", "walrus", "caribou", "moose", "crane", "stork", "salmon", "beaver", "otter",
-                        "fox", "owl", "deer", "antelope", "coyote", "mountain lion", "bobcat"
+                        "polar bear", "penguin", "eagle", "kingfisher", "wildlife", "lion", "tiger", "elephant", "bear", 
+                        "wolf", "seal", "walrus", "deer", "moose", "owl", "stork", "salmon", "beaver", "otter",
+                        "fox", "cheetah", "leopard", "antelope", "coyote", "mountain lion", "bobcat"
                     ];
                     const keyword = keywords[Math.floor(Math.random() * keywords.length)];
                     
                     try {
-                        const controller = new AbortController();
-                        const timeoutId = setTimeout(() => controller.abort(), 6000);
-                        const res = await fetch(`https://images-api.nasa.gov/search?q=${keyword}&media_type=video`, { signal: controller.signal });
-                        clearTimeout(timeoutId);
+                        // Search Wikimedia (Filetype Video)
+                        const res = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=filetype:video+${keyword}&gsrlimit=10&prop=imageinfo&iiprop=url|extmetadata|thumburl&iiurlwidth=600&format=json&origin=*`);
                         const data = await res.json();
                         
-                        if (data.collection && data.collection.items && data.collection.items.length > 0) {
-                            const items = data.collection.items;
-                            const item = items[Math.floor(Math.random() * items.length)];
-                            const meta = item.data[0];
-                            const collectionUrl = item.href;
-                            
-                            const videoRes = await fetch(collectionUrl);
-                            const videoFiles = await videoRes.json();
-                            const mp4 = videoFiles.find(f => f.endsWith('~medium.mp4')) || videoFiles.find(f => f.endsWith('.mp4'));
-                            const thumb = item.links ? item.links.find(l => l.rel === 'preview')?.href : '';
+                        if (data.query && data.query.pages) {
+                            const pages = Object.values(data.query.pages);
+                            const validPages = pages.filter(p => {
+                                if(!p.imageinfo || !p.imageinfo[0]) return false;
+                                const url = p.imageinfo[0].url.toLowerCase();
+                                return url.endsWith('.webm') || url.endsWith('.ogv') || url.endsWith('.mp4');
+                            });
 
-                            if (mp4) {
+                            if (validPages.length > 0) {
+                                const page = validPages[Math.floor(Math.random() * validPages.length)];
+                                const info = page.imageinfo[0];
+                                const meta = info.extmetadata || {};
+                                
+                                const title = (meta.ObjectName && meta.ObjectName.value) ? meta.ObjectName.value : page.title.replace('File:', '').replace(/\.[^/.]+$/, "");
+                                let desc = (meta.ImageDescription && meta.ImageDescription.value) ? meta.ImageDescription.value : `Video ${keyword} di alam liar.`;
+                                const tempDiv = document.createElement("div"); tempDiv.innerHTML = desc; desc = tempDiv.textContent || "";
+
                                 postData = {
                                     userName: "NatGeo Wildlife",
                                     userAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Wildlife",
                                     location: "Habitat Liar",
-                                    videoFile: mp4,
-                                    thumbnail: thumb,
+                                    videoFile: info.url,
+                                    thumbnail: info.thumburl || "",
                                     caption: `<b>${meta.title}</b><br>${meta.description ? meta.description.substring(0, 120) + '...' : 'Kehidupan liar di alam bebas.'}`,
                                     sourceName: "National Geographic",
                                     likes: Math.floor(Math.random() * 600) + 250
@@ -2434,6 +2503,157 @@
                             }
                         }
                     } catch(e) { console.warn("Wildlife failed", e); }
+                } else if (sourceType === 9) {
+                    // --- SUMBER 10: WIKIMEDIA NATURE (Open Source) ---
+                    // Sumber alternatif selain NASA untuk variasi konten alam
+                    const queries = [
+                        "filetype:video+nature+landscape", "filetype:video+wildlife", "filetype:video+underwater", 
+                        "filetype:video+forest", "filetype:video+jungle", "filetype:video+ocean", "filetype:video+animals",
+                        "filetype:video+birds", "filetype:video+river", "filetype:video+mountain"
+                    ];
+                    const query = queries[Math.floor(Math.random() * queries.length)];
+                    
+                    try {
+                        // Fetch list dengan thumbnail (iiurlwidth=600)
+                        const res = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=${query}&gsrlimit=15&prop=imageinfo&iiprop=url|extmetadata|thumburl&iiurlwidth=600&format=json&origin=*`);
+                        const data = await res.json();
+                        
+                        if (data.query && data.query.pages) {
+                            const pages = Object.values(data.query.pages);
+                            // Filter format video yang didukung browser modern
+                            const validPages = pages.filter(p => {
+                                if(!p.imageinfo || !p.imageinfo[0]) return false;
+                                const url = p.imageinfo[0].url.toLowerCase();
+                                return url.endsWith('.webm') || url.endsWith('.ogv') || url.endsWith('.mp4');
+                            });
+
+                            if (validPages.length > 0) {
+                                const page = validPages[Math.floor(Math.random() * validPages.length)];
+                                const info = page.imageinfo[0];
+                                const meta = info.extmetadata || {};
+                                
+                                // Bersihkan judul dan deskripsi
+                                const title = (meta.ObjectName && meta.ObjectName.value) ? meta.ObjectName.value : page.title.replace('File:', '').replace(/\.[^/.]+$/, "");
+                                let desc = (meta.ImageDescription && meta.ImageDescription.value) ? meta.ImageDescription.value : 'Video dokumentasi alam dari Wikimedia Commons.';
+                                // Hapus tag HTML dari deskripsi
+                                const tempDiv = document.createElement("div");
+                                tempDiv.innerHTML = desc;
+                                desc = tempDiv.textContent || tempDiv.innerText || "";
+                                
+                                postData = {
+                                    userName: "Open Planet",
+                                    userAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Planet",
+                                    location: "Arsip Alam Bebas",
+                                    videoFile: info.url,
+                                    thumbnail: info.thumburl || "", 
+                                    caption: `<b>${title}</b><br>${desc.substring(0, 120)}...`,
+                                    sourceName: "Wikimedia Commons",
+                                    likes: Math.floor(Math.random() * 200) + 50
+                                };
+                            }
+                        }
+                    } catch(e) { console.warn("Wikimedia failed", e); }
+                } else if (sourceType === 10) {
+                    // --- SUMBER 11: INTERNET ARCHIVE (Nature Stock) ---
+                    // Koleksi footage alam berkualitas tinggi (Stock Footage)
+                    try {
+                        // Cari koleksi 'nature_stock_footage' yang biasanya bersih dan bagus
+                        const res = await fetch('https://archive.org/advancedsearch.php?q=collection:(nature_stock_footage)+AND+mediatype:(movies)&fl[]=identifier&fl[]=title&fl[]=description&rows=30&output=json');
+                        const data = await res.json();
+                        const docs = data.response.docs;
+                        
+                        if (docs && docs.length > 0) {
+                            const doc = docs[Math.floor(Math.random() * docs.length)];
+                            
+                            // Fetch metadata untuk mencari file MP4
+                            const metaRes = await fetch(`https://archive.org/metadata/${doc.identifier}`);
+                            const meta = await metaRes.json();
+                            
+                            // Cari file MP4 (Prioritas h.264 atau MPEG4)
+                            const mp4File = (meta && meta.files) ? meta.files.find(f => f.name && f.name.toLowerCase().endsWith('.mp4') && f.format !== '512Kb MPEG4') : null;
+                            
+                            if (mp4File) {
+                                const videoUrl = `https://archive.org/download/${doc.identifier}/${mp4File.name}`;
+                                const thumb = `https://archive.org/services/img/${doc.identifier}`;
+                                
+                                postData = {
+                                    userName: "Nature Stock",
+                                    userAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Stock",
+                                    location: "Arsip Digital",
+                                    videoFile: videoUrl,
+                                    thumbnail: thumb,
+                                    caption: `<b>${doc.title}</b><br>${doc.description ? doc.description.substring(0, 100) + '...' : 'Footage alam berkualitas tinggi.'}`,
+                                    sourceName: "Internet Archive",
+                                    likes: Math.floor(Math.random() * 150) + 50
+                                };
+                            }
+                        }
+                    } catch(e) { console.warn("Archive.org failed", e); }
+                } else if (sourceType === 11) {
+                    // --- SUMBER 12: SKY EYE (Drone View) ---
+                    const queries = ["filetype:video+drone+nature", "filetype:video+aerial+landscape", "filetype:video+bird's+eye+view+nature"];
+                    const query = queries[Math.floor(Math.random() * queries.length)];
+                    
+                    try {
+                        const res = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=${query}&gsrlimit=15&prop=imageinfo&iiprop=url|extmetadata|thumburl&iiurlwidth=600&format=json&origin=*`);
+                        const data = await res.json();
+                        
+                        if (data.query && data.query.pages) {
+                            const pages = Object.values(data.query.pages);
+                            const validPages = pages.filter(p => p.imageinfo && (p.imageinfo[0].url.endsWith('.webm') || p.imageinfo[0].url.endsWith('.mp4')));
+
+                            if (validPages.length > 0) {
+                                const page = validPages[Math.floor(Math.random() * validPages.length)];
+                                const info = page.imageinfo[0];
+                                const title = page.title.replace('File:', '').replace(/\.[^/.]+$/, "");
+                                
+                                postData = {
+                                    userName: "Sky Eye",
+                                    userAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sky",
+                                    location: "Pemandangan Udara",
+                                    videoFile: info.url,
+                                    thumbnail: info.thumburl || "", 
+                                    caption: `<b>${title}</b><br>Pemandangan alam diambil menggunakan drone.`,
+                                    sourceName: "Wikimedia Drone",
+                                    likes: Math.floor(Math.random() * 400) + 100
+                                };
+                            }
+                        }
+                    } catch(e) { console.warn("Drone video failed", e); }
+                } else if (sourceType === 12) {
+                    // --- SUMBER 13: FISHING ACTION (Aksi Mancing) ---
+                    const queries = ["filetype:video+fishing", "filetype:video+fisherman", "filetype:video+angling"];
+                    const query = queries[Math.floor(Math.random() * queries.length)];
+                    
+                    try {
+                        const res = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=${query}&gsrlimit=15&prop=imageinfo&iiprop=url|extmetadata|thumburl&iiurlwidth=600&format=json&origin=*`);
+                        const data = await res.json();
+                        
+                        if (data.query && data.query.pages) {
+                            const pages = Object.values(data.query.pages);
+                            const validPages = pages.filter(p => p.imageinfo && (p.imageinfo[0].url.endsWith('.webm') || p.imageinfo[0].url.endsWith('.mp4')));
+
+                            if (validPages.length > 0) {
+                                const page = validPages[Math.floor(Math.random() * validPages.length)];
+                                const info = page.imageinfo[0];
+                                const meta = info.extmetadata || {};
+                                const title = (meta.ObjectName && meta.ObjectName.value) ? meta.ObjectName.value : page.title.replace('File:', '').replace(/\.[^/.]+$/, "");
+                                let desc = (meta.ImageDescription && meta.ImageDescription.value) ? meta.ImageDescription.value : 'Aksi memancing.';
+                                const tempDiv = document.createElement("div"); tempDiv.innerHTML = desc; desc = tempDiv.textContent || "";
+
+                                postData = {
+                                    userName: "Galeri Pemancing",
+                                    userAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Fisherman",
+                                    location: "Spot Mancing",
+                                    videoFile: info.url,
+                                    thumbnail: info.thumburl || "", 
+                                    caption: `<b>${title}</b><br>${desc.substring(0, 100)}...`,
+                                    sourceName: "Wikimedia Fishing",
+                                    likes: Math.floor(Math.random() * 300) + 150
+                                };
+                            }
+                        }
+                    } catch(e) { console.warn("Fishing video failed", e); }
                 }
 
                 // 2. SIMPAN KE CACHE & RENDER
@@ -2496,7 +2716,8 @@
             if(container) {
                 const btn = container.querySelector('.refresh-btn i');
                 if(btn) btn.classList.add('animate-spin'); // Visual feedback
-                delete externalPostDataCache['video']; // Hapus cache lama
+                delete externalPostDataCache['video']; 
+                delete externalPostDataCache['mix']; // Clear mix too just in case
                 loadExternalFeedPost(containerId, 'video'); // Load baru
             }
         }
@@ -2530,14 +2751,24 @@
                         `<div class="aspect-[4/5] w-full"><iframe src="${d.videoUrl}" class="w-full h-full border-0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>` 
                         : (d.videoFile ? 
                             `<div class="aspect-[4/5] w-full flex items-center justify-center bg-black relative cursor-pointer overflow-hidden" onclick="toggleVideo(this)">
-                                <video src="${d.videoFile}" poster="${d.thumbnail || ''}" class="w-full h-full object-contain" playsinline loop preload="metadata" onwaiting="this.parentElement.querySelector('.loading-spinner')?.classList.remove('hidden')" onplaying="this.parentElement.querySelector('.loading-spinner')?.classList.add('hidden')" onerror="refreshVideo('${container.id}')"></video>
+                                <video src="${d.videoFile}" poster="${d.thumbnail || ''}" class="w-full h-full object-contain" playsinline loop muted preload="metadata" onwaiting="this.parentElement.querySelector('.loading-spinner')?.classList.remove('hidden')" onplaying="this.parentElement.querySelector('.loading-spinner')?.classList.add('hidden')" onerror="refreshVideo('${container.id}')"></video>
                                 <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
                                     <div class="play-icon bg-black/40 rounded-full p-4 backdrop-blur-sm transition-all duration-300"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
                                     <div class="loading-spinner hidden absolute"><i data-lucide="loader" class="w-10 h-10 text-white animate-spin"></i></div>
                                 </div>
+                                <!-- NEW: Mute Button -->
+                                <button onclick="event.stopPropagation(); toggleMute(this)" class="absolute top-3 left-3 z-20 bg-black/40 hover:bg-black/60 text-white p-2 rounded-full backdrop-blur-md transition-all border border-white/10">
+                                    <i data-lucide="volume-x" class="w-5 h-5"></i>
+                                </button>
                                 <button onclick="event.stopPropagation(); refreshVideo('${container.id}')" class="refresh-btn absolute top-3 right-3 z-20 bg-black/40 hover:bg-black/60 text-white p-2 rounded-full backdrop-blur-md transition-all border border-white/10">
                                     <i data-lucide="refresh-cw" class="w-5 h-5"></i>
                                 </button>
+                                <!-- NEW: Subtitle Button -->
+                                <button onclick="event.stopPropagation(); toggleVideoSubtitles(this, 'caption-${container.id}')" class="absolute bottom-3 left-3 z-20 bg-black/40 hover:bg-black/60 text-white px-3 py-1.5 rounded-full backdrop-blur-md transition-all border border-white/10 text-[10px] font-bold flex items-center gap-1.5 group">
+                                    <i data-lucide="captions" class="w-3.5 h-3.5 group-hover:scale-110 transition-transform"></i> Indo Sub
+                                </button>
+                                <!-- NEW: Subtitle Overlay -->
+                                <div class="subtitle-overlay hidden absolute bottom-14 left-4 right-4 bg-black/70 text-white text-center text-xs p-3 rounded-xl backdrop-blur-md transition-all duration-300 pointer-events-none border border-white/10 shadow-lg leading-relaxed z-10"></div>
                              </div>`
                             : `<img src="${d.image}" class="w-full h-auto max-h-[600px] object-cover min-h-[300px]" loading="lazy">`
                         )
