@@ -53,6 +53,7 @@
             top: 0;
             left: 0;
             z-index: 50;
+            overscroll-behavior-y: contain; /* Mencegah scroll parent ikut ketarik */
             scrollbar-width: none; /* Firefox */
             -ms-overflow-style: none; /* IE/Edge */
         }
@@ -1132,6 +1133,7 @@
                     // Hanya aktifkan jika scroll di paling atas dan tarik ke bawah
                     if (homeView.scrollTop <= 0 && diff > 0) {
                         isPulling = true;
+                        if (e.cancelable) e.preventDefault(); // Mencegah browser scroll bawaan (karet)
                         // Visual feedback (Tarik spinner ke bawah)
                         if (diff < 200) { 
                             contentWrapper.style.transform = `translateY(${diff * 0.4}px)`;
@@ -1142,7 +1144,7 @@
                         contentWrapper.style.transform = `translateY(0)`;
                         ptrIcon.style.transform = `scale(0)`;
                     }
-                }, {passive: true});
+                }, {passive: false}); // Passive false agar bisa preventDefault
 
                 homeView.addEventListener('touchend', async (e) => {
                     if (!isPulling) return;
@@ -1324,6 +1326,69 @@
             }
         }
 
+        // Global store untuk menyimpan data feed saat ini agar mudah diakses saat klik
+        let currentFeedItems = [];
+
+        function openMainFeedReel(identifier, container) {
+            let postData = null;
+            
+            // 1. Cari di Memory (Data Feed yang sedang tampil) - Lebih Akurat
+            if (currentFeedItems.length > 0) {
+                const foundItem = currentFeedItems.find(item => {
+                    const d = item.data;
+                    return d.id == identifier || d.video === identifier;
+                });
+                if (foundItem) {
+                    // Konversi format data feed ke format reels
+                    const found = foundItem.data;
+                    postData = {
+                        url: found.video,
+                        title: found.description || found.comment || found.locationName,
+                        user: found.userName || 'User',
+                        likes: found.likes || 0,
+                        comments: found.comments ? found.comments.length : 0,
+                        sourceLabel: 'Community',
+                        thumbnail: found.image,
+                        userAvatar: found.userPhoto
+                    };
+                }
+            }
+
+            // 2. Fallback ke Cache jika tidak ketemu di memory
+            if (!postData) {
+            try {
+                const cached = JSON.parse(localStorage.getItem('feed_cache') || '{}');
+                const spots = Array.isArray(cached) ? cached : (cached.spots || []);
+                // Cari berdasarkan ID atau Video URL (Fallback jika ID tidak ada/berubah)
+                const found = spots.find(s => s.id == identifier || s.video === identifier);
+                if (found) {
+                    postData = {
+                        url: found.video,
+                        title: found.comment || found.name,
+                        user: found.uid ? found.uid.split('@')[0] : 'User',
+                        likes: found.likes || 0,
+                        comments: 0,
+                        sourceLabel: 'Community',
+                        thumbnail: found.photo,
+                        userAvatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${found.uid || 'User'}`
+                    };
+                }
+            } catch(e) {}
+            }
+
+            if (postData) {
+                let startTime = 0;
+                let isMuted = false;
+                if (container) {
+                    const v = container.querySelector('video');
+                    if (v) { startTime = v.currentTime; isMuted = v.muted; }
+                }
+                openReelWithVideo(postData, startTime, isMuted);
+            } else {
+                console.warn("Video data not found for identifier:", identifier);
+            }
+        }
+
         async function loadHomeFeed() {
             const container = document.getElementById('home-feed-container');
             if(!container) return;
@@ -1371,6 +1436,9 @@
                     time: item.createdAt ? new Date(item.createdAt) : new Date()
                 }));
 
+                // Update Global Store untuk akses klik
+                currentFeedItems = feedItems;
+
                 feedItems.sort((a, b) => b.time - a.time);
                 const displayItems = feedItems.slice(0, 5);
 
@@ -1414,8 +1482,9 @@
                     const weight = d.weight ? `${d.weight} KG` : null;
                     const comment = d.description || d.comment || 'Spot baru ditambahkan!';
                     const embedUrl = getEmbedUrl(d.video);
-                    // Gunakan ID unik baris (d.id) untuk like, bukan spotId (karena spotId bisa duplikat utk grouping)
-                    const postId = d.id; 
+                    const isRawVideo = d.video && !embedUrl;
+                    // Gunakan ID atau Video URL sebagai identifier (Fallback)
+                    const postId = d.id || d.video; 
 
                     // Verified Badge SVG (Instagram Style)
                     const verifiedBadge = `<svg class="w-3.5 h-3.5 ml-1 text-blue-500 fill-current" viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-1.9 14.7L6 12.6l1.5-1.5 2.6 2.6 6.4-6.4 1.5 1.5-7.9 7.9z"/></svg>`;
@@ -1458,8 +1527,15 @@
                         <div class="w-full bg-neutral-900 relative group overflow-hidden" ondblclick="handleDoubleTapLike('${postId}', this)">
                             ${embedUrl ? 
                                 `<div class="aspect-[4/5] w-full"><iframe src="${embedUrl}" class="w-full h-full border-0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>` 
-                                : 
-                                `<img src="${d.image}" class="w-full h-auto max-h-[600px] object-cover min-h-[300px]" loading="lazy">`
+                                : (isRawVideo ?
+                                    `<div class="aspect-[4/5] w-full flex items-center justify-center bg-black relative cursor-pointer overflow-hidden" data-post-id="${postId}" onclick="openMainFeedReel(this.dataset.postId, this)">
+                                        <video src="${d.video}" poster="${d.image || ''}" class="w-full h-full object-cover pointer-events-none" playsinline loop crossorigin="anonymous" autoplay muted></video>
+                                        <button onclick="event.stopPropagation(); toggleMute(this)" class="absolute bottom-3 right-3 z-20 bg-black/40 hover:bg-black/60 text-white p-2 rounded-full backdrop-blur-md transition-all border border-white/10">
+                                            <i data-lucide="volume-x" class="w-5 h-5"></i>
+                                        </button>
+                                     </div>`
+                                    : `<img src="${d.image}" class="w-full h-auto max-h-[600px] object-cover min-h-[300px]" loading="lazy">`
+                                )
                             }
                             ${!embedUrl && weight ? `<div class="absolute bottom-3 right-3 bg-black/70 backdrop-blur-md px-2 py-1 rounded-md text-xs font-bold text-white flex items-center gap-1"><i data-lucide="fish" class="w-3 h-3 text-emerald-400"></i> ${weight}</div>` : ''}
                             
@@ -1539,17 +1615,8 @@
                 if(typeof lucide !== 'undefined') lucide.createIcons();
             };
 
-            // 1. CACHE FIRST: Tampilkan data tersimpan (Instan)
-            const cached = localStorage.getItem('feed_cache');
-            if (cached) {
-                try { 
-                    const parsed = JSON.parse(cached);
-                    // Support format lama (array) dan baru (object)
-                    const spots = Array.isArray(parsed) ? parsed : (parsed.spots || []);
-                    const comments = Array.isArray(parsed) ? [] : (parsed.comments || []);
-                    render(spots, comments); 
-                } catch (e) { console.warn("Cache invalid"); }
-            }
+            // 1. CACHE DISABLED: Langsung tampilkan loading skeleton jika perlu, atau biarkan kosong sampai fetch selesai
+            // Sesuai permintaan: Jangan ambil dari cache agar selalu fresh
 
             // 2. NETWORK SECOND: Ambil data baru di background
             try {
@@ -1560,20 +1627,28 @@
 
                 // Cek format data (Object dengan spots & comments atau Array lama)
                 if (data && (Array.isArray(data) || data.spots)) {
-                    const spots = Array.isArray(data) ? data : (data.spots || []);
+                    let spots = Array.isArray(data) ? data : (data.spots || []);
                     const comments = data.comments || [];
                     
-                    // Update Cache & UI
-                    localStorage.setItem('feed_cache', JSON.stringify({ spots, comments }));
+                    // FIX: Pastikan setiap spot punya ID (Generate jika tidak ada)
+                    spots = spots.map((s, i) => ({
+                        ...s,
+                        id: s.id || `gen_${Date.now()}_${i}`
+                    }));
+
+                    // Update UI (Tanpa Simpan Cache Feed)
+                    // Kita tetap simpan 'videos' khusus reels ke cache terpisah jika perlu, tapi feed utama tidak.
+                    // Namun agar Reels tetap jalan lancar, kita update cache HANYA untuk struktur videos, tapi tidak untuk render ulang feed nanti.
+                    // Untuk simplifikasi sesuai request "jangan di save ke cache":
+                    // localStorage.removeItem('feed_cache'); // Opsional: Hapus cache lama
+                    
                     render(spots, comments);
                 }
             } catch (e) {
                 console.warn("Gagal fetch Google Sheet, bertahan dengan cache:", e);
-                // Jika cache kosong, coba fallback ke data lokal user
-                if (!cached) {
-                    const local = JSON.parse(localStorage.getItem('spots') || '[]');
-                    render(local);
-                }
+                // Fallback ke data lokal user (Spot yang disimpan di HP) jika internet mati
+                const local = JSON.parse(localStorage.getItem('spots') || '[]');
+                render(local);
             }
         }
 
