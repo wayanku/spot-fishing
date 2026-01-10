@@ -1426,7 +1426,8 @@ function getUserWeather() {
 
 async function fetchUserWeather(lat, lng) {
     try {
-        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true&timezone=auto`);
+        const t = Date.now(); // Anti-Cache Timestamp
+        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true&timezone=auto&_=${t}`);
         const data = await res.json();
         if(data.current_weather) {
             if(data.current_weather.time) wxLocalHour = parseInt(data.current_weather.time.split('T')[1].split(':')[0]);
@@ -1999,7 +2000,8 @@ async function showLocationPanel(latlng) {
     // 3. Fetch Weather & Marine Data (Open-Meteo API)
     try {
         // Mengambil Weather + Marine (Wave Height) + Sun (Sunrise/Sunset)
-        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latlng.lat}&longitude=${latlng.lng}&current_weather=true&hourly=temperature_2m,precipitation_probability,precipitation,weathercode,wave_height,windspeed_10m,winddirection_10m,relativehumidity_2m,surface_pressure,visibility,apparent_temperature,dewpoint_2m,cloudcover,windgusts_10m&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,windspeed_10m_max,sunrise,sunset,uv_index_max&minutely_15=precipitation&timezone=auto&forecast_days=14`);
+        const t = Date.now(); // Anti-Cache
+        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latlng.lat}&longitude=${latlng.lng}&current_weather=true&hourly=temperature_2m,precipitation_probability,precipitation,weathercode,wave_height,windspeed_10m,winddirection_10m,relativehumidity_2m,surface_pressure,visibility,apparent_temperature,dewpoint_2m,cloudcover,windgusts_10m&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,windspeed_10m_max,sunrise,sunset,uv_index_max&minutely_15=precipitation&timezone=auto&forecast_days=14&_=${t}`);
         const data = await res.json();
         currentWeatherData = data; // Simpan data untuk detail view
         updateWeatherUI(data);
@@ -2020,7 +2022,8 @@ async function showLocationPanel(latlng) {
     // 4. Fetch Tide Data (Marine API)
     try {
         // Added sea_surface_temperature
-        const res = await fetch(`https://marine-api.open-meteo.com/v1/marine?latitude=${latlng.lat}&longitude=${latlng.lng}&hourly=sea_level_height_msl,sea_surface_temperature&timezone=auto`);
+        const t = Date.now(); // Anti-Cache
+        const res = await fetch(`https://marine-api.open-meteo.com/v1/marine?latitude=${latlng.lat}&longitude=${latlng.lng}&hourly=sea_level_height_msl,sea_surface_temperature&timezone=auto&_=${t}`);
         const data = await res.json();
         currentMarineData = data; // Store data for AI Insight
 
@@ -2126,46 +2129,50 @@ function updateWeatherUI(data) {
         const pTimes = data.minutely_15.time;
         const now = new Date();
         
-        // Find current time slot (look back 10 mins to include current interval)
-        let currentIdx = pTimes.findIndex(t => new Date(t) > new Date(now.getTime() - 10*60000));
-        if (currentIdx === -1) currentIdx = 0;
+        // --- MODIFIED: Cari slot waktu TERDEKAT (Paling Akurat) ---
+        // Sebelumnya bisa meleset 14 menit. Sekarang cari selisih terkecil.
+        let currentIdx = 0;
+        let minDiff = Infinity;
         
-        // --- MODIFIED: Extreme Sensitive Rain Detection (Sekecil Apapun) ---
-        // Perluas jangkauan cek ke +/- 60 menit (4 slot sebelum & sesudah)
-        // Agar hujan gerimis tipis atau yang baru lewat/akan datang tetap memicu animasi.
-        const checkIndices = [currentIdx - 4, currentIdx - 3, currentIdx - 2, currentIdx - 1, currentIdx, currentIdx + 1, currentIdx + 2, currentIdx + 3, currentIdx + 4];
+        pTimes.forEach((t, i) => {
+            const diff = Math.abs(new Date(t).getTime() - now.getTime());
+            if (diff < minDiff) {
+                minDiff = diff;
+                currentIdx = i;
+            }
+        });
+
+        
+        // --- MODIFIED: Akurasi Tinggi (iPhone Style) ---
+        // Hanya cek slot saat ini dan 1 slot ke depan (prediksi sangat dekat).
+        // Mencegah status "Gerimis" jika hujan sudah berhenti 30 menit lalu.
+        const checkIndices = [currentIdx, currentIdx + 1]; 
         let hasRain = false;
 
         for (let idx of checkIndices) {
             if (idx >= 0 && idx < pVals.length) {
-                // Jika ada nilai > 0 (walau 0.1mm), anggap hujan
-                if (pVals[idx] > 0) {
+                // Threshold dinaikkan ke 0.15mm agar kabut/embun tidak dianggap hujan
+                if (pVals[idx] > 0.15) {
                     hasRain = true;
                     break;
                 }
             }
         }
         
-        // Fallback: Jika minutely 0 tapi probability jam ini ada (>5%), anggap hujan
+        // Fallback: Hourly Data (Hanya jika minutely tidak mendeteksi hujan)
         if (!hasRain && data.hourly) {
             const hIdx = wxLocalHour;
             
-            // 1. Cek Curah Hujan Hourly (mm) - Jika ada angka > 0, pasti hujan
-            if (data.hourly.precipitation && (data.hourly.precipitation[hIdx] > 0 || (data.hourly.precipitation[hIdx+1] && data.hourly.precipitation[hIdx+1] > 0))) {
+            // 1. Cek Curah Hujan Hourly (mm) - Jika > 0.1mm
+            if (data.hourly.precipitation && (data.hourly.precipitation[hIdx] > 0.1)) {
                 hasRain = true;
             }
 
-            // 2. Cek Probability (>5% sangat sensitif)
+            // 2. Cek Probability - PERKETAT SYARAT (>75%)
             if (!hasRain && data.hourly.precipitation_probability) {
                 const probNow = data.hourly.precipitation_probability[hIdx] || 0;
-                const probNext = data.hourly.precipitation_probability[hIdx + 1] || 0;
-                
-                // FIX: Naikkan threshold agar tidak dianggap hujan saat hanya mendung tipis (5% -> 40%)
-                if (probNow >= 40 || probNext >= 50) hasRain = true;
+                if (probNow >= 75) hasRain = true;
             }
-            
-            // 3. Cek Hourly Weather Code (Jika jam ini diprediksi hujan kode >= 51)
-            if (!hasRain && data.hourly.weathercode && data.hourly.weathercode[hIdx] >= 51) hasRain = true;
         }
 
         if (hasRain) {
@@ -2177,6 +2184,17 @@ function updateWeatherUI(data) {
                 } else {
                     code = 51; // Force Drizzle/Light Rain
                 }
+                // Update Global Data Reference agar Widget Home juga berubah
+                data.current_weather.weathercode = code;
+            }
+        } else {
+            // --- NEW: Force Clear/Cloudy if NO Rain Detected ---
+            // Jika minutely & hourly confirm TIDAK ada hujan, tapi API bilang hujan (sisa cache),
+            // kita paksa ubah jadi Berawan (3) atau Cerah Berawan (2).
+            if (code >= 51 && code < 70) { 
+                 const cloudCover = data.hourly.cloudcover ? data.hourly.cloudcover[wxLocalHour] : 0;
+                 code = cloudCover > 50 ? 3 : 2; // Ubah jadi Berawan / Cerah Berawan
+                 data.current_weather.weathercode = code;
             }
         }
     }
