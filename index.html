@@ -2099,8 +2099,8 @@
             // Tentukan tipe konten berdasarkan mode
             let sourceType;
             if (mode === 'video') {
-                // Random antara Kategori NASA & Alam (4-12)
-                const videoTypes = [4, 5, 6, 7, 8, 9, 10, 11, 12];
+                // Random antara Kategori NASA (4-7)
+                const videoTypes = [4, 5, 6, 7];
                 sourceType = videoTypes[Math.floor(Math.random() * videoTypes.length)];
             } else if (mode === 'wiki') {
                 sourceType = 1; // Force Wiki (Fallback)
@@ -2109,7 +2109,7 @@
                 const types = [0, 1, 3];
                 sourceType = types[Math.floor(Math.random() * types.length)];
             } else {
-                const types = [0, 1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]; // Random semua
+                const types = [0, 1, 3, 4, 5, 6, 7]; // Random semua (Tanpa Video Wikipedia & Arsip)
                 sourceType = types[Math.floor(Math.random() * types.length)];
             }
             
@@ -2292,7 +2292,14 @@
                         "ocean", "coral reef", "sea life", "underwater", "jellyfish", "shark", "whale", "dolphin", "sea turtle", 
                         "pacific ocean", "atlantic ocean", "waves", "deep sea", "marine biology", "scuba", "reef", "tropical fish", 
                         "manta ray", "octopus", "seahorse", "kelp forest", "plankton", "shipwreck", "arctic ocean", "indian ocean", 
-                        "southern ocean", "barrier reef", "mariana trench"
+                        "southern ocean", "barrier reef", "mariana trench", "sea ice", "ice shelf", "ocean currents", "tides", 
+                        "hydrothermal vent", "abyss", "coast", "shoreline", "estuary", "mangrove", "lagoon", "fjord", "atoll", "archipelago",
+                        "marine life", "aquatic", "sea floor", "benthic", "pelagic", "coastal", "marine ecosystem", "oceanography", 
+                        "sea exploration", "submersible", "rov", "marine sanctuary", "great blue hole", "sargasso sea", "bermuda triangle", 
+                        "gulf stream", "tsunami", "tidal wave", "sea storm", "ocean sunset", "ocean sunrise", "bioluminescence", "red tide", 
+                        "algae bloom", "coral bleaching", "marine pollution", "plastic ocean", "oil spill ocean", "sea birds", "penguin", 
+                        "seal", "walrus", "polar bear swim", "otter", "manatee", "dugong", "orca", "sperm whale", "humpback whale", 
+                        "blue whale", "narwhal", "beluga", "sea lion", "crustacean", "mollusk", "echinoderm", "sponge", "anemone"
                     ];
                     const keyword = keywords[Math.floor(Math.random() * keywords.length)];
                     
@@ -2334,7 +2341,21 @@
                         "galaxy", "nebula", "planet", "sun", "moon", "mars", "jupiter", "saturn", "astronaut", "iss", "spacewalk", 
                         "solar flare", "black hole", "supernova", "milky way", "asteroid", "comet", "constellation", "hubble telescope", 
                         "james webb telescope", "space station", "launch", "rocket", "eclipse", "pluto", "venus", "mercury", "uranus", 
-                        "neptune", "star cluster", "pulsar", "quasar"
+                        "neptune", "star cluster", "pulsar", "quasar", "earth orbit", "satellite view", "deep space", "exoplanet", 
+                        "cosmic dust", "dark matter", "gravity", "spacex", "artemis", "orion", "voyager", "cassini", "juno", 
+                        "perseverance", "curiosity rover", "international space station", "zero gravity", "cosmos", "universe", 
+                        "astronomy", "astrophysics", "stargazing", "telescope view", "observatory", "radio telescope", "spitzer", 
+                        "chandra", "kepler", "tess", "gaia", "rosetta", "new horizons", "dawn spacecraft", "osiris-rex", "hayabusa", 
+                        "parker solar probe", "solar orbiter", "stereo spacecraft", "sdo", "soho", "goes satellite", "landsat", 
+                        "sentinel satellite", "copernicus satellite", "galileo satellite", "gps satellite", "communication satellite", 
+                        "space debris", "space junk", "reentry", "splashdown", "docking", "undocking", "soyuz", "progress spacecraft", 
+                        "dragon capsule", "starliner", "dream chaser", "blue origin", "virgin galactic", "space tourism", "moon landing", 
+                        "apollo", "gemini", "mercury program", "skylab", "mir space station", "salyut", "tiangong", "shenzhou", 
+                        "gaganyaan", "chandrayaan", "mangalyaan", "hope mars mission", "emirates mars mission", "tianwen", 
+                        "change moon mission", "luna moon mission", "viking mars", "mariner", "pioneer", "surveyor", "ranger", 
+                        "magellan", "galileo jupiter", "ulysses", "near shoemaker", "deep impact", "stardust", "genesis", "messenger", 
+                        "lro", "lcross", "grail", "ladee", "maven", "insight", "psyche", "lucy", "dart", "juice mission", 
+                        "europa clipper", "dragonfly titan", "roman space telescope", "euclid", "plato", "ariel", "athena", "lisa", "gwst"
                     ];
                     const keyword = keywords[Math.floor(Math.random() * keywords.length)];
                     
@@ -2379,7 +2400,18 @@
                         "earth from space", "earth view", "blue marble", "atmosphere", "clouds from space", "island from space", 
                         "coastline space", "river delta space", "desert from space", "forest from space", "city lights space", 
                         "glacier melt", "deforestation", "amazon rainforest", "sahara desert", "himalayas", "grand canyon", 
-                        "great barrier reef", "nile river", "andes mountains"
+                        "great barrier reef", "nile river", "andes mountains", "earth timelapse", "night lights", "weather satellite", 
+                        "hurricane from space", "typhoon from space", "volcano from space", "earth horizon", "sunrise from space", 
+                        "sunset from space", "aurora from space", "lightning from space", "earth curvature", "earth observation", 
+                        "remote sensing", "satellite imagery", "aerial photography", "geography", "geology", "topography", "cartography", 
+                        "biosphere", "hydrosphere", "lithosphere", "cryosphere", "climate change", "global warming", "greenhouse effect", 
+                        "carbon cycle", "water cycle", "nitrogen cycle", "ozone layer", "stratosphere", "mesosphere", "thermosphere", 
+                        "exosphere", "ionosphere", "magnetosphere", "van allen belts", "geomagnetic storm", "space weather", "solar wind", 
+                        "coronal mass ejection", "aurora australis", "southern lights", "airglow", "noctilucent clouds", 
+                        "polar mesospheric clouds", "nacreous clouds", "contrails", "ship tracks", "dust storm", "haze", "smoke", 
+                        "volcanic ash", "pyrocumulonimbus", "urban heat island", "light pollution", "agriculture from space", 
+                        "irrigation from space", "mining from space", "urban sprawl", "infrastructure from space", "roads from space", 
+                        "bridges from space", "dams from space", "canals from space", "ports from space", "airports from space"
                     ];
                     const keyword = keywords[Math.floor(Math.random() * keywords.length)];
                     
@@ -2422,7 +2454,18 @@
                         "aurora borealis", "northern lights", "hurricane", "storm", "volcano", "glacier", "iceberg", "lightning", 
                         "tornado", "river", "mountain", "thunderstorm", "blizzard", "sandstorm", "monsoon", "typhoon", "cyclone", 
                         "rainforest", "waterfall", "canyon", "cave", "cliff", "valley", "savanna", "tundra", "wildfire", "flood", 
-                        "drought", "eruption", "lava", "geyser"
+                        "drought", "eruption", "lava", "geyser", "national park", "wilderness", "landscape", "scenery", "sunset", 
+                        "sunrise", "cloud formation", "fog", "mist", "rainbow", "seascape", "desert landscape", "mountain range", 
+                        "forest aerial", "jungle aerial", "river aerial", "ecology", "biodiversity", "conservation", "habitat", 
+                        "ecosystem", "biome", "flora", "fauna", "vegetation", "wildlife", "animal behavior", "migration", "predation", 
+                        "symbiosis", "parasitism", "mutualism", "commensalism", "evolution", "adaptation", "natural selection", 
+                        "extinction", "endangered species", "invasive species", "pollution", "climate", "weather", "meteorology", 
+                        "seasons", "spring", "summer", "autumn", "winter", "solstice", "equinox", "day", "night", "twilight", "dawn", 
+                        "dusk", "cloud types", "cumulus", "stratus", "cirrus", "nimbus", "fog types", "radiation fog", "advection fog", 
+                        "upslope fog", "evaporation fog", "precipitation", "rain", "snow", "hail", "sleet", "graupel", "dew", "frost", 
+                        "ice", "glaciation", "erosion", "weathering", "sedimentation", "deposition", "tectonics", "plate tectonics", 
+                        "earthquake", "seismology", "volcanology", "mineralogy", "petrology", "paleontology", "fossil", "dinosaur", 
+                        "prehistoric life"
                     ];
                     const keyword = keywords[Math.floor(Math.random() * keywords.length)];
                     
@@ -2458,202 +2501,6 @@
                             }
                         }
                     } catch(e) { console.warn("NASA Nature failed", e); }
-                } else if (sourceType === 8) {
-                    // --- SUMBER 9: WILDLIFE (Hewan) ---
-                    // REVISI: Menggunakan Wikimedia Commons agar hasil pencarian hewan lebih akurat & banyak
-                    const keywords = [
-                        "polar bear", "penguin", "eagle", "kingfisher", "wildlife", "lion", "tiger", "elephant", "bear", 
-                        "wolf", "seal", "walrus", "deer", "moose", "owl", "stork", "salmon", "beaver", "otter",
-                        "fox", "cheetah", "leopard", "antelope", "coyote", "mountain lion", "bobcat"
-                    ];
-                    const keyword = keywords[Math.floor(Math.random() * keywords.length)];
-                    
-                    try {
-                        // Search Wikimedia (Filetype Video)
-                        const res = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=filetype:video+${keyword}&gsrlimit=10&prop=imageinfo&iiprop=url|extmetadata|thumburl&iiurlwidth=600&format=json&origin=*`);
-                        const data = await res.json();
-                        
-                        if (data.query && data.query.pages) {
-                            const pages = Object.values(data.query.pages);
-                            const validPages = pages.filter(p => {
-                                if(!p.imageinfo || !p.imageinfo[0]) return false;
-                                const url = p.imageinfo[0].url.toLowerCase();
-                                return url.endsWith('.webm') || url.endsWith('.ogv') || url.endsWith('.mp4');
-                            });
-
-                            if (validPages.length > 0) {
-                                const page = validPages[Math.floor(Math.random() * validPages.length)];
-                                const info = page.imageinfo[0];
-                                const meta = info.extmetadata || {};
-                                
-                                const title = (meta.ObjectName && meta.ObjectName.value) ? meta.ObjectName.value : page.title.replace('File:', '').replace(/\.[^/.]+$/, "");
-                                let desc = (meta.ImageDescription && meta.ImageDescription.value) ? meta.ImageDescription.value : `Video ${keyword} di alam liar.`;
-                                const tempDiv = document.createElement("div"); tempDiv.innerHTML = desc; desc = tempDiv.textContent || "";
-
-                                postData = {
-                                    userName: "NatGeo Wildlife",
-                                    userAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Wildlife",
-                                    location: "Habitat Liar",
-                                    videoFile: info.url,
-                                    thumbnail: info.thumburl || "",
-                                    caption: `<b>${meta.title}</b><br>${meta.description ? meta.description.substring(0, 120) + '...' : 'Kehidupan liar di alam bebas.'}`,
-                                    sourceName: "National Geographic",
-                                    likes: Math.floor(Math.random() * 600) + 250
-                                };
-                            }
-                        }
-                    } catch(e) { console.warn("Wildlife failed", e); }
-                } else if (sourceType === 9) {
-                    // --- SUMBER 10: WIKIMEDIA NATURE (Open Source) ---
-                    // Sumber alternatif selain NASA untuk variasi konten alam
-                    const queries = [
-                        "filetype:video+nature+landscape", "filetype:video+wildlife", "filetype:video+underwater", 
-                        "filetype:video+forest", "filetype:video+jungle", "filetype:video+ocean", "filetype:video+animals",
-                        "filetype:video+birds", "filetype:video+river", "filetype:video+mountain"
-                    ];
-                    const query = queries[Math.floor(Math.random() * queries.length)];
-                    
-                    try {
-                        // Fetch list dengan thumbnail (iiurlwidth=600)
-                        const res = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=${query}&gsrlimit=15&prop=imageinfo&iiprop=url|extmetadata|thumburl&iiurlwidth=600&format=json&origin=*`);
-                        const data = await res.json();
-                        
-                        if (data.query && data.query.pages) {
-                            const pages = Object.values(data.query.pages);
-                            // Filter format video yang didukung browser modern
-                            const validPages = pages.filter(p => {
-                                if(!p.imageinfo || !p.imageinfo[0]) return false;
-                                const url = p.imageinfo[0].url.toLowerCase();
-                                return url.endsWith('.webm') || url.endsWith('.ogv') || url.endsWith('.mp4');
-                            });
-
-                            if (validPages.length > 0) {
-                                const page = validPages[Math.floor(Math.random() * validPages.length)];
-                                const info = page.imageinfo[0];
-                                const meta = info.extmetadata || {};
-                                
-                                // Bersihkan judul dan deskripsi
-                                const title = (meta.ObjectName && meta.ObjectName.value) ? meta.ObjectName.value : page.title.replace('File:', '').replace(/\.[^/.]+$/, "");
-                                let desc = (meta.ImageDescription && meta.ImageDescription.value) ? meta.ImageDescription.value : 'Video dokumentasi alam dari Wikimedia Commons.';
-                                // Hapus tag HTML dari deskripsi
-                                const tempDiv = document.createElement("div");
-                                tempDiv.innerHTML = desc;
-                                desc = tempDiv.textContent || tempDiv.innerText || "";
-                                
-                                postData = {
-                                    userName: "Open Planet",
-                                    userAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Planet",
-                                    location: "Arsip Alam Bebas",
-                                    videoFile: info.url,
-                                    thumbnail: info.thumburl || "", 
-                                    caption: `<b>${title}</b><br>${desc.substring(0, 120)}...`,
-                                    sourceName: "Wikimedia Commons",
-                                    likes: Math.floor(Math.random() * 200) + 50
-                                };
-                            }
-                        }
-                    } catch(e) { console.warn("Wikimedia failed", e); }
-                } else if (sourceType === 10) {
-                    // --- SUMBER 11: INTERNET ARCHIVE (Nature Stock) ---
-                    // Koleksi footage alam berkualitas tinggi (Stock Footage)
-                    try {
-                        // Cari koleksi 'nature_stock_footage' yang biasanya bersih dan bagus
-                        const res = await fetch('https://archive.org/advancedsearch.php?q=collection:(nature_stock_footage)+AND+mediatype:(movies)&fl[]=identifier&fl[]=title&fl[]=description&rows=30&output=json');
-                        const data = await res.json();
-                        const docs = data.response.docs;
-                        
-                        if (docs && docs.length > 0) {
-                            const doc = docs[Math.floor(Math.random() * docs.length)];
-                            
-                            // Fetch metadata untuk mencari file MP4
-                            const metaRes = await fetch(`https://archive.org/metadata/${doc.identifier}`);
-                            const meta = await metaRes.json();
-                            
-                            // Cari file MP4 (Prioritas h.264 atau MPEG4)
-                            const mp4File = (meta && meta.files) ? meta.files.find(f => f.name && f.name.toLowerCase().endsWith('.mp4') && f.format !== '512Kb MPEG4') : null;
-                            
-                            if (mp4File) {
-                                const videoUrl = `https://archive.org/download/${doc.identifier}/${mp4File.name}`;
-                                const thumb = `https://archive.org/services/img/${doc.identifier}`;
-                                
-                                postData = {
-                                    userName: "Nature Stock",
-                                    userAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Stock",
-                                    location: "Arsip Digital",
-                                    videoFile: videoUrl,
-                                    thumbnail: thumb,
-                                    caption: `<b>${doc.title}</b><br>${doc.description ? doc.description.substring(0, 100) + '...' : 'Footage alam berkualitas tinggi.'}`,
-                                    sourceName: "Internet Archive",
-                                    likes: Math.floor(Math.random() * 150) + 50
-                                };
-                            }
-                        }
-                    } catch(e) { console.warn("Archive.org failed", e); }
-                } else if (sourceType === 11) {
-                    // --- SUMBER 12: SKY EYE (Drone View) ---
-                    const queries = ["filetype:video+drone+nature", "filetype:video+aerial+landscape", "filetype:video+bird's+eye+view+nature"];
-                    const query = queries[Math.floor(Math.random() * queries.length)];
-                    
-                    try {
-                        const res = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=${query}&gsrlimit=15&prop=imageinfo&iiprop=url|extmetadata|thumburl&iiurlwidth=600&format=json&origin=*`);
-                        const data = await res.json();
-                        
-                        if (data.query && data.query.pages) {
-                            const pages = Object.values(data.query.pages);
-                            const validPages = pages.filter(p => p.imageinfo && (p.imageinfo[0].url.endsWith('.webm') || p.imageinfo[0].url.endsWith('.mp4')));
-
-                            if (validPages.length > 0) {
-                                const page = validPages[Math.floor(Math.random() * validPages.length)];
-                                const info = page.imageinfo[0];
-                                const title = page.title.replace('File:', '').replace(/\.[^/.]+$/, "");
-                                
-                                postData = {
-                                    userName: "Sky Eye",
-                                    userAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sky",
-                                    location: "Pemandangan Udara",
-                                    videoFile: info.url,
-                                    thumbnail: info.thumburl || "", 
-                                    caption: `<b>${title}</b><br>Pemandangan alam diambil menggunakan drone.`,
-                                    sourceName: "Wikimedia Drone",
-                                    likes: Math.floor(Math.random() * 400) + 100
-                                };
-                            }
-                        }
-                    } catch(e) { console.warn("Drone video failed", e); }
-                } else if (sourceType === 12) {
-                    // --- SUMBER 13: FISHING ACTION (Aksi Mancing) ---
-                    const queries = ["filetype:video+fishing", "filetype:video+fisherman", "filetype:video+angling"];
-                    const query = queries[Math.floor(Math.random() * queries.length)];
-                    
-                    try {
-                        const res = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=${query}&gsrlimit=15&prop=imageinfo&iiprop=url|extmetadata|thumburl&iiurlwidth=600&format=json&origin=*`);
-                        const data = await res.json();
-                        
-                        if (data.query && data.query.pages) {
-                            const pages = Object.values(data.query.pages);
-                            const validPages = pages.filter(p => p.imageinfo && (p.imageinfo[0].url.endsWith('.webm') || p.imageinfo[0].url.endsWith('.mp4')));
-
-                            if (validPages.length > 0) {
-                                const page = validPages[Math.floor(Math.random() * validPages.length)];
-                                const info = page.imageinfo[0];
-                                const meta = info.extmetadata || {};
-                                const title = (meta.ObjectName && meta.ObjectName.value) ? meta.ObjectName.value : page.title.replace('File:', '').replace(/\.[^/.]+$/, "");
-                                let desc = (meta.ImageDescription && meta.ImageDescription.value) ? meta.ImageDescription.value : 'Aksi memancing.';
-                                const tempDiv = document.createElement("div"); tempDiv.innerHTML = desc; desc = tempDiv.textContent || "";
-
-                                postData = {
-                                    userName: "Galeri Pemancing",
-                                    userAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Fisherman",
-                                    location: "Spot Mancing",
-                                    videoFile: info.url,
-                                    thumbnail: info.thumburl || "", 
-                                    caption: `<b>${title}</b><br>${desc.substring(0, 100)}...`,
-                                    sourceName: "Wikimedia Fishing",
-                                    likes: Math.floor(Math.random() * 300) + 150
-                                };
-                            }
-                        }
-                    } catch(e) { console.warn("Fishing video failed", e); }
                 }
 
                 // 2. SIMPAN KE CACHE & RENDER
@@ -2690,6 +2537,7 @@
 
             if (video.paused) {
                 if(spinner) spinner.classList.remove('hidden'); // Show spinner while loading
+                video.muted = false; // Pastikan suara menyala saat play
                 const playPromise = video.play();
                 if (playPromise !== undefined) {
                     playPromise
@@ -2751,15 +2599,11 @@
                         `<div class="aspect-[4/5] w-full"><iframe src="${d.videoUrl}" class="w-full h-full border-0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>` 
                         : (d.videoFile ? 
                             `<div class="aspect-[4/5] w-full flex items-center justify-center bg-black relative cursor-pointer overflow-hidden" onclick="toggleVideo(this)">
-                                <video src="${d.videoFile}" poster="${d.thumbnail || ''}" class="w-full h-full object-contain" playsinline loop muted preload="metadata" onwaiting="this.parentElement.querySelector('.loading-spinner')?.classList.remove('hidden')" onplaying="this.parentElement.querySelector('.loading-spinner')?.classList.add('hidden')" onerror="refreshVideo('${container.id}')"></video>
+                                <video src="${d.videoFile}" poster="${d.thumbnail || ''}" class="w-full h-full object-contain" playsinline loop preload="metadata" onwaiting="this.parentElement.querySelector('.loading-spinner')?.classList.remove('hidden')" onplaying="this.parentElement.querySelector('.loading-spinner')?.classList.add('hidden')" onerror="refreshVideo('${container.id}')"></video>
                                 <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
                                     <div class="play-icon bg-black/40 rounded-full p-4 backdrop-blur-sm transition-all duration-300"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
                                     <div class="loading-spinner hidden absolute"><i data-lucide="loader" class="w-10 h-10 text-white animate-spin"></i></div>
                                 </div>
-                                <!-- NEW: Mute Button -->
-                                <button onclick="event.stopPropagation(); toggleMute(this)" class="absolute top-3 left-3 z-20 bg-black/40 hover:bg-black/60 text-white p-2 rounded-full backdrop-blur-md transition-all border border-white/10">
-                                    <i data-lucide="volume-x" class="w-5 h-5"></i>
-                                </button>
                                 <button onclick="event.stopPropagation(); refreshVideo('${container.id}')" class="refresh-btn absolute top-3 right-3 z-20 bg-black/40 hover:bg-black/60 text-white p-2 rounded-full backdrop-blur-md transition-all border border-white/10">
                                     <i data-lucide="refresh-cw" class="w-5 h-5"></i>
                                 </button>
