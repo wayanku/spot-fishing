@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'fishing-spot-v05-auto-update'; // Naikkan versi untuk memicu update ini
+const CACHE_NAME = 'fishing-spot-v90-video-fix-2'; // Naikkan versi untuk memicu update ini
 const ASSETS = [
     './',
     './index.html',
@@ -66,7 +66,9 @@ self.addEventListener('fetch', (event) => {
                                     !url.hostname.includes('open-meteo.com') &&
                                     !url.hostname.includes('google.com') &&        // Tile Peta (Kecuali offline)
                                     !url.hostname.includes('arcgisonline.com') &&  // Tile Peta (Kecuali offline)
-                                    !url.hostname.includes('ipapi.co');
+                                    !url.hostname.includes('ipapi.co') && 
+                                    !url.hostname.includes('nasa.gov') &&
+                                    !url.pathname.endsWith('.mp4'); // FIX: Jangan cache file video MP4
 
                 if (shouldCache) {
                     const responseToCache = response.clone();
