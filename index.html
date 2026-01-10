@@ -5,6 +5,7 @@
 
 
 
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -946,8 +947,8 @@
 
         <!-- Navigation Overlay (Invisible) -->
         <div class="absolute inset-0 z-10 flex">
-            <div class="w-1/3 h-full" onmousedown="handleStoryTouch('start')" onmouseup="handleStoryTouch('end', 'prev')" ontouchstart="handleStoryTouch('start')" ontouchend="handleStoryTouch('end', 'prev')"></div>
-            <div class="w-2/3 h-full" onmousedown="handleStoryTouch('start')" onmouseup="handleStoryTouch('end', 'next')" ontouchstart="handleStoryTouch('start')" ontouchend="handleStoryTouch('end', 'next')"></div>
+            <div class="w-1/3 h-full" onmousedown="handleStoryTouch('start', null, event)" onmouseup="handleStoryTouch('end', 'prev', event)" ontouchstart="handleStoryTouch('start', null, event)" ontouchend="handleStoryTouch('end', 'prev', event)"></div>
+            <div class="w-2/3 h-full" onmousedown="handleStoryTouch('start', null, event)" onmouseup="handleStoryTouch('end', 'next', event)" ontouchstart="handleStoryTouch('start', null, event)" ontouchend="handleStoryTouch('end', 'next', event)"></div>
         </div>
     </div>
 
@@ -1233,13 +1234,17 @@
                     </div>
 
                         <!-- Media -->
-                        <div class="w-full bg-neutral-900 relative group overflow-hidden">
+                        <div class="w-full bg-neutral-900 relative group overflow-hidden" ondblclick="handleDoubleTapLike('${postId}', this)">
                             ${embedUrl ? 
                                 `<div class="aspect-[4/5] w-full"><iframe src="${embedUrl}" class="w-full h-full border-0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>` 
                                 : 
                                 `<img src="${d.image}" class="w-full h-auto max-h-[600px] object-cover min-h-[300px]" loading="lazy">`
                             }
                             ${!embedUrl && weight ? `<div class="absolute bottom-3 right-3 bg-black/70 backdrop-blur-md px-2 py-1 rounded-md text-xs font-bold text-white flex items-center gap-1"><i data-lucide="fish" class="w-3 h-3 text-emerald-400"></i> ${weight}</div>` : ''}
+                            
+                            <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+                                <i data-lucide="heart" class="w-24 h-24 text-white fill-white opacity-0 transform scale-0 transition-all duration-300 double-tap-heart drop-shadow-2xl"></i>
+                            </div>
                         </div>
 
                         <!-- Actions & Caption -->
@@ -2591,7 +2596,7 @@
             </div>
 
                 <!-- Media (Video or Image) -->
-                <div class="w-full bg-neutral-900 relative group overflow-hidden">
+                <div class="w-full bg-neutral-900 relative group overflow-hidden" ondblclick="handleDoubleTapLike('${container.id}', this)">
                     ${d.videoUrl ? 
                         `<div class="aspect-[4/5] w-full"><iframe src="${d.videoUrl}" class="w-full h-full border-0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>` 
                         : (d.videoFile ? 
@@ -2615,13 +2620,17 @@
                         )
                     }
                     <div class="absolute bottom-3 right-3 bg-black/70 backdrop-blur-md px-2 py-1 rounded-md text-xs font-bold text-white flex items-center gap-1"><i data-lucide="globe" class="w-3 h-3 text-blue-400"></i> ${d.sourceName}</div>
+                    
+                    <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+                        <i data-lucide="heart" class="w-24 h-24 text-white fill-white opacity-0 transform scale-0 transition-all duration-300 double-tap-heart drop-shadow-2xl"></i>
+                    </div>
                 </div>
 
                 <!-- Actions & Caption -->
                 <div class="px-3 pt-3">
                     <div class="flex items-center justify-between mb-2">
                         <div class="flex items-center gap-4">
-                            <button class="text-white hover:text-white/70 transition-colors"><i data-lucide="heart" class="w-6 h-6"></i></button>
+                            <button onclick="handleLike('${container.id}', this)" class="text-white hover:text-white/70 transition-colors"><i data-lucide="heart" class="w-6 h-6 ${isPostLiked(container.id) ? 'fill-red-500 text-red-500' : ''}"></i></button>
                             <button class="text-white hover:text-white/70 transition-colors"><i data-lucide="message-circle" class="w-6 h-6 -rotate-90"></i></button>
                             <button class="text-white hover:text-white/70 transition-colors"><i data-lucide="send" class="w-6 h-6 -rotate-45 -mt-1"></i></button>
                         </div>
@@ -2704,8 +2713,20 @@
             }, step);
         }
 
+        let lastStoryInteraction = 0;
+
         // Handle Touch/Click Logic (Pause & Navigation)
-        function handleStoryTouch(action, direction) {
+        function handleStoryTouch(action, direction, event) {
+            // Prevent ghost clicks from touch events (Double firing fix)
+            if (event) {
+                if (event.type.startsWith('touch')) {
+                    lastStoryInteraction = Date.now();
+                } else if (event.type.startsWith('mouse') && (Date.now() - lastStoryInteraction < 500)) {
+                    // Ignore mouse event if touch happened recently
+                    return;
+                }
+            }
+
             if (action === 'start') {
                 isStoryPaused = true;
                 storyTouchStartTime = Date.now();
@@ -2788,6 +2809,100 @@
                 body: JSON.stringify({ action: 'like', id: postId })
             }).catch(err => console.error("Gagal kirim like", err));
         }
+
+        // 2.5 Handle Double Tap Like (Instagram Style)
+        window.handleDoubleTapLike = function(postId, container) {
+            // 1. Trigger Animation (Big Heart Center)
+            const heartIcon = container.querySelector('.double-tap-heart');
+            if (heartIcon) {
+                if (heartIcon.dataset.timeoutId) clearTimeout(parseInt(heartIcon.dataset.timeoutId));
+                
+                // Reset animation state
+                heartIcon.classList.remove('transition-all', 'duration-300');
+                heartIcon.classList.add('opacity-0', 'scale-0');
+                heartIcon.classList.remove('opacity-100', 'scale-110');
+                void heartIcon.offsetWidth; // Force reflow
+                
+                // Animate In
+                heartIcon.classList.add('transition-all', 'duration-300');
+                heartIcon.classList.remove('opacity-0', 'scale-0');
+                heartIcon.classList.add('opacity-100', 'scale-110');
+                
+                const id = setTimeout(() => {
+                    heartIcon.classList.remove('opacity-100', 'scale-110');
+                    heartIcon.classList.add('opacity-0', 'scale-0');
+                }, 800);
+                heartIcon.dataset.timeoutId = id;
+            }
+
+            // 2. Flying Heart Animation (New Feature)
+            const postDiv = container.parentElement;
+            let likeBtn = postDiv ? postDiv.querySelector(`button[onclick*="handleLike('${postId}'"]`) : null;
+            
+            // Fallback: Try finding any button with a heart icon if specific one not found
+            if (!likeBtn && postDiv) {
+                const heartIcon = postDiv.querySelector('button i[data-lucide="heart"]');
+                if (heartIcon) likeBtn = heartIcon.closest('button');
+            }
+            
+            if (likeBtn) {
+                const rectContainer = container.getBoundingClientRect();
+                const rectTarget = likeBtn.getBoundingClientRect();
+                
+                // Create flying element
+                const flyer = document.createElement('div');
+                flyer.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="#ef4444" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>';
+                flyer.className = 'fixed z-[9999] pointer-events-none transition-all duration-700 ease-in-out';
+                
+                const size = 80; 
+                flyer.style.width = `${size}px`;
+                flyer.style.height = `${size}px`;
+                
+                const startLeft = rectContainer.left + (rectContainer.width / 2) - (size / 2);
+                const startTop = rectContainer.top + (rectContainer.height / 2) - (size / 2);
+                
+                flyer.style.left = `${startLeft}px`;
+                flyer.style.top = `${startTop}px`;
+                flyer.style.transform = 'scale(0)';
+                flyer.style.opacity = '0';
+                
+                document.body.appendChild(flyer);
+
+                requestAnimationFrame(() => {
+                    flyer.style.transform = 'scale(1)';
+                    flyer.style.opacity = '1';
+                    
+                    setTimeout(() => {
+                        const targetLeft = rectTarget.left + (rectTarget.width / 2) - (size / 2);
+                        const targetTop = rectTarget.top + (rectTarget.height / 2) - (size / 2);
+                        
+                        flyer.style.left = `${targetLeft}px`;
+                        flyer.style.top = `${targetTop}px`;
+                        flyer.style.transform = 'scale(0.2)';
+                        flyer.style.opacity = '0.5';
+                        
+                        setTimeout(() => {
+                            flyer.remove();
+                            const btnIcon = likeBtn.querySelector('svg');
+                            if(btnIcon) {
+                                btnIcon.classList.add('animate-shake');
+                                setTimeout(() => btnIcon.classList.remove('animate-shake'), 500);
+                            }
+                        }, 700);
+                    }, 100);
+                });
+            }
+
+            // 3. Logic Like (Only if not liked yet)
+            if (!isPostLiked(postId)) {
+                if (likeBtn) {
+                    const onclickAttr = likeBtn.getAttribute('onclick');
+                    if (onclickAttr && onclickAttr.includes('handleLike')) {
+                        handleLike(postId, likeBtn);
+                    } else likeBtn.click();
+                }
+            }
+        };
 
         // 3. Handle Share
         function handleShare(title, text, url) {
