@@ -3323,6 +3323,8 @@
         // --- REELS FEATURE LOGIC ---
         let reelsInitialized = false;
         let reelsObserver = null;
+        let shownReelIds = new Set(); // Melacak video yang sudah ditampilkan agar tidak duplikat
+        let isLoadingReels = false; // Lock untuk mencegah loading ganda (L)
 
         function initReels() {
             if (reelsInitialized) return;
@@ -3362,6 +3364,9 @@
         }
 
         async function loadReelsBatch() {
+            if (isLoadingReels) return;
+            isLoadingReels = true;
+
             const container = document.getElementById('reels-container');
             // Tambah 3 placeholder loading
             for (let i = 0; i < 3; i++) {
@@ -3371,19 +3376,27 @@
                 container.appendChild(el);
                 fetchReelContent(el);
             }
+            
+            // Reset lock setelah delay (Loading logic)
+            setTimeout(() => { isLoadingReels = false; }, 1500);
         }
 
         async function fetchReelContent(container) {
             // --- MODIFIED: Randomized Provider Fetch (Pixabay / Pexels / NASA) ---
-            const queries = ["fishing", "ocean", "underwater", "nature", "sea life", "fisherman"];
+            // Update: Menambahkan variasi alat pancing & ikan sesuai request
+            const queries = [
+                "fishing reel", "fishing rod", "fishing lure", "fishing bait", "fishing gear", 
+                "fish underwater", "big fish", "fishing boat", "fisherman", "fishing", 
+                "ocean fishing", "tackle box", "coral reef fish", "deep sea fishing"
+            ];
             const query = queries[Math.floor(Math.random() * queries.length)];
             
             // Helper: HTML Tombol Samping (Agar tidak duplikat kode)
             const getSideActions = (likes, comments) => `
                 <div class="absolute right-2 bottom-8 flex flex-col gap-3 items-center z-20 pb-4">
-                    <button class="flex flex-col items-center gap-1 group">
+                    <button class="flex flex-col items-center gap-1 group" onclick="const i=this.querySelector('i'); i.classList.toggle('fill-red-500'); i.classList.toggle('text-red-500'); i.classList.toggle('fill-white/10');">
                         <div class="p-2.5 bg-black/40 backdrop-blur-md rounded-full group-active:scale-90 transition-all border border-white/10 hover:bg-black/60">
-                            <i data-lucide="heart" class="w-6 h-6 text-white fill-white/10 group-hover:fill-red-500 group-hover:text-red-500 transition-colors"></i>
+                            <i data-lucide="heart" class="w-6 h-6 text-white fill-white/10 transition-colors"></i>
                         </div>
                         <span class="text-[10px] font-bold text-white drop-shadow-md">${likes}</span>
                     </button>
@@ -3404,19 +3417,16 @@
                             <i data-lucide="volume-2" class="w-5 h-5 text-white"></i>
                         </div>
                     </button>
-                    <button class="flex flex-col items-center gap-1 group mt-2" onclick="window.open('https://www.tiktok.com/search?q=fishing+tips', '_blank')">
-                        <div class="p-2.5 bg-gradient-to-br from-black/60 to-black/40 backdrop-blur-md rounded-full group-active:scale-90 transition-all border border-white/20 hover:bg-black/60 shadow-lg">
-                            <i data-lucide="search" class="w-5 h-5 text-white"></i>
-                        </div>
-                        <span class="text-[9px] font-bold text-white drop-shadow-md">TikTok</span>
-                    </button>
                 </div>`;
 
             // Helper: Render Video ke Container
-            const renderVideo = (url, title, user, likes, comments, sourceLabel = 'NASA Archive') => {
+            const renderVideo = (url, title, user, likes, comments, sourceLabel = 'NASA Archive', thumbnail = '') => {
                 const isCreator = sourceLabel !== 'NASA Archive';
                 container.innerHTML = `
-                    <video src="${url}" class="w-full h-full object-cover" loop playsinline></video>
+                    <div class="absolute inset-0 flex items-center justify-center bg-black z-0">
+                        <div class="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                    </div>
+                    <video src="${url}" poster="${thumbnail}" class="w-full h-full object-cover relative z-10" loop playsinline preload="metadata" onloadeddata="this.previousElementSibling.classList.add('hidden')"></video>
                     <div class="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/90 pointer-events-none"></div>
                     <div class="absolute bottom-0 left-0 w-full p-4 pb-6 z-10 pointer-events-none bg-gradient-to-t from-black/80 to-transparent">
                         <div class="flex items-center gap-2 mb-2">
@@ -3451,8 +3461,16 @@
                 if (data.error) throw new Error("GAS Pixabay Error: " + data.error);
                 
                 if (data && data.hits && data.hits.length > 0) {
-                    const video = data.hits[Math.floor(Math.random() * data.hits.length)];
-                    let videoUrl = video.videos.medium.url || video.videos.large.url || video.videos.small.url;
+                    // Filter video yang sudah tampil
+                    let available = data.hits.filter(h => !shownReelIds.has(h.id));
+                    if (available.length === 0) available = data.hits; // Fallback jika habis
+
+                    const video = available[Math.floor(Math.random() * available.length)];
+                    shownReelIds.add(video.id);
+
+                    // Prioritaskan video kecil/sedang agar loading cepat
+                    let videoUrl = video.videos.small.url || video.videos.medium.url || video.videos.large.url;
+                    let thumb = video.picture_id ? `https://i.vimeocdn.com/video/${video.picture_id}_640x360.jpg` : '';
                     if (videoUrl) {
                         return {
                             url: videoUrl,
@@ -3460,7 +3478,8 @@
                             user: video.user,
                             likes: video.likes || Math.floor(Math.random() * 500),
                             comments: video.comments || Math.floor(Math.random() * 50),
-                            sourceLabel: 'Pixabay Creator'
+                            sourceLabel: 'Pixabay Creator',
+                            thumbnail: thumb
                         };
                     }
                 }
@@ -3493,19 +3512,27 @@
             };
 
             const fetchNasa = async () => {
-                const nasaKeywords = ["ocean", "coral reef", "sea", "water", "nature"];
+                const nasaKeywords = ["ocean life", "coral reef", "sea underwater", "marine biology", "fish"];
                 const nasaQuery = nasaKeywords[Math.floor(Math.random() * nasaKeywords.length)];
                 const nasaRes = await fetch(`https://images-api.nasa.gov/search?q=${nasaQuery}&media_type=video`);
                 const nasaData = await nasaRes.json();
                 
                 if (nasaData.collection && nasaData.collection.items && nasaData.collection.items.length > 0) {
-                    const item = nasaData.collection.items[Math.floor(Math.random() * nasaData.collection.items.length)];
+                    let items = nasaData.collection.items;
+                    let available = items.filter(i => i.data && i.data[0] && !shownReelIds.has(i.data[0].nasa_id));
+                    if (available.length === 0) available = items;
+
+                    const item = available[Math.floor(Math.random() * available.length)];
+                    shownReelIds.add(item.data[0].nasa_id);
+
                     const meta = item.data[0];
                     const collectionUrl = item.href.replace("http:", "https:");
                     
                     const videoRes = await fetch(collectionUrl);
                     const videoFiles = await videoRes.json();
                     const mp4 = videoFiles.find(f => f.endsWith('~medium.mp4')) || videoFiles.find(f => f.endsWith('.mp4'));
+                    
+                    const thumb = item.links ? item.links.find(l => l.rel === 'preview')?.href : '';
                     
                     if (mp4) {
                         return {
@@ -3514,7 +3541,8 @@
                             user: "nasa_official",
                             likes: Math.floor(Math.random() * 900) + 100,
                             comments: Math.floor(Math.random() * 100) + 10,
-                            sourceLabel: 'NASA Archive'
+                            sourceLabel: 'NASA Archive',
+                            thumbnail: thumb
                         };
                     }
                 }
@@ -3535,7 +3563,7 @@
                 try {
                     const result = await provider();
                     if (result) {
-                        renderVideo(result.url, result.title, result.user, result.likes, result.comments, result.sourceLabel);
+                        renderVideo(result.url, result.title, result.user, result.likes, result.comments, result.sourceLabel, result.thumbnail);
                         return; // Sukses, keluar dari fungsi
                     }
                 } catch (e) {
