@@ -3245,6 +3245,12 @@
             const weatherView = document.getElementById('view-weather');
             const isWeatherActive = weatherView && weatherView.classList.contains('active');
 
+            // --- NEW: Catat waktu saat meninggalkan Home ---
+            const homeView = document.getElementById('view-home');
+            if (homeView && homeView.classList.contains('active') && pageId !== 'home') {
+                window.lastHomeLeaveTime = Date.now();
+            }
+
             // Sembunyikan semua halaman
             document.querySelectorAll('.view-section').forEach(el => { //
                 el.classList.remove('active');
@@ -3268,7 +3274,13 @@
 
                 // --- FIX: Refresh Data Home saat Navigasi ---
                 if(pageId === 'home') {
-                    if(typeof loadHomeFeed === 'function') loadHomeFeed();
+                    // Logika 2 Menit: Hanya refresh jika sudah lewat 2 menit (120000 ms) sejak keluar
+                    const now = Date.now();
+                    const lastLeave = window.lastHomeLeaveTime || 0;
+                    
+                    if (lastLeave === 0 || (now - lastLeave > 120000)) {
+                        if(typeof loadHomeFeed === 'function') loadHomeFeed();
+                    }
                     if(typeof loadHomeWidgetData === 'function') loadHomeWidgetData();
                 }
                 
@@ -3378,6 +3390,111 @@
                     loadReelsBatch();
                 }
             });
+        }
+
+        // --- NEW: Helper to create Reel Element from Data Object ---
+        function createReelFromData(data) {
+            const container = document.createElement('div');
+            container.className = "w-full h-full snap-start relative bg-black flex items-center justify-center border-b border-white/10 shrink-0";
+            
+            const url = data.videoFile || data.url;
+            const title = data.caption || data.title || '';
+            const user = data.userName || data.user || 'User';
+            const likes = data.likes || 0;
+            const comments = data.comments || 0;
+            const sourceLabel = data.sourceName || data.sourceLabel || 'Reel';
+            const thumbnail = data.thumbnail || '';
+            const userAvatar = data.userAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user}`;
+
+            container.innerHTML = `
+                <div class="absolute inset-0 flex items-center justify-center bg-black z-0">
+                    <div class="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                </div>
+                <video src="${url}" poster="${thumbnail}" class="w-full h-full object-cover relative z-10" loop playsinline preload="auto" onloadeddata="this.previousElementSibling.classList.add('hidden')" autoplay></video>
+                <div class="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/90 pointer-events-none"></div>
+                <div class="absolute bottom-0 left-0 w-full p-4 pb-6 z-10 pointer-events-none bg-gradient-to-t from-black/80 to-transparent">
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-cyan-400 p-[1.5px]">
+                            <div class="w-full h-full rounded-full bg-black flex items-center justify-center overflow-hidden">
+                                <img src="${userAvatar}" class="w-full h-full object-cover">
+                            </div>
+                        </div>
+                        <div class="flex flex-col">
+                            <p class="text-white font-bold text-sm drop-shadow-md leading-none">@${user.replace(/\s+/g, '')}</p>
+                            <p class="text-[10px] text-slate-300 leading-none mt-0.5">${sourceLabel}</p>
+                        </div>
+                        <button class="ml-2 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold text-white border border-white/10 pointer-events-auto hover:bg-white/30 transition-colors">Follow</button>
+                    </div>
+                    <p class="text-white text-sm leading-snug drop-shadow-md font-medium line-clamp-3 pr-16 opacity-90">${title}</p>
+                    <div class="flex items-center gap-2 mt-3 text-xs text-white/70">
+                        <span class="flex items-center gap-1"><i data-lucide="music" class="w-3 h-3"></i> Original Sound - Fishing Spot</span>
+                    </div>
+                </div>
+                <div class="absolute right-2 bottom-8 flex flex-col gap-3 items-center z-20 pb-4">
+                    <button class="flex flex-col items-center gap-1 group" onclick="const i=this.querySelector('i'); i.classList.toggle('fill-red-500'); i.classList.toggle('text-red-500'); i.classList.toggle('fill-white/10');">
+                        <div class="p-2.5 bg-black/40 backdrop-blur-md rounded-full group-active:scale-90 transition-all border border-white/10 hover:bg-black/60">
+                            <i data-lucide="heart" class="w-6 h-6 text-white fill-white/10 transition-colors"></i>
+                        </div>
+                        <span class="text-[10px] font-bold text-white drop-shadow-md">${likes}</span>
+                    </button>
+                    <button class="flex flex-col items-center gap-1 group">
+                        <div class="p-2.5 bg-black/40 backdrop-blur-md rounded-full group-active:scale-90 transition-all border border-white/10 hover:bg-black/60">
+                            <i data-lucide="message-circle" class="w-6 h-6 text-white fill-white/10"></i>
+                        </div>
+                        <span class="text-[10px] font-bold text-white drop-shadow-md">${comments}</span>
+                    </button>
+                    <button class="flex flex-col items-center gap-1 group">
+                        <div class="p-2.5 bg-black/40 backdrop-blur-md rounded-full group-active:scale-90 transition-all border border-white/10 hover:bg-black/60">
+                            <i data-lucide="share-2" class="w-6 h-6 text-white"></i>
+                        </div>
+                        <span class="text-[10px] font-bold text-white drop-shadow-md">Share</span>
+                    </button>
+                    <button class="flex flex-col items-center gap-1 group mt-2" onclick="const v=this.closest('.relative').querySelector('video'); v.muted=!v.muted; this.querySelector('i').setAttribute('data-lucide', v.muted?'volume-x':'volume-2'); lucide.createIcons();">
+                        <div class="p-2.5 bg-black/40 backdrop-blur-md rounded-full group-active:scale-90 transition-all border border-white/10 hover:bg-black/60">
+                            <i data-lucide="volume-2" class="w-5 h-5 text-white"></i>
+                        </div>
+                    </button>
+                </div>`;
+            
+            if(reelsObserver) reelsObserver.observe(container);
+            const v = container.querySelector('video');
+            v.muted = false; // Unmute saat masuk mode Reels
+            container.onclick = (e) => { if(!e.target.closest('button')) v.paused ? v.play() : v.pause(); };
+            return container;
+        }
+
+        function openReelWithVideo(data, startTime = 0, isMuted = false) {
+            navigateTo('reels');
+            const container = document.getElementById('reels-container');
+            if(!container) return;
+            
+            container.innerHTML = ''; // Bersihkan reels lama
+            
+            // Tambahkan video yang diklik sebagai yang pertama
+            const reelEl = createReelFromData(data);
+            
+            // --- FIX: Sinkronisasi Status Video (Lanjut Durasi & Suara) ---
+            const v = reelEl.querySelector('video');
+            if(v) {
+                v.currentTime = startTime; // Lanjutkan dari detik terakhir
+                v.muted = isMuted; // Ikuti status mute dari feed
+                // Update ikon volume jika muted
+                if(isMuted) {
+                    const volIcon = reelEl.querySelector('i[data-lucide="volume-2"]');
+                    if(volIcon) volIcon.setAttribute('data-lucide', 'volume-x');
+                }
+            }
+            container.appendChild(reelEl);
+            
+            // Inisialisasi sistem reels jika belum (Observer dll)
+            if (!reelsInitialized) {
+                initReels(); 
+            } else {
+                // Jika sudah init, load batch berikutnya agar bisa di-scroll
+                loadReelsBatch();
+            }
+            
+            if(typeof lucide !== 'undefined') lucide.createIcons();
         }
 
         async function loadReelsBatch() {
