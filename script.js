@@ -223,7 +223,7 @@
         setTimeout(() => changeLanguage(localStorage.getItem('appLang') || 'id'), 100);
 
         // --- CONFIGURATION ---
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyuRtzzICS1qoBxWKdOJpHeqWCUN6Wt04xAIi_sYQHd0wSxjc89eumDWAYYcKPrT8jV/exec"; 
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwmGjR-UmBDARNmEcLQg44Es-bAhF3VoLybSPJLfupflR1OxC1doIMXamf_XGUh8pHt/exec"; 
         const IMGBB_API_KEY = "7e6f3ce63649d305ccaceea00c28266d"; // Daftar gratis di api.imgbb.com
 
         // --- AI SETUP (Web Worker & Lazy Loading) ---
