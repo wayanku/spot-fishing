@@ -72,6 +72,9 @@
         #view-weather {
             background: transparent; /* Transparent to show canvas */
         }
+        #view-reels {
+            background: #000000;
+        }
         
         /* Hide Scrollbar for Chrome/Safari/Webkit */
         .view-section::-webkit-scrollbar { display: none; }
@@ -316,6 +319,13 @@
             </div>
         </div>
         
+        <!-- === HALAMAN 5: REELS (New Feature) === -->
+        <div id="view-reels" class="view-section">
+            <div id="reels-container" class="h-full w-full overflow-y-scroll snap-y snap-mandatory no-scrollbar scroll-smooth">
+                <!-- Video Reels akan dimuat di sini oleh script.js -->
+            </div>
+        </div>
+
         <!-- === HALAMAN 4: MENU / SETTINGS === -->
         <div id="view-settings" class="view-section">
             <div class="p-6 pt-10 max-w-2xl mx-auto">
@@ -348,9 +358,9 @@
                 <i data-lucide="cloud-sun" class="w-6 h-6"></i>
                 <span class="text-[10px] font-medium">Cuaca</span>
             </button>
-            <button onclick="navigateTo('settings')" class="nav-btn p-2 text-slate-400 hover:text-white flex flex-col items-center gap-1 transition-colors" id="nav-settings">
-                <i data-lucide="menu" class="w-6 h-6"></i>
-                <span class="text-[10px] font-medium">Menu</span>
+            <button onclick="navigateTo('reels')" class="nav-btn p-2 text-slate-400 hover:text-white flex flex-col items-center gap-1 transition-colors" id="nav-reels">
+                <i data-lucide="film" class="w-6 h-6"></i>
+                <span class="text-[10px] font-medium">Reels</span>
             </button>
         </div>
     </div>
