@@ -2034,8 +2034,8 @@
             // Tentukan tipe konten berdasarkan mode
             let sourceType;
             if (mode === 'video') {
-                // Random antara Kategori NASA (4, 5, 6, 7)
-                const videoTypes = [4, 5, 6, 7];
+                // Random antara Kategori NASA & Alam (4, 5, 6, 7, 8)
+                const videoTypes = [4, 5, 6, 7, 8];
                 sourceType = videoTypes[Math.floor(Math.random() * videoTypes.length)];
             } else if (mode === 'wiki') {
                 sourceType = 1; // Force Wiki (Fallback)
@@ -2044,7 +2044,7 @@
                 const types = [0, 1, 3];
                 sourceType = types[Math.floor(Math.random() * types.length)];
             } else {
-                const types = [0, 1, 3, 4, 5, 6, 7]; // Random semua
+                const types = [0, 1, 3, 4, 5, 6, 7, 8]; // Random semua
                 sourceType = types[Math.floor(Math.random() * types.length)];
             }
             
@@ -2224,7 +2224,10 @@
                     // --- SUMBER 5: NASA OCEAN (Laut & Air) ---
                     // Menggantikan Wikimedia yang kurang bagus
                     const keywords = [
-                        "ocean", "coral reef", "sea life", "underwater", "jellyfish", "shark", "whale", "dolphin", "sea turtle", "pacific ocean", "atlantic ocean", "waves"
+                        "ocean", "coral reef", "sea life", "underwater", "jellyfish", "shark", "whale", "dolphin", "sea turtle", 
+                        "pacific ocean", "atlantic ocean", "waves", "deep sea", "marine biology", "scuba", "reef", "tropical fish", 
+                        "manta ray", "octopus", "seahorse", "kelp forest", "plankton", "shipwreck", "arctic ocean", "indian ocean", 
+                        "southern ocean", "barrier reef", "mariana trench"
                     ];
                     const keyword = keywords[Math.floor(Math.random() * keywords.length)];
                     
@@ -2248,13 +2251,13 @@
 
                             if (mp4) {
                                 postData = {
-                                    userName: "NASA Ocean",
+                                    userName: "NatGeo Ocean",
                                     userAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Ocean",
                                     location: "Samudra",
                                     videoFile: mp4,
                                     thumbnail: thumb,
                                     caption: `<b>${meta.title}</b><br>${meta.description ? meta.description.substring(0, 120) + '...' : 'Keindahan laut dari arsip NASA.'}`,
-                                    sourceName: "NASA Ocean",
+                                    sourceName: "National Geographic",
                                     likes: Math.floor(Math.random() * 500) + 200
                                 };
                             }
@@ -2263,7 +2266,10 @@
                 } else if (sourceType === 5) {
                     // --- SUMBER 6: NASA SPACE (Luar Angkasa) ---
                     const keywords = [
-                        "galaxy", "nebula", "planet", "sun", "moon", "mars", "jupiter", "saturn", "astronaut", "iss", "spacewalk", "solar flare", "black hole", "supernova"
+                        "galaxy", "nebula", "planet", "sun", "moon", "mars", "jupiter", "saturn", "astronaut", "iss", "spacewalk", 
+                        "solar flare", "black hole", "supernova", "milky way", "asteroid", "comet", "constellation", "hubble telescope", 
+                        "james webb telescope", "space station", "launch", "rocket", "eclipse", "pluto", "venus", "mercury", "uranus", 
+                        "neptune", "star cluster", "pulsar", "quasar"
                     ];
                     const keyword = keywords[Math.floor(Math.random() * keywords.length)];
                     
@@ -2295,7 +2301,7 @@
                                     videoFile: mp4,
                                     thumbnail: thumb,
                                     caption: `<b>${meta.title}</b><br>${meta.description ? meta.description.substring(0, 120) + '...' : 'Video luar angkasa NASA.'}`,
-                                    sourceName: "NASA Space",
+                                    sourceName: "NASA TV",
                                     likes: Math.floor(Math.random() * 500) + 200
                                 };
                             }
@@ -2305,7 +2311,10 @@
                     // --- SUMBER 7: NASA EARTH (Pemandangan Bumi) ---
                     // Menggantikan Internet Archive yang "ngaco"
                     const keywords = [
-                        "earth from space", "earth view", "blue marble", "atmosphere", "clouds from space", "island from space", "coastline space", "river delta space"
+                        "earth from space", "earth view", "blue marble", "atmosphere", "clouds from space", "island from space", 
+                        "coastline space", "river delta space", "desert from space", "forest from space", "city lights space", 
+                        "glacier melt", "deforestation", "amazon rainforest", "sahara desert", "himalayas", "grand canyon", 
+                        "great barrier reef", "nile river", "andes mountains"
                     ];
                     const keyword = keywords[Math.floor(Math.random() * keywords.length)];
                     
@@ -2335,7 +2344,7 @@
                                     videoFile: mp4,
                                     thumbnail: thumb,
                                     caption: `<b>${meta.title}</b><br>${meta.description ? meta.description.substring(0, 120) + '...' : 'Pemandangan Bumi dari angkasa.'}`,
-                                    sourceName: "NASA Earth",
+                                    sourceName: "NASA",
                                     likes: Math.floor(Math.random() * 600) + 300
                                 };
                             }
@@ -2345,7 +2354,10 @@
                     // --- SUMBER 8: NASA NATURE (Fenomena Alam) ---
                     // Menggantikan Pure Nature (Wikimedia)
                     const keywords = [
-                        "aurora borealis", "northern lights", "hurricane", "storm", "volcano", "glacier", "iceberg", "lightning", "tornado", "river", "mountain"
+                        "aurora borealis", "northern lights", "hurricane", "storm", "volcano", "glacier", "iceberg", "lightning", 
+                        "tornado", "river", "mountain", "thunderstorm", "blizzard", "sandstorm", "monsoon", "typhoon", "cyclone", 
+                        "rainforest", "waterfall", "canyon", "cave", "cliff", "valley", "savanna", "tundra", "wildfire", "flood", 
+                        "drought", "eruption", "lava", "geyser"
                     ];
                     const keyword = keywords[Math.floor(Math.random() * keywords.length)];
                     
@@ -2369,18 +2381,59 @@
 
                             if (mp4) {
                                 postData = {
-                                    userName: "NASA Nature",
+                                    userName: "NatGeo Wild",
                                     userAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Nature",
                                     location: "Fenomena Alam",
                                     videoFile: mp4,
                                     thumbnail: thumb,
                                     caption: `<b>${meta.title}</b><br>${meta.description ? meta.description.substring(0, 120) + '...' : 'Fenomena alam dari arsip NASA.'}`,
-                                    sourceName: "NASA Nature",
+                                    sourceName: "National Geographic",
                                     likes: Math.floor(Math.random() * 400) + 150
                                 };
                             }
                         }
                     } catch(e) { console.warn("NASA Nature failed", e); }
+                } else if (sourceType === 8) {
+                    // --- SUMBER 9: WILDLIFE (Hewan) ---
+                    const keywords = [
+                        "polar bear", "penguin", "eagle", "bird migration", "wildlife", "animal tracking", "bison", "elk", "bear", 
+                        "wolf", "seal", "walrus", "caribou", "moose", "crane", "stork", "salmon", "beaver", "otter",
+                        "fox", "owl", "deer", "antelope", "coyote", "mountain lion", "bobcat"
+                    ];
+                    const keyword = keywords[Math.floor(Math.random() * keywords.length)];
+                    
+                    try {
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 6000);
+                        const res = await fetch(`https://images-api.nasa.gov/search?q=${keyword}&media_type=video`, { signal: controller.signal });
+                        clearTimeout(timeoutId);
+                        const data = await res.json();
+                        
+                        if (data.collection && data.collection.items && data.collection.items.length > 0) {
+                            const items = data.collection.items;
+                            const item = items[Math.floor(Math.random() * items.length)];
+                            const meta = item.data[0];
+                            const collectionUrl = item.href;
+                            
+                            const videoRes = await fetch(collectionUrl);
+                            const videoFiles = await videoRes.json();
+                            const mp4 = videoFiles.find(f => f.endsWith('~medium.mp4')) || videoFiles.find(f => f.endsWith('.mp4'));
+                            const thumb = item.links ? item.links.find(l => l.rel === 'preview')?.href : '';
+
+                            if (mp4) {
+                                postData = {
+                                    userName: "NatGeo Wildlife",
+                                    userAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Wildlife",
+                                    location: "Habitat Liar",
+                                    videoFile: mp4,
+                                    thumbnail: thumb,
+                                    caption: `<b>${meta.title}</b><br>${meta.description ? meta.description.substring(0, 120) + '...' : 'Kehidupan liar di alam bebas.'}`,
+                                    sourceName: "National Geographic",
+                                    likes: Math.floor(Math.random() * 600) + 250
+                                };
+                            }
+                        }
+                    } catch(e) { console.warn("Wildlife failed", e); }
                 }
 
                 // 2. SIMPAN KE CACHE & RENDER
