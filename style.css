@@ -60,6 +60,13 @@ body {
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
+/* Global Scrollbar Hiding (Native App Feel) */
+::-webkit-scrollbar { display: none; }
+* {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+}
+
 /* Mobile Optimizations */
 input, button { touch-action: manipulation; }
 
