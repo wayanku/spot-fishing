@@ -1,5 +1,6 @@
 
 
+
         // --- SAFETY CHECK: OFFLINE MODE FALLBACK ---
         // Mencegah aplikasi crash jika library tidak termuat karena offline
         if (typeof lucide === 'undefined') {
@@ -3318,10 +3319,6 @@
                 // Khusus Reels: Init jika belum
                 if(pageId === 'reels') {
                     if(typeof initReels === 'function') initReels();
-                    
-                    // --- FIX: Immersive Status Bar untuk Reels ---
-                    let metaTheme = document.querySelector('meta[name="theme-color"]');
-                    if(metaTheme) metaTheme.content = "#000000"; // Hitam pekat agar video menyatu dengan status bar
                 }
 
                 // Khusus Profile: Load data user & grid
