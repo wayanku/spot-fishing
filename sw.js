@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'fishing-spot-v01-auto-update'; // Naikkan versi untuk memicu update ini
+const CACHE_NAME = 'fishing-spot-v07-auto-update'; // Naikkan versi untuk memicu update ini
 const ASSETS = [
     './',
     './index.html',
