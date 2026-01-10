@@ -3742,3 +3742,43 @@
             loadUserProfile(); // Refresh tampilan profil
             closeEditProfile();
         }
+
+        // --- APP UPDATE LOGIC ---
+        async function checkForUpdate() {
+            if (!('serviceWorker' in navigator)) {
+                alert("Fitur update tidak didukung di browser ini.");
+                return;
+            }
+
+            const btn = document.getElementById('btn-check-update');
+            const originalText = btn ? btn.innerText : 'Cek Update';
+            
+            if(btn) {
+                btn.innerText = "Memeriksa...";
+                btn.disabled = true;
+                btn.classList.add('opacity-70');
+            }
+
+            try {
+                const reg = await navigator.serviceWorker.getRegistration();
+                if (reg) {
+                    await reg.update(); // Paksa cek ke server
+                    
+                    // Jika tidak ada update yang masuk fase waiting/installing setelah cek
+                    if (!reg.installing && !reg.waiting) {
+                        const toast = document.createElement('div');
+                        toast.className = "fixed top-24 left-1/2 -translate-x-1/2 bg-neutral-800 text-white px-4 py-2 rounded-full text-xs font-bold shadow-xl z-[3000] flex items-center gap-2 border border-white/10 animate-in fade-in slide-in-from-top-4";
+                        toast.innerHTML = `<i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i> Aplikasi Sudah Terbaru`;
+                        document.body.appendChild(toast);
+                        setTimeout(() => toast.remove(), 3000);
+                        if(typeof lucide !== 'undefined') lucide.createIcons();
+                    }
+                }
+            } catch (e) {
+                console.error("Update check failed", e);
+            } finally {
+                if(btn) {
+                    setTimeout(() => { btn.innerText = originalText; btn.disabled = false; btn.classList.remove('opacity-70'); }, 1000);
+                }
+            }
+        }
