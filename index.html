@@ -136,6 +136,18 @@
                         <div class="w-[4.5rem] h-[4.5rem] rounded-full bg-slate-800 border-2 border-slate-900"></div>
                         <div class="h-2 w-12 bg-slate-800 rounded"></div>
                     </div>
+                    <div class="flex flex-col items-center gap-1 shrink-0 animate-pulse">
+                        <div class="w-[4.5rem] h-[4.5rem] rounded-full bg-slate-800 border-2 border-slate-900"></div>
+                        <div class="h-2 w-12 bg-slate-800 rounded"></div>
+                    </div>
+                    <div class="flex flex-col items-center gap-1 shrink-0 animate-pulse">
+                        <div class="w-[4.5rem] h-[4.5rem] rounded-full bg-slate-800 border-2 border-slate-900"></div>
+                        <div class="h-2 w-12 bg-slate-800 rounded"></div>
+                    </div>
+                    <div class="flex flex-col items-center gap-1 shrink-0 animate-pulse">
+                        <div class="w-[4.5rem] h-[4.5rem] rounded-full bg-slate-800 border-2 border-slate-900"></div>
+                        <div class="h-2 w-12 bg-slate-800 rounded"></div>
+                    </div>
                 </div>
 
                 <!-- Feed -->
@@ -977,7 +989,7 @@
             
             // Gunakan URL Google Sheet yang sudah ada di script.js
             // Fallback URL jika variabel tidak ditemukan
-            const SHEET_URL = (typeof GOOGLE_SCRIPT_URL !== 'undefined') ? GOOGLE_SCRIPT_URL : "https://script.google.com/macros/s/AKfycbyuRtzzICS1qoBxWKdOJpHeqWCUN6Wt04xAIi_sYQHd0wSxjc89eumDWAYYcKPrT8jV/exec";
+            const SHEET_URL = (typeof GOOGLE_SCRIPT_URL !== 'undefined') ? GOOGLE_SCRIPT_URL : "https://script.google.com/macros/s/AKfycbwmGjR-UmBDARNmEcLQg44Es-bAhF3VoLybSPJLfupflR1OxC1doIMXamf_XGUh8pHt/exec";
 
             // Helper: Ubah Link YouTube jadi Embed
             const getEmbedUrl = (url) => {
@@ -1041,6 +1053,8 @@
                     const weight = d.weight ? `${d.weight} KG` : null;
                     const comment = d.description || d.comment || 'Spot baru ditambahkan!';
                     const embedUrl = getEmbedUrl(d.video);
+                    // Gunakan ID unik baris (d.id) untuk like, bukan spotId (karena spotId bisa duplikat utk grouping)
+                    const postId = d.id; 
 
                     // Verified Badge SVG (Instagram Style)
                     const verifiedBadge = `<svg class="w-3.5 h-3.5 ml-1 text-blue-500 fill-current" viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-1.9 14.7L6 12.6l1.5-1.5 2.6 2.6 6.4-6.4 1.5 1.5-7.9 7.9z"/></svg>`;
@@ -1082,13 +1096,15 @@
                         <div class="px-4 pt-3">
                             <div class="flex items-center justify-between mb-3">
                                 <div class="flex items-center gap-5">
-                                    <button class="text-white hover:text-red-500 transition-colors"><i data-lucide="heart" class="w-6 h-6"></i></button>
-                                    <button class="text-white hover:text-blue-400 transition-colors"><i data-lucide="message-circle" class="w-6 h-6"></i></button>
-                                    <button class="text-white hover:text-emerald-400 transition-colors"><i data-lucide="send" class="w-6 h-6"></i></button>
+                                    <button onclick="handleLike('${postId}', this)" class="text-white hover:text-red-500 transition-colors group">
+                                        <i data-lucide="heart" class="w-6 h-6 group-active:scale-75 transition-transform ${isPostLiked(postId) ? 'fill-red-500 text-red-500' : ''}"></i>
+                                    </button>
+                                    <button onclick="handleComment('${postId}')" class="text-white hover:text-blue-400 transition-colors"><i data-lucide="message-circle" class="w-6 h-6"></i></button>
+                                    <button onclick="handleShare('${d.locationName}', '${comment}', '${d.image}')" class="text-white hover:text-emerald-400 transition-colors"><i data-lucide="send" class="w-6 h-6"></i></button>
                                 </div>
                             </div>
                             
-                            <p class="text-sm font-bold text-white mb-1">${d.likes || 0} suka</p>
+                            <p class="text-sm font-bold text-white mb-1"><span id="likes-count-${postId}">${d.likes || 0}</span> suka</p>
                             
                             <div class="text-sm text-slate-300 leading-relaxed mb-1">
                                 <span class="font-bold text-white mr-1">${d.userName}</span> ${comment}
@@ -1879,6 +1895,7 @@
         // --- NEW: External Feed Post (Wikipedia & TheMealDB) ---
         // Cache memori untuk menyimpan data postingan eksternal agar tidak berubah-ubah saat re-render
         let externalPostDataCache = {};
+        let usedWikiKeywords = []; // Menyimpan kata kunci Wikipedia yang sudah ditampilkan agar tidak duplikat
 
         async function loadExternalFeedPost(containerId, mode = 'random') {
             const container = document.getElementById(containerId);
@@ -1891,10 +1908,12 @@
 
             // 1. CEK CACHE: Jika data untuk mode ini sudah ada, pakai yang lama (biar tidak kedip/ganti konten)
             if (externalPostDataCache[mode]) {
+                if (externalPostDataCache[mode] === 'loading') return; // Sedang loading, skip agar tidak double fetch
                 renderExternalPostUI(container, externalPostDataCache[mode]);
                 return;
             }
 
+            externalPostDataCache[mode] = 'loading'; // Tandai sedang loading
             // Tentukan tipe konten berdasarkan mode
             let sourceType;
             if (mode === 'video') {
@@ -1951,8 +1970,39 @@
 
                 } else if (sourceType === 1) {
                     // --- SUMBER 2: Wikipedia (Fakta Ikan) ---
-                    const keywords = ["Ikan_badut", "Ikan_hiu", "Ikan_paus", "Ikan_pari", "Ikan_tuna", "Ikan_kakap", "Ikan_lele", "Ikan_nila", "Ikan_arwana", "Barakuda", "Marlin_biru", "Ikan_mas", "Ikan_tenggiri", "Ikan_tongkol", "Ikan_kerapu", "Ikan_kuwe", "Terumbu_karang", "Penyu", "Cumi-cumi", "Gurita", "Udang", "Kepiting", "Lobster"];
-                    const randomKey = keywords[Math.floor(Math.random() * keywords.length)];
+                    const keywords = [
+                        // Ikan Laut & Tawar
+                        "Ikan_badut", "Ikan_hiu", "Ikan_paus", "Ikan_pari", "Ikan_tuna", "Ikan_kakap", "Ikan_lele", "Ikan_nila", 
+                        "Ikan_arwana", "Barakuda", "Marlin_biru", "Ikan_mas", "Ikan_tenggiri", "Ikan_tongkol", "Ikan_kerapu", 
+                        "Ikan_kuwe", "Ikan_bawal", "Ikan_patin", "Ikan_gabus", "Ikan_belanak", "Ikan_mujair", "Ikan_gurami", 
+                        "Ikan_layur", "Ikan_cakalang", "Ikan_teri", "Ikan_kembung", "Ikan_baronang", "Ikan_kakap_putih", 
+                        "Ikan_kakap_merah", "Ikan_napoleon", "Ikan_buntal", "Ikan_sepat", "Ikan_betok", "Ikan_sidat", "Ikan_belida",
+                        "Ikan_lemadang", "Ikan_layang", "Ikan_selar", "Ikan_ekor_kuning", "Ikan_manyung", "Ikan_sembilang",
+                        // Biota Laut Lainnya
+                        "Terumbu_karang", "Penyu", "Cumi-cumi", "Gurita", "Udang", "Kepiting", "Lobster", "Kuda_laut", 
+                        "Ubur-ubur", "Bintang_laut", "Lumba-lumba", "Dugong", "Anjing_laut", "Singa_laut", "Walrus", 
+                        "Paus_pembunuh", "Paus_biru", "Kerang", "Tiram", "Siput_laut", "Bulu_babi", "Teripang",
+                        // Alat & Teknik Mancing
+                        "Memancing", "Joran", "Kail", "Umpan_pancing", "Senar_pancing", "Reel_pancing", "Pelampung_(memancing)",
+                        "Teknik_memancing", "Jigging", "Casting_(memancing)", "Trolling_(memancing)", "Fly_fishing", 
+                        "Mancing_dasaran", "Popping_(memancing)", "Rawai", "Jala", "Bubu", "Rumpon",
+                        // Lokasi & Ekosistem
+                        "Laut", "Sungai", "Danau", "Rawa", "Waduk", "Muara", "Pantai", "Hutan_bakau", "Padang_lamun", 
+                        "Palung_laut", "Samudra", "Teluk", "Selat", "Tanjung", "Delta_sungai"
+                    ];
+                    
+                    // Filter kata kunci yang belum dipakai
+                    let availableKeywords = keywords.filter(k => !usedWikiKeywords.includes(k));
+                    
+                    // Jika semua sudah dipakai, reset list agar mulai dari awal lagi
+                    if (availableKeywords.length === 0) {
+                        usedWikiKeywords = [];
+                        availableKeywords = keywords;
+                    }
+                    
+                    const randomKey = availableKeywords[Math.floor(Math.random() * availableKeywords.length)];
+                    usedWikiKeywords.push(randomKey); // Tandai sebagai sudah dipakai
+                    
                     const res = await fetch(`https://id.wikipedia.org/api/rest_v1/page/summary/${randomKey}`);
                     const data = await res.json();
 
@@ -2014,8 +2064,12 @@
 
                 // 2. SIMPAN KE CACHE & RENDER
                 if (postData) {
-                    // externalPostDataCache[mode] = postData; // Optional: Cache disabled for variety on refresh
-                    renderExternalPostUI(container, postData);
+                    externalPostDataCache[mode] = postData; // Simpan ke cache agar render berikutnya (Network) pakai data yang sama
+                    // Re-query container karena elemen DOM mungkin sudah diganti oleh render ulang
+                    const currentContainer = document.getElementById(containerId);
+                    if(currentContainer) renderExternalPostUI(currentContainer, postData);
+                } else {
+                    delete externalPostDataCache[mode]; // Hapus status loading jika gagal
                 }
             } catch (e) {
                 console.warn("Gagal load external post", e);
@@ -2138,14 +2192,11 @@
 
         // Handle Touch/Click Logic (Pause & Navigation)
         function handleStoryTouch(action, direction) {
-            const wrapper = document.getElementById('story-scale-wrapper');
             if (action === 'start') {
                 isStoryPaused = true;
                 storyTouchStartTime = Date.now();
-                if(wrapper) wrapper.classList.add('scale-[0.98]'); // Efek tekan pada wrapper (bukan modal utama)
             } else if (action === 'end') {
                 isStoryPaused = false;
-                if(wrapper) wrapper.classList.remove('scale-[0.98]');
                 
                 const duration = Date.now() - storyTouchStartTime;
                 if (duration < 200) { // Jika tap cepat (<200ms), anggap navigasi
@@ -2175,6 +2226,140 @@
         function closeStoryViewer() {
             document.getElementById('storyViewerModal').classList.add('hidden');
             clearInterval(storyInterval);
+        }
+
+        // --- NEW: SOCIAL FEATURES (Like, Comment, Share) ---
+        
+        // 1. Cek apakah user sudah like post ini (Local Storage)
+        function isPostLiked(postId) {
+            return localStorage.getItem('liked_' + postId) === 'true';
+        }
+
+        // 2. Handle Like
+        function handleLike(postId, btnElement) {
+            if (isPostLiked(postId)) {
+                // Opsional: Bisa tambah logika Unlike disini, tapi untuk sekarang kita batasi 1 like
+                const icon = btnElement.querySelector('svg');
+                icon.classList.add('animate-shake'); // Efek getar kalau sudah like
+                setTimeout(() => icon.classList.remove('animate-shake'), 500);
+                return; 
+            }
+
+            // Optimistic UI Update (Langsung merah & nambah angka sebelum request selesai)
+            const icon = btnElement.querySelector('svg'); // Lucide render svg inside button
+            if(icon) {
+                icon.classList.add('fill-red-500', 'text-red-500', 'scale-125');
+                setTimeout(() => icon.classList.remove('scale-125'), 200);
+            }
+            
+            const countEl = document.getElementById('likes-count-' + postId);
+            if(countEl) countEl.innerText = parseInt(countEl.innerText) + 1;
+
+            // Simpan status di LocalStorage
+            localStorage.setItem('liked_' + postId, 'true');
+
+            // Kirim ke Google Sheet
+            const SHEET_URL = (typeof GOOGLE_SCRIPT_URL !== 'undefined') ? GOOGLE_SCRIPT_URL : "https://script.google.com/macros/s/AKfycbwmGjR-UmBDARNmEcLQg44Es-bAhF3VoLybSPJLfupflR1OxC1doIMXamf_XGUh8pHt/exec";
+            
+            fetch(SHEET_URL, {
+                method: 'POST',
+                mode: 'no-cors', // Penting untuk GAS
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'like', id: postId })
+            }).catch(err => console.error("Gagal kirim like", err));
+        }
+
+        // 3. Handle Share
+        function handleShare(title, text, url) {
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Fishing Spot: ' + title,
+                    text: text || 'Cek spot mancing keren ini!',
+                    url: window.location.href // Share link web app
+                }).catch(console.error);
+            } else {
+                // Fallback: Copy Link
+                navigator.clipboard.writeText(window.location.href);
+                alert("Link disalin ke clipboard!");
+            }
+        }
+
+        // 4. Handle Comment (Simple Prompt)
+        function handleComment(postId) {
+            let userName = localStorage.getItem('guest_name');
+            if (!userName) {
+                userName = prompt("Masukkan nama panggilan Anda untuk berkomentar:");
+                if (userName) localStorage.setItem('guest_name', userName);
+                else return;
+            }
+            
+            const text = prompt(`Tulis komentar sebagai ${userName}:`);
+            if (!text) return;
+
+            // --- UNIFIED DATA LOGIC ---
+            // Cari data postingan asli untuk mendapatkan Lokasi (Lat/Lng)
+            // Agar komentar masuk ke dalam grup spot yang sama di database
+            let parentPost = null;
+            
+            // 1. Cek di Global Grouped Spots (dari script.js)
+            if (typeof groupedSpots !== 'undefined') {
+                for (const key in groupedSpots) {
+                    const found = groupedSpots[key].find(s => s.id === postId);
+                    if (found) { parentPost = found; break; }
+                }
+            }
+            
+            // 2. Fallback: Cek di Cache Feed (LocalStorage)
+            if (!parentPost) {
+                try {
+                    const cached = JSON.parse(localStorage.getItem('feed_cache') || '[]');
+                    const foundItem = cached.find(item => item.data && item.data.id === postId);
+                    if (foundItem) parentPost = foundItem.data;
+                } catch(e) { console.log("Cache error", e); }
+            }
+
+            if (!parentPost) {
+                alert("Gagal memuat data postingan asli. Mohon refresh halaman.");
+                return;
+            }
+
+            // Konstruksi Data Komentar sebagai "Spot Entry" (Tanpa Foto)
+            const commentData = {
+                action: 'create', // Gunakan 'create' agar masuk ke Sheet Spots utama
+                name: parentPost.name || 'Spot Mancing',
+                lat: parentPost.lat,
+                lng: parentPost.lng,
+                photo: "", // Kosongkan foto agar masuk ke bagian 'Komentar Tanpa Foto' di detail
+                uid: userName, // Nama pengomentar
+                createdAt: new Date().toISOString(),
+                rating: 0,
+                comment: text,
+                weight: 0
+            };
+
+            // Kirim ke Google Sheet
+            const SHEET_URL = (typeof GOOGLE_SCRIPT_URL !== 'undefined') ? GOOGLE_SCRIPT_URL : "https://script.google.com/macros/s/AKfycbwmGjR-UmBDARNmEcLQg44Es-bAhF3VoLybSPJLfupflR1OxC1doIMXamf_XGUh8pHt/exec";
+            
+            // Tampilkan feedback visual
+            const toast = document.createElement('div');
+            toast.className = "fixed top-24 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-4 py-2 rounded-full text-xs font-bold shadow-xl z-[3000] animate-bounce";
+            toast.innerText = "Mengirim komentar...";
+            document.body.appendChild(toast);
+
+            fetch(SHEET_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(commentData)
+            }).then(() => {
+                toast.innerText = "Komentar terkirim!";
+                setTimeout(() => toast.remove(), 2000);
+                // Refresh data spot agar komentar baru langsung terambil
+                if(typeof loadSpots === 'function') loadSpots();
+            }).catch(() => {
+                toast.innerText = "Gagal mengirim.";
+                setTimeout(() => toast.remove(), 2000);
+            });
         }
 
         // Polling: Cek otomatis jika data cuaca baru masuk, lalu update widget
