@@ -138,7 +138,7 @@
             </div>
 
             <!-- Pull to Refresh Spinner (Behind Content) -->
-            <div id="ptr-spinner" class="absolute left-1/2 -translate-x-1/2 z-0 w-full flex justify-center pt-6" style="top: 60px;">
+            <div id="ptr-spinner" class="absolute left-1/2 -translate-x-1/2 z-0 w-full flex justify-center pt-6" style="top: calc(80px + env(safe-area-inset-top));">
                 <div id="ptr-icon" class="bg-white text-black p-2 rounded-full shadow-xl border border-black/10 scale-0 transition-transform duration-200">
                     <i data-lucide="loader" class="w-5 h-5 animate-spin"></i>
                 </div>
@@ -416,7 +416,7 @@
 
         <!-- === HALAMAN 4: MENU / SETTINGS === -->
         <div id="view-settings" class="view-section">
-            <div class="p-6 pt-10 max-w-2xl mx-auto header-safe">
+            <div class="p-6 max-w-2xl mx-auto" style="padding-top: calc(2.5rem + env(safe-area-inset-top));">
                 <div class="flex items-center justify-between mb-6">
                     <h2 class="text-2xl font-black text-white">Menu & Pengaturan</h2>
                     <button onclick="navigateTo('profile')" class="p-2 bg-neutral-800 rounded-full text-slate-400 hover:text-white transition-colors border border-white/10">
@@ -456,7 +456,7 @@
 
     <!-- MODAL MAP SETTINGS (New Feature: iPhone Style Layers) -->
     <div id="mapSettingsModal" class="fixed inset-0 z-[10000] bg-black translate-y-full transition-transform duration-300 ease-in-out flex flex-col">
-        <div class="flex items-center justify-between p-4 border-b border-white/10 shrink-0">
+        <div class="flex items-center justify-between p-4 border-b border-white/10 shrink-0" style="padding-top: calc(1rem + env(safe-area-inset-top));">
             <h3 class="text-xl font-bold text-white flex items-center gap-2"><i data-lucide="layers" class="text-blue-400"></i> Tampilan Peta</h3>
             <button onclick="closeMapSettings()" class="p-2 text-slate-400 hover:bg-neutral-800 rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button>
         </div>
@@ -626,7 +626,7 @@
 
     <!-- MODAL ROUTE STEPS (New Feature: Internal Navigation) -->
     <div id="routeModal" class="fixed inset-0 z-[10000] bg-black translate-y-full transition-transform duration-300 ease-in-out flex flex-col">
-        <div class="flex items-center justify-between p-4 border-b border-white/10 shrink-0">
+        <div class="flex items-center justify-between p-4 border-b border-white/10 shrink-0" style="padding-top: calc(1rem + env(safe-area-inset-top));">
             <h3 class="text-xl font-bold text-white flex items-center gap-2"><i data-lucide="navigation" class="text-blue-400"></i> Rute Perjalanan</h3>
             <button onclick="closeRouteModal()" class="p-2 text-slate-400 hover:bg-neutral-800 rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button>
         </div>
@@ -639,7 +639,7 @@
 
     <!-- MODAL WINDY (New Feature: Full Windy Embed) -->
     <div id="windyModal" class="fixed inset-0 z-[11000] bg-black translate-y-full transition-transform duration-300 ease-in-out flex flex-col">
-        <div class="flex items-center justify-between p-4 border-b border-white/10 shrink-0 bg-black">
+        <div class="flex items-center justify-between p-4 border-b border-white/10 shrink-0 bg-black" style="padding-top: calc(1rem + env(safe-area-inset-top));">
             <h3 class="text-xl font-bold text-white flex items-center gap-2"><i data-lucide="wind" class="text-red-400"></i> Windy Map</h3>
             <button onclick="closeWindy()" class="p-2 text-slate-400 hover:bg-neutral-800 rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button>
         </div>
@@ -792,7 +792,7 @@
 
     <!-- MODAL WEATHER DETAIL (New Feature) -->
     <div id="weatherDetailModal" class="fixed inset-0 z-[10000] bg-black hidden animate-in slide-in-from-bottom duration-300">
-        <div class="w-full h-full p-6 overflow-y-auto no-scrollbar relative">
+        <div class="w-full h-full p-6 overflow-y-auto no-scrollbar relative" style="padding-top: calc(1.5rem + env(safe-area-inset-top));">
             <button onclick="closeDetailModal()" class="absolute top-4 right-4 p-2 bg-neutral-800 rounded-full hover:bg-neutral-700" aria-label="Tutup detail cuaca"><i data-lucide="x" class="w-4 h-4"></i></button>
             <h3 class="text-xl font-bold mb-1 flex items-center gap-2" id="detail-title">Detail Cuaca</h3>
             <p class="text-xs text-slate-400 mb-4" id="detail-date">...</p>
@@ -991,7 +991,7 @@
 
     <!-- MODAL LIGHTBOX (New Feature) -->
     <div id="lightboxModal" class="fixed inset-0 z-[11000] bg-black/95 hidden flex items-center justify-center p-2 backdrop-blur-sm transition-opacity duration-300" onclick="closeImageLightbox()">
-        <button onclick="closeImageLightbox()" class="absolute top-6 right-6 p-3 bg-white/10 rounded-full text-white hover:bg-white/20 transition-colors z-50" aria-label="Tutup gambar"><i data-lucide="x" class="w-8 h-8"></i></button>
+        <button onclick="closeImageLightbox()" class="absolute right-6 p-3 bg-white/10 rounded-full text-white hover:bg-white/20 transition-colors z-50" style="top: calc(1.5rem + env(safe-area-inset-top));" aria-label="Tutup gambar"><i data-lucide="x" class="w-8 h-8"></i></button>
         <img id="lightbox-img" src="" class="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl animate-in zoom-in duration-300" onclick="event.stopPropagation()">
     </div>
 
@@ -1034,12 +1034,12 @@
         <!-- Wrapper for Scaling Effect (Agar background hitam tetap full saat ditekan) -->
         <div id="story-scale-wrapper" class="relative w-full h-full flex flex-col transition-transform duration-200 ease-out origin-center">
             <!-- Progress Bar -->
-            <div id="story-bars-container" class="flex gap-1 p-2 pt-4 z-20 absolute top-0 left-0 w-full">
+            <div id="story-bars-container" class="flex gap-1 p-2 z-20 absolute top-0 left-0 w-full" style="padding-top: calc(0.5rem + env(safe-area-inset-top));">
                 <!-- Bars injected via JS -->
             </div>
             
             <!-- Header -->
-            <div class="flex items-center justify-between px-4 pt-8 pb-4 z-20 absolute top-0 left-0 w-full bg-gradient-to-b from-black/80 to-transparent header-safe">
+            <div class="flex items-center justify-between px-4 pb-4 z-20 absolute top-0 left-0 w-full bg-gradient-to-b from-black/80 to-transparent" style="padding-top: calc(2rem + env(safe-area-inset-top));">
                 <div class="flex items-center gap-3">
                     <div id="story-header-icon" class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center border border-white/20"><i data-lucide="bot" class="w-4 h-4 text-white"></i></div>
                     <div>
@@ -1065,7 +1065,7 @@
 
     <!-- MODAL EDIT PROFILE (New Feature) -->
     <div id="editProfileModal" class="fixed inset-0 z-[10000] bg-black translate-y-full transition-transform duration-300 ease-in-out flex flex-col">
-        <div class="flex items-center justify-between p-4 border-b border-white/10 shrink-0">
+        <div class="flex items-center justify-between p-4 border-b border-white/10 shrink-0" style="padding-top: calc(1rem + env(safe-area-inset-top));">
             <h3 class="text-lg font-bold text-white">Edit Profil</h3>
             <button onclick="closeEditProfile()" class="text-blue-400 font-bold text-sm">Batal</button>
         </div>
