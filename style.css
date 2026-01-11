@@ -1,5 +1,11 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
+html, body {
+    height: 100dvh !important;
+    background-color: #000000 !important; /* Pastikan celah bawah tidak putih */
+    margin: 0;
+    padding: 0;
+}
 body { 
     font-family: 'Inter', sans-serif; 
     background: #020617; 
@@ -95,6 +101,12 @@ input, button { touch-action: manipulation; }
 .header-safe { padding-top: calc(1rem + env(safe-area-inset-top)); } /* pt-4 + safe area */
 .nav-bar-safe { padding-bottom: calc(1.25rem + env(safe-area-inset-bottom)); } /* pb-5 + safe area */
 .modal-safe { padding-bottom: env(safe-area-inset-bottom); }
+.view-section {
+    padding-bottom: 60px !important; /* Agar konten berhenti pas di atas tombol */
+    height: 100dvh;
+}
+.pb-safe { padding-bottom: 8px !important; } /* Paksa jarak hanya 8px di bawah */
+.nav-bar-safe { padding-bottom: 8px !important; }
 
 /* Prevent iOS Zoom on Input Focus */
 @media screen and (max-width: 768px) {
