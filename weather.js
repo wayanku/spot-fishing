@@ -23,6 +23,21 @@ let isAudioUnlocked = false; // Status untuk autoplay audio di HP
 let pendingAudio = null; // Sinkronisasi audio & animasi
 let landscapeTreePath = null; // Cache untuk siluet pohon
 
+// --- PERFORMANCE: Offscreen Canvas Variables ---
+let landscapeCanvas = null;
+let landscapeCtx = null;
+let starsCanvas = null;
+let starsCtx = null;
+let lastLandscapeColor = null; // Cache key untuk mendeteksi perubahan warna gunung
+
+// --- PERFORMANCE: Throttling Variables ---
+let lastWeatherCalcTime = 0;
+let cachedSunPos = { x: 0, y: 0, alt: -1 };
+let cachedMoonPos = { x: 0, y: 0, alt: -1 };
+let cachedSunX = 0, cachedSunY = 0;
+let cachedMoonX = 0, cachedMoonY = 0;
+let cachedSunAlt = -1, cachedMoonAlt = -1;
+
 
 // --- NEW: Inject SVG Filters & CSS for Realistic Clouds ---
 function initCloudAssets() {
@@ -119,12 +134,27 @@ function initCloudAssets() {
     document.body.appendChild(assets);
 }
 
+function initOffscreenCanvases() {
+    landscapeCanvas = document.createElement('canvas');
+    landscapeCtx = landscapeCanvas.getContext('2d');
+    starsCanvas = document.createElement('canvas');
+    starsCtx = starsCanvas.getContext('2d');
+}
+
 function resizeCanvas() {
     if(canvas && ctx) {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
+        
+        // Resize Offscreen Canvases
+        if (landscapeCanvas) { landscapeCanvas.width = window.innerWidth; landscapeCanvas.height = window.innerHeight; }
+        if (starsCanvas) { starsCanvas.width = window.innerWidth; starsCanvas.height = window.innerHeight; }
+        
+        lastLandscapeColor = null; // Force redraw landscape
+        
         initStars();
         generateLandscapeTrees();
+        renderStaticStars(); // Render bintang sekali saja saat resize
     }
 }
 
@@ -250,6 +280,7 @@ function showInstallButton() {
 function initWeatherSystem() {
     canvas = document.getElementById('weather-canvas');
     ctx = canvas ? canvas.getContext('2d') : null;
+    initOffscreenCanvases(); // Init memory canvas
     initCloudAssets();
     resizeCanvas();
     initPWA(); // Initialize PWA Logic
@@ -377,8 +408,11 @@ if (document.readyState === 'loading') {
     initWeatherSystem();
 }
 
+let resizeTimeout;
 window.addEventListener('resize', () => {
-    resizeCanvas();
+    // OPTIMISASI: Debounce resize (Tunggu selesai geser baru render)
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(resizeCanvas, 200);
 });
 
 class RainDrop {
@@ -422,7 +456,10 @@ class RainDrop {
         this.x += this.vx; // Gerakan horizontal
 
         if (this.y > canvas.height) {
-            if (this.splash) particles.push(new Splash(this.x));
+            if (this.splash) {
+                // OPTIMISASI: Batasi jumlah partikel total agar memori tidak bocor
+                if (particles.length < 600) particles.push(new Splash(this.x));
+            }
             this.reset();
         }
     }
@@ -798,18 +835,22 @@ function drawSkyBackground() {
     }
 }
 
-function drawCelestialBodies() {
-    if (!ctx) return;
-    
-    let sunX = canvas.width / 2;
-    let sunY = canvas.height + 200; // Default sembunyi di bawah
-    let moonX = canvas.width / 2;
-    let moonY = canvas.height + 200;
-    let sunAlt = -1;
-    let moonAlt = -1;
-    
-    // --- NEW: Kalkulasi Posisi Realtime (SunCalc) ---
-    // Menggunakan library SunCalc untuk menghitung posisi akurat berdasarkan GPS & Waktu
+// --- NEW: Render Static Stars to Offscreen Canvas ---
+function renderStaticStars() {
+    if (!starsCtx || !starsCanvas) return;
+    starsCtx.clearRect(0, 0, starsCanvas.width, starsCanvas.height);
+    starsCtx.fillStyle = "white";
+    stars.forEach(star => {
+        starsCtx.globalAlpha = star.alpha;
+        starsCtx.beginPath();
+        starsCtx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+        starsCtx.fill();
+    });
+}
+
+// --- NEW: Calculate Celestial Positions (Throttled) ---
+// Dipisahkan dari drawCelestialBodies agar tidak menghitung matematika berat setiap frame
+function updateCelestialPositions() {
     if (typeof SunCalc !== 'undefined' && currentWeatherData && currentWeatherData.latitude) {
         const now = new Date();
         const lat = currentWeatherData.latitude;
@@ -818,38 +859,41 @@ function drawCelestialBodies() {
         const sunPos = SunCalc.getPosition(now, lat, lng);
         const moonPos = SunCalc.getMoonPosition(now, lat, lng);
         
-        sunAlt = sunPos.altitude; // Ketinggian matahari (Radians)
-        moonAlt = moonPos.altitude;
-
         // Fungsi Mapping: Azimuth/Altitude -> Canvas X/Y
-        // Azimuth: 0 (Selatan) -> Tengah. -PI/2 (Timur) -> Kiri. PI/2 (Barat) -> Kanan.
         const mapPos = (az, alt) => {
-            const fov = 2 * Math.PI; // MODIFIED: 360 derajat FOV agar seluruh langit terlihat (termasuk Utara)
-            // X: Mapping Azimuth ke Lebar Layar
-            // Kita geser sedikit agar Timur ada di kiri (10%) dan Barat di kanan (90%)
+            const fov = 2 * Math.PI; 
             const x = (canvas.width / 2) + (az / fov) * canvas.width;
-            
-            // Y: Mapping Altitude ke Tinggi Layar
-            // MODIFIED: Horizon di 50% (sejajar kolom info)
-            // Zenith di 2% (Hampir menyentuh atas)
             const horizon = canvas.height * 0.50; 
             const zenith = canvas.height * 0.02;
-            
-            // FIX: Gunakan Math.sin dan scaling 1.3x agar matahari terlihat lebih tinggi (melengkung ke atas)
-            // Ini meniru efek visual "tinggi" yang diinginkan user
             let visualAlt = alt > 0 ? Math.min(Math.PI / 2, alt * 1.3) : alt;
-            
             const y = horizon - Math.sin(visualAlt) * (horizon - zenith);
-            
             return { x, y };
         };
 
+        // Update cache variables
         const s = mapPos(sunPos.azimuth, sunPos.altitude);
-        sunX = s.x; sunY = s.y;
+        cachedSunX = s.x; cachedSunY = s.y;
+        cachedSunAlt = sunPos.altitude;
 
         const m = mapPos(moonPos.azimuth, moonPos.altitude);
-        moonX = m.x; moonY = m.y;
+        cachedMoonX = m.x; cachedMoonY = m.y;
+        cachedMoonAlt = moonPos.altitude;
     }
+}
+
+function drawCelestialBodies() {
+    if (!ctx) return;
+    
+    // Gunakan nilai cache default
+    let sunX = cachedSunX || canvas.width / 2;
+    let sunY = cachedSunY || canvas.height + 200;
+    let moonX = cachedMoonX || canvas.width / 2;
+    let moonY = cachedMoonY || canvas.height + 200;
+    let sunAlt = cachedSunAlt;
+    let moonAlt = cachedMoonAlt;
+    
+    // LOGIKA KALKULASI DIPINDAHKAN KE updateCelestialPositions()
+    // drawCelestialBodies sekarang hanya menggambar berdasarkan nilai cache
 
     // --- Draw Stars (Bintang) ---
     // Bintang muncul jika Matahari di bawah horizon (Twilight/Malam)
@@ -861,17 +905,10 @@ function drawCelestialBodies() {
     // Sembunyikan bintang jika cuaca buruk
     if (wxCode >= 60 || wxCode === 3) starOpacity = 0;
 
-    if (starOpacity > 0) {
-        ctx.fillStyle = "white";
-        stars.forEach(star => {
-            ctx.globalAlpha = star.alpha * starOpacity;
-            ctx.beginPath();
-            ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
-            ctx.fill();
-            // Efek Kelap-kelip
-            star.alpha += star.twinkle;
-            if (star.alpha > 1 || star.alpha < 0.2) star.twinkle *= -1;
-        });
+    // OPTIMISASI: Gambar bintang dari canvas memori (Tanpa kalkulasi ulang tiap frame)
+    if (starOpacity > 0 && starsCanvas) {
+        ctx.globalAlpha = starOpacity;
+        ctx.drawImage(starsCanvas, 0, 0);
         ctx.globalAlpha = 1.0;
     }
 
@@ -1139,12 +1176,12 @@ function drawCelestialBodies() {
     }
 }
 
-// --- NEW: Draw Landscape (Mountains) ---
-function drawLandscape() {
-    if (!ctx) return;
+// --- NEW: Render Static Landscape to Offscreen Canvas ---
+function renderStaticLandscape() {
+    if (!landscapeCtx || !landscapeCanvas) return;
     
-    const w = canvas.width;
-    const h = canvas.height;
+    const w = landscapeCanvas.width;
+    const h = landscapeCanvas.height;
     
     // --- MODIFIED: Dynamic Color based on Sky & More Realistic Shape ---
     // Warna gunung diambil dari warna langit bawah (horizon) dan digelapkan
@@ -1153,42 +1190,66 @@ function drawLandscape() {
     const baseColor = currentSkyBot; // Ambil warna horizon dari cache
     const backColor = lerpColor(baseColor, '#000000', 0.4); // Gelapkan 40% untuk gunung belakang
     const frontColor = lerpColor(baseColor, '#000000', 0.7); // Gelapkan 70% untuk gunung depan
+    
+    landscapeCtx.clearRect(0, 0, w, h);
 
     // 1. Gunung Belakang (Layer Jauh - Lebih Pudar)
-    ctx.fillStyle = backColor;
-    ctx.beginPath();
-    ctx.moveTo(0, h);
-    ctx.lineTo(0, h * 0.48); // MODIFIED: Naikkan ke 48% agar benar-benar menutupi horizon 50%
-    ctx.bezierCurveTo(w * 0.15, h * 0.45, w * 0.3, h * 0.65, w * 0.4, h * 0.55);
-    ctx.bezierCurveTo(w * 0.55, h * 0.40, w * 0.7, h * 0.60, w * 0.8, h * 0.55);
-    ctx.lineTo(w, h * 0.60);
-    ctx.lineTo(w, h);
-    ctx.fill();
+    landscapeCtx.fillStyle = backColor;
+    landscapeCtx.beginPath();
+    landscapeCtx.moveTo(0, h);
+    landscapeCtx.lineTo(0, h * 0.48); 
+    landscapeCtx.bezierCurveTo(w * 0.15, h * 0.45, w * 0.3, h * 0.65, w * 0.4, h * 0.55);
+    landscapeCtx.bezierCurveTo(w * 0.55, h * 0.40, w * 0.7, h * 0.60, w * 0.8, h * 0.55);
+    landscapeCtx.lineTo(w, h * 0.60);
+    landscapeCtx.lineTo(w, h);
+    landscapeCtx.fill();
 
     // 2. Gunung Depan (Layer Dekat - Lebih Gelap)
-    ctx.fillStyle = frontColor;
-    ctx.beginPath();
-    ctx.moveTo(0, h);
-    ctx.lineTo(0, h * 0.65);
-    ctx.bezierCurveTo(w * 0.2, h * 0.75, w * 0.35, h * 0.55, w * 0.5, h * 0.70);
-    ctx.bezierCurveTo(w * 0.7, h * 0.85, w * 0.85, h * 0.65, w, h * 0.70);
-    ctx.lineTo(w, h);
-    ctx.fill();
+    landscapeCtx.fillStyle = frontColor;
+    landscapeCtx.beginPath();
+    landscapeCtx.moveTo(0, h);
+    landscapeCtx.lineTo(0, h * 0.65);
+    landscapeCtx.bezierCurveTo(w * 0.2, h * 0.75, w * 0.35, h * 0.55, w * 0.5, h * 0.70);
+    landscapeCtx.bezierCurveTo(w * 0.7, h * 0.85, w * 0.85, h * 0.65, w, h * 0.70);
+    landscapeCtx.lineTo(w, h);
+    landscapeCtx.fill();
 
     // 3. Siluet Pohon (Layer Paling Depan - Kaki Gunung)
     if (landscapeTreePath) {
-        // Warna pohon lebih gelap dari gunung depan (hampir hitam tapi menyatu)
-        ctx.fillStyle = lerpColor(frontColor, '#000000', 0.6);
-        ctx.fill(landscapeTreePath);
+        landscapeCtx.fillStyle = lerpColor(frontColor, '#000000', 0.6);
+        landscapeCtx.fill(landscapeTreePath);
     }
 }
 
-function animate() {
+// --- OPTIMIZED: Draw Landscape (Main Loop) ---
+function drawLandscape() {
+    if (!ctx || !landscapeCanvas) return;
+    
+    // Hanya render ulang offscreen canvas jika warna langit berubah (misal: sore ke malam)
+    if (currentSkyBot !== lastLandscapeColor) {
+        renderStaticLandscape();
+        lastLandscapeColor = currentSkyBot;
+    }
+    
+    // Tempel gambar dari memori (Sangat Cepat)
+    ctx.drawImage(landscapeCanvas, 0, 0);
+}
+
+function animate(timestamp) {
     animationFrameId = requestAnimationFrame(animate);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
+    const now = timestamp || Date.now();
+    // OPTIMISASI: Batasi perhitungan berat (Posisi Matahari/Bulan & Warna Langit)
+    // Cukup update setiap 200ms (5fps untuk logika, 60fps untuk render)
+    if (now - lastWeatherCalcTime > 200) {
+        drawSkyBackground(); // Hitung warna langit
+        updateCelestialPositions(); // Hitung posisi matahari/bulan (Ringan CPU)
+        lastWeatherCalcTime = now;
+    }
+    
     // 1. Draw Sky & Celestial Bodies
-    drawSkyBackground();
+    // drawSkyBackground() dipanggil di blok throttle di atas untuk update DOM
     drawCelestialBodies();
 
     // 2. Draw Landscape (Gunung) - NEW
@@ -1196,11 +1257,16 @@ function animate() {
     drawLandscape();
 
     // 2. Update Clouds (DOM)
-    clouds.forEach(c => c.update());
+    // OPTIMISASI: Hapus loop ini karena animasi awan sudah ditangani CSS (GPU)
+    // clouds.forEach(c => c.update());
 
     // 3. Draw Particles (Hujan/Salju)
-    particles = particles.filter(p => !p.isDead);
-    for (const p of particles) { p.update(); p.draw(); }
+    // OPTIMISASI: Gunakan reverse loop & splice untuk menghindari Garbage Collection (GC)
+    for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.update(); p.draw();
+        if (p.isDead) particles.splice(i, 1);
+    }
 
     // --- NEW: Ground Reflection / Mist (Pantulan Bawah) ---
     if (['rain', 'storm'].includes(currentWxType)) {
@@ -1558,6 +1624,18 @@ function injectCardStyles() {
             text-transform: uppercase !important; font-size: 10px !important;
             margin-bottom: 4px !important;
         }
+        
+        /* Mobile Optimization for Weather Cards */
+        .weather-card-fixed {
+            background-color: rgba(10, 10, 10, 0.85) !important; /* Solid Dark on Mobile */
+        }
+        @media (min-width: 768px) {
+            .weather-card-fixed {
+                background-color: rgba(10, 10, 10, 0.5) !important;
+                backdrop-filter: blur(16px) !important;
+                -webkit-backdrop-filter: blur(16px) !important;
+            }
+        }
     `;
     document.head.appendChild(style);
 }
@@ -1834,9 +1912,6 @@ async function showLocationPanel(latlng) {
     detailCards.forEach(card => {
         card.classList.add('weather-card-fixed'); // Tambahkan class layout tetap
         // LIQUID GLASS STYLE: Lebih transparan (0.3), Blur lebih kuat (16px)
-        card.style.setProperty('background-color', 'rgba(10, 10, 10, 0.5)', 'important'); 
-        card.style.setProperty('backdrop-filter', 'blur(16px)', 'important');
-        card.style.setProperty('-webkit-backdrop-filter', 'blur(16px)', 'important');
         card.style.setProperty('border', '1px solid rgba(255, 255, 255, 0.2)', 'important');
         card.style.setProperty('border-radius', '1rem', 'important'); // Rounded-xl
         card.style.setProperty('box-shadow', '0 4px 6px -1px rgba(0, 0, 0, 0.1)', 'important');
