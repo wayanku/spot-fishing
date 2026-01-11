@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fishing-spot-v23-random-api'; // Naikkan versi untuk memicu update ini
+const CACHE_NAME = 'fishing-spot-v237-random-api'; // Naikkan versi untuk memicu update ini
 const ASSETS = [
     './',
     './index.html',
