@@ -3404,6 +3404,10 @@
             const thumbnail = data.thumbnail || '';
             const userAvatar = data.userAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user}`;
 
+            // Verified Badge Logic
+            const verifiedBadge = `<svg class="w-3 h-3 ml-1" viewBox="0 0 24 24" fill="none"><path d="M23 12l-2.44-2.79.34-3.69-3.61-.82-1.89-3.2L12 2.96 8.6 1.5 6.71 4.69 3.1 5.5l.34 3.69L1 12l2.44 2.79-.34 3.69 3.61.82 1.89 3.2 3.4-1.46 3.4 1.46 1.89-3.2 3.61-.82-.34-3.69L23 12z" fill="#3b82f6"/><path d="M10 15.17L6.12 11.29L7.53 9.87L10 12.34L16.47 5.87L17.88 7.29L10 15.17Z" fill="black"/></svg>`;
+            const isVerified = ['Wayan', 'StoryBali', 'Kapten Jack', 'NatGeo', 'NASA', 'Ensiklopedia', 'Chef', 'Ahli'].some(k => user.includes(k)) || sourceLabel.includes('Community');
+
             container.innerHTML = `
                 <div class="absolute inset-0 flex items-center justify-center bg-black z-0">
                     <div class="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full"></div>
@@ -3418,7 +3422,7 @@
                             </div>
                         </div>
                         <div class="flex flex-col">
-                            <p class="text-white font-bold text-sm drop-shadow-md leading-none">@${user.replace(/\s+/g, '')}</p>
+                            <p class="text-white font-bold text-sm drop-shadow-md leading-none flex items-center">@${user.replace(/\s+/g, '')}${isVerified ? verifiedBadge : ''}</p>
                             <p class="text-[10px] text-slate-300 leading-none mt-0.5">${sourceLabel}</p>
                         </div>
                         <button class="ml-2 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold text-white border border-white/10 pointer-events-auto hover:bg-white/30 transition-colors">Follow</button>
@@ -3554,6 +3558,11 @@
             // Helper: Render Video ke Container
             const renderVideo = (url, title, user, likes, comments, sourceLabel = 'NASA Archive', thumbnail = '') => {
                 const isCreator = sourceLabel !== 'NASA Archive';
+                
+                // Verified Badge Logic
+                const verifiedBadge = `<svg class="w-3 h-3 ml-1" viewBox="0 0 24 24" fill="none"><path d="M23 12l-2.44-2.79.34-3.69-3.61-.82-1.89-3.2L12 2.96 8.6 1.5 6.71 4.69 3.1 5.5l.34 3.69L1 12l2.44 2.79-.34 3.69 3.61.82 1.89 3.2 3.4-1.46 3.4 1.46 1.89-3.2 3.61-.82-.34-3.69L23 12z" fill="#3b82f6"/><path d="M10 15.17L6.12 11.29L7.53 9.87L10 12.34L16.47 5.87L17.88 7.29L10 15.17Z" fill="black"/></svg>`;
+                const isVerified = ['Wayan', 'StoryBali', 'Kapten Jack', 'NatGeo', 'NASA', 'Ensiklopedia', 'Chef', 'Ahli'].some(k => user.includes(k)) || sourceLabel === 'Community Reel';
+
                 container.innerHTML = `
                     <div class="absolute inset-0 flex items-center justify-center bg-black z-0">
                         <div class="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full"></div>
@@ -3568,7 +3577,7 @@
                                 </div>
                             </div>
                             <div class="flex flex-col">
-                                <p class="text-white font-bold text-sm drop-shadow-md leading-none">@${user.replace(/\s+/g, '')}</p>
+                                <p class="text-white font-bold text-sm drop-shadow-md leading-none flex items-center">@${user.replace(/\s+/g, '')}${isVerified ? verifiedBadge : ''}</p>
                                 <p class="text-[10px] text-slate-300 leading-none mt-0.5">${sourceLabel}</p>
                             </div>
                             <button class="ml-2 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold text-white border border-white/10 pointer-events-auto hover:bg-white/30 transition-colors">Follow</button>
