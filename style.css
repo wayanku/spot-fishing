@@ -105,8 +105,21 @@ input, button { touch-action: manipulation; }
     padding-bottom: 60px !important; /* Agar konten berhenti pas di atas tombol */
     height: 100dvh;
 }
-.pb-safe { padding-bottom: 8px !important; } /* Paksa jarak hanya 8px di bawah */
-.nav-bar-safe { padding-bottom: 8px !important; }
+.pb-safe, .nav-bar-safe {
+    padding-bottom: 0px !important; 
+}
+
+/* Pastikan tombol tidak terpotong saat mepet bawah */
+.nav-btn {
+    padding-bottom: 2px !important;
+    padding-top: 5px !important;
+}
+
+/* Menghilangkan sisa ruang pada sistem PWA iPhone */
+#app-content {
+    height: 100dvh !important;
+    margin-bottom: 0 !important;
+}
 
 /* Prevent iOS Zoom on Input Focus */
 @media screen and (max-width: 768px) {
