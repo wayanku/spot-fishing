@@ -3425,6 +3425,11 @@
             const target = document.getElementById('view-' + pageId);
             if(target) {
                 target.classList.add('active');
+                
+                // Pastikan view-section yang aktif tidak memiliki margin bawah tambahan
+                target.style.height = "100dvh";
+                // Pastikan tidak ada "scroll karet" putih di bawah
+                document.body.style.backgroundColor = "#000000";
 
                 // --- FIX: Refresh Data Home saat Navigasi ---
                 if(pageId === 'home') {
