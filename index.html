@@ -45,7 +45,7 @@
             height: 100vh;
             width: 100%;
             overflow-y: auto;
-            padding-bottom: env(safe-area-inset-bottom); /* Ruang untuk navigasi bawah */
+            padding-bottom: 100px; /* Ruang untuk navigasi bawah */
             /* background: #0f172a; REMOVED: Handle per view */
             position: fixed;
             top: 0;
@@ -430,6 +430,30 @@
                 <div id="settings-content-placeholder"></div> 
                 <!-- Script di bawah akan memindahkan konten asli ke sini -->
             </div>
+        </div>
+
+        <!-- Bottom Navigation Bar (Instagram Style) -->
+        <div class="fixed bottom-0 left-0 right-0 md:bottom-6 md:w-[500px] md:left-1/2 md:-translate-x-1/2 z-[900] bg-black/90 backdrop-blur-xl md:rounded-3xl pb-safe pb-2 pt-2 px-0 md:pb-4 md:px-8 grid grid-cols-5 justify-items-center items-center shadow-2xl transition-all duration-300 border-t md:border border-white/10">
+            <button onclick="navigateTo('home')" class="nav-btn p-2 text-blue-400 flex flex-col items-center transition-colors group" id="nav-home">
+                <i data-lucide="home" class="w-7 h-7 group-hover:scale-110 transition-transform"></i>
+            </button>
+            <button onclick="navigateTo('map')" class="nav-btn p-2 text-slate-400 hover:text-white flex flex-col items-center transition-colors group" id="nav-map">
+                <i data-lucide="map" class="w-7 h-7 group-hover:scale-110 transition-transform"></i>
+            </button>
+
+            <button onclick="navigateTo('weather')" class="nav-btn p-2 text-slate-400 hover:text-white flex flex-col items-center transition-colors group" id="nav-weather">
+                <i data-lucide="cloud-sun" class="w-7 h-7 group-hover:scale-110 transition-transform"></i>
+            </button>
+
+            <button onclick="navigateTo('reels')" class="nav-btn p-2 text-slate-400 hover:text-white flex flex-col items-center transition-colors group" id="nav-reels">
+                <i data-lucide="film" class="w-7 h-7 group-hover:scale-110 transition-transform"></i>
+            </button>
+            
+            <button onclick="navigateTo('profile')" class="nav-btn p-2 text-slate-400 hover:text-white flex flex-col items-center transition-colors group" id="nav-profile">
+                <div class="w-7 h-7 rounded-full overflow-hidden border border-white/30 group-hover:border-white transition-colors">
+                    <img id="nav-profile-img" src="https://api.dicebear.com/7.x/avataaars/svg?seed=Guest" class="w-full h-full object-cover">
+                </div>
+            </button>
         </div>
     </div>
 
