@@ -354,57 +354,67 @@
 
         // Tambahkan attribution control baru tanpa prefix "Leaflet"
         L.control.attribution({ prefix: false }).addTo(map);
-        // Handle Zoom Effect: Glow & Clustering Logic
-        function handleZoomEffect() {
+        
+        // --- OPTIMIZATION: Bounding Box Loading & Clustering ---
+        function updateMapMarkers() {
             const zoom = map.getZoom();
+            const bounds = map.getBounds();
             const mapEl = document.getElementById('map');
             
             // 1. Efek Glow Lebar (CSS)
             if(zoom < 14) mapEl.classList.add('zoomed-out');
             else mapEl.classList.remove('zoomed-out');
             
-            // 2. Logika Prioritas Marker (Hanya saat Zoom Jauh < 13)
-            // "Yang biru/kuning hilang KECUALI tidak ada yang merah di dekatnya"
-            if (zoom < 13) { 
-                // Cari semua marker merah (Monster)
-                const redMarkers = allMarkers.filter(m => m.options.maxWeight >= 10);
-                
-                allMarkers.forEach(m => {
-                    const el = m.getElement();
-                    if(!el) return;
+            // 2. Filter Marker yang Masuk Layar (Bounding Box)
+            // Optimization: Hanya render marker yang masuk di area layar (viewport) saat ini
+            const paddedBounds = bounds.pad(0.2); // Buffer 20% agar tidak kedip saat geser
 
-                    if (m.options.maxWeight >= 10) {
-                        // Marker Merah selalu muncul
-                        el.classList.remove('hidden-marker');
-                        return;
-                    }
-                    
-                    // Cek jarak pixel ke marker merah terdekat
-                    let nearRed = false;
-                    const p1 = map.latLngToLayerPoint(m.getLatLng());
-                    
-                    for (const r of redMarkers) {
-                        const p2 = map.latLngToLayerPoint(r.getLatLng());
-                        const dist = p1.distanceTo(p2);
-                        if (dist < 120) { // Jika dalam radius 120px dari Merah -> Sembunyikan
-                            nearRed = true;
-                            break;
+            // Pre-calc Red Markers (Monster) yang visible untuk logika clustering
+            // OPTIMISASI: Cache titik pixel (projected points) agar tidak dihitung ulang di dalam loop
+            let visibleRedMarkersPoints = [];
+            if (zoom < 13) { 
+                const redMarkers = allMarkers.filter(m => m.options.maxWeight >= 10 && paddedBounds.contains(m.getLatLng()));
+                visibleRedMarkersPoints = redMarkers.map(m => ({
+                    point: map.latLngToLayerPoint(m.getLatLng())
+                }));
+            }
+
+            allMarkers.forEach(m => {
+                const latLng = m.getLatLng();
+                const isVisible = paddedBounds.contains(latLng);
+
+                if (isVisible) {
+                    if (!map.hasLayer(m)) m.addTo(map);
+
+                    // Logika Clustering (Hanya saat Zoom Jauh < 13)
+                    const el = m.getElement();
+                    if (el) {
+                        if (zoom < 13) {
+                            if (m.options.maxWeight >= 10) {
+                                el.classList.remove('hidden-marker');
+                            } else {
+                                let nearRed = false;
+                                const p1 = map.latLngToLayerPoint(latLng);
+                                // Gunakan titik yang sudah di-cache
+                                for (const r of visibleRedMarkersPoints) {
+                                    if (p1.distanceTo(r.point) < 120) { nearRed = true; break; }
+                                }
+                                if (nearRed) el.classList.add('hidden-marker');
+                                else el.classList.remove('hidden-marker');
+                            }
+                        } else {
+                            el.classList.remove('hidden-marker');
                         }
                     }
-                    
-                    if (nearRed) el.classList.add('hidden-marker');
-                    else el.classList.remove('hidden-marker');
-                });
-            } else {
-                // Reset: Tampilkan semua saat zoom dekat
-                allMarkers.forEach(m => {
-                    const el = m.getElement();
-                    if(el) el.classList.remove('hidden-marker');
-                });
-            }
+                } else {
+                    if (map.hasLayer(m)) map.removeLayer(m);
+                }
+            });
+            // OPTIMISASI: Hapus lucide.createIcons() di sini agar peta lancar saat digeser
         }
-        map.on('zoomend', handleZoomEffect);
-        // handleZoomEffect dipanggil setelah marker dimuat
+        
+        map.on('zoomend', updateMapMarkers);
+        map.on('moveend', updateMapMarkers);
         
         // --- FITUR INFO CUACA USER ---
         function showUserWeatherPanel() {
@@ -432,10 +442,13 @@
         let isContributionMode = false; // Flag untuk membedakan mode tambah spot vs ulasan
         let allMarkers = []; // Array untuk menyimpan semua marker spot
 
+        // OPTIMISASI: SVG String untuk Ikan (Agar tidak perlu render ulang via JS)
+        const FISH_SVG_STRING = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white w-6 h-6 drop-shadow-md relative z-20"><path d="M6.5 12.5c0-2.5 3.5-6 3.5-6s3.5 3.5 3.5 6-1.5 2.5-3.5 2.5-3.5-0-3.5-2.5z"/><path d="M18.5 10.5c0-2.5 3.5-6 3.5-6s3.5 3.5 3.5 6-1.5 2.5-3.5 2.5-3.5-0-3.5-2.5z"/><path d="M13 10.5c-2.5 0-2.5 2-5 2s-2.5-2-5-2"/><path d="M13 15.5c-2.5 0-2.5 2-5 2s-2.5-2-5-2"/></svg>`;
+
         // Custom Icon untuk Spot Ikan
         const fishIcon = L.divIcon({
             className: 'custom-fish-icon',
-            html: `<div class="w-8 h-8 bg-blue-600 rounded-full border-2 border-white shadow-[0_0_15px_rgba(59,130,246,0.6)] flex items-center justify-center"><i data-lucide="fish" class="text-white w-5 h-5"></i></div>`,
+            html: `<div class="w-8 h-8 bg-blue-600 rounded-full border-2 border-white shadow-[0_0_15px_rgba(59,130,246,0.6)] flex items-center justify-center">${FISH_SVG_STRING.replace('w-6 h-6', 'w-5 h-5')}</div>`,
             iconSize: [32, 32],
             iconAnchor: [16, 32],
             popupAnchor: [0, -32]
@@ -626,7 +639,7 @@
             });
             
             container.classList.remove('hidden');
-            if(window.lucide) lucide.createIcons();
+            if(window.lucide) lucide.createIcons({ root: container });
             
             // Close when clicking outside
             document.addEventListener('click', function closeOnClickOutside(e) {
@@ -784,7 +797,8 @@
             }
 
             // Pre-load the AI model in the background for faster analysis later
-            getAiWorker().postMessage({ type: 'init' });
+            // REMOVED: Lazy load AI only when needed (camera/upload) to save initial bandwidth
+            // getAiWorker().postMessage({ type: 'init' });
 
             // --- NEW: Init Search Autocomplete ---
             const searchInput = document.getElementById('search-input');
@@ -851,7 +865,10 @@
             
             // Gunakan key unik (lat,lng) untuk identifikasi
             const key = currentDetailSpot.lat + ',' + currentDetailSpot.lng;
-            let favs = JSON.parse(localStorage.getItem('favorites') || '[]');
+            let favs = [];
+            try {
+                favs = JSON.parse(localStorage.getItem('favorites') || '[]');
+            } catch(e) { console.error("Error parsing favorites", e); favs = []; }
             
             // Cek apakah sudah ada
             const index = favs.findIndex(f => (f.lat + ',' + f.lng) === key);
@@ -869,7 +886,10 @@
         function updateFavoriteBtn() {
             if(!currentDetailSpot) return;
             const key = currentDetailSpot.lat + ',' + currentDetailSpot.lng;
-            const favs = JSON.parse(localStorage.getItem('favorites') || '[]');
+            let favs = [];
+            try {
+                favs = JSON.parse(localStorage.getItem('favorites') || '[]');
+            } catch(e) { favs = []; }
             const isFav = favs.some(f => (f.lat + ',' + f.lng) === key);
             
             const btn = document.getElementById('btn-favorite');
@@ -883,7 +903,10 @@
 
         // --- FITUR BARU: EKSPOR GPX (Untuk Fishfinder) ---
         function exportFavoritesToGPX() {
-            const favs = JSON.parse(localStorage.getItem('favorites') || '[]');
+            let favs = [];
+            try {
+                favs = JSON.parse(localStorage.getItem('favorites') || '[]');
+            } catch(e) { favs = []; }
             if(favs.length === 0) {
                 alert("Belum ada spot favorit untuk diekspor.");
                 return;
@@ -917,7 +940,10 @@
 
         // --- FAVORITES LIST FUNCTIONS ---
         function openFavorites() {
-            const favs = JSON.parse(localStorage.getItem('favorites') || '[]');
+            let favs = [];
+            try {
+                favs = JSON.parse(localStorage.getItem('favorites') || '[]');
+            } catch(e) { favs = []; }
             const list = document.getElementById('favorites-list');
             list.innerHTML = '';
             
@@ -949,7 +975,7 @@
                     const img = spot.photo || 'https://via.placeholder.com/100?text=Fish';
                     
                     item.innerHTML = `
-                        <img src="${img}" class="w-14 h-14 rounded-lg object-cover bg-neutral-900 border border-white/10 group-hover:scale-105 transition-transform">
+                        <img src="${img}" loading="lazy" class="w-14 h-14 rounded-lg object-cover bg-neutral-900 border border-white/10 group-hover:scale-105 transition-transform">
                         <div>
                             <h4 class="font-bold text-sm text-white line-clamp-1">${spot.name}</h4>
                             <p class="text-[10px] text-slate-400 flex items-center gap-1"><i data-lucide="map-pin" class="w-3 h-3"></i> ${parseFloat(spot.lat).toFixed(4)}, ${parseFloat(spot.lng).toFixed(4)}</p>
@@ -1023,6 +1049,18 @@
             tempLatlng = null;
         }
 
+        // --- HELPER: Dynamic Script Loader ---
+        function loadScript(src) {
+            return new Promise((resolve, reject) => {
+                if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        }
+
         // --- IMAGE PREVIEW FUNCTIONS ---
         let currentObjectUrl = null; // Variabel global untuk manajemen memori gambar
 
@@ -1058,12 +1096,21 @@
 
             // 3. Auto-detect location from photo (EXIF GPS) - ONLY for new spots
             if(!isContributionMode) { 
+                // --- LAZY LOAD EXIF LIBRARY ---
+                if (typeof EXIF === 'undefined') {
+                    try {
+                        await loadScript('https://cdn.jsdelivr.net/npm/exif-js');
+                    } catch (e) {
+                        console.error("Gagal memuat library EXIF", e);
+                    }
+                }
+
                 const svPreview = document.getElementById('sv-preview');
                 const saveBtn = document.getElementById('btnSaveSpot');
                 const lang = localStorage.getItem('appLang') || 'id';
 
                 if(svPreview) svPreview.innerHTML = `<div class="flex items-center gap-2 text-yellow-400 animate-pulse"><i data-lucide="loader" class="w-4 h-4 animate-spin"></i> <span class="text-xs font-bold">Mencari lokasi di foto...</span></div>`;
-                lucide.createIcons();
+                lucide.createIcons({ root: svPreview });
 
                 // Add a small delay for UI to render before heavy EXIF processing
                 setTimeout(() => {
@@ -1104,11 +1151,11 @@
                                     .then(data => {
                                         const addr = data.display_name ? data.display_name.split(',').slice(0, 2).join(',') : "Alamat tidak ditemukan";
                                         if(svPreview) svPreview.innerHTML = `<p class="text-[10px] text-emerald-400 font-bold uppercase mb-1 flex items-center gap-1"><i data-lucide="map-pin" class="w-3 h-3"></i> Lokasi Foto Ditemukan!</p><p class="text-[10px] text-white font-bold">${addr}</p><p class="text-[9px] text-slate-500">Koordinat: ${latDec.toFixed(5)}, ${lngDec.toFixed(5)}</p>`;
-                                        lucide.createIcons();
+                                        lucide.createIcons({ root: svPreview });
                                     })
                                     .catch(() => {
                                         if(svPreview) svPreview.innerHTML = `<p class="text-[10px] text-emerald-400 font-bold uppercase mb-1 flex items-center gap-1"><i data-lucide="map-pin" class="w-3 h-3"></i> Lokasi dari Foto!</p><p class="text-[10px] text-slate-500">Koordinat: ${latDec.toFixed(5)}, ${lngDec.toFixed(5)}</p>`;
-                                        lucide.createIcons();
+                                        lucide.createIcons({ root: svPreview });
                                     });
                             } else {
                                 handleNoGPS(svPreview, saveBtn);
@@ -1159,7 +1206,7 @@
 
                 svPreview.classList.remove('hidden');
                 svPreview.innerHTML = `<div class="bg-slate-800 p-2 rounded-lg shrink-0"><i data-lucide="alert-circle" class="w-5 h-5 text-yellow-400"></i></div><div><p class="text-xs font-bold text-white uppercase mb-0.5">Wajib Foto dengan GPS</p><p class="text-[10px] text-slate-400 leading-relaxed">Hanya foto yang memiliki data lokasi GPS yang bisa diunggah.</p></div>`;
-                lucide.createIcons();
+                lucide.createIcons({ root: svPreview });
             } else {
                 // Mode: ADD REVIEW (spot already exists)
                 // Save button must be active
@@ -1174,7 +1221,7 @@
             }
             // Re-apply translation to ensure button text is correct
             changeLanguage(localStorage.getItem('appLang') || 'id');
-            lucide.createIcons();
+            // lucide.createIcons(); // Removed redundant call
         }
 
         function closeModal() { document.getElementById('addModal').classList.add('translate-y-full'); }
@@ -1289,7 +1336,7 @@
             // 1. Validasi AI (Jika ada file)
             if(fileToUpload) {
                 btn.innerHTML = '<i data-lucide="scan" class="w-3 h-3 inline mr-1 animate-pulse"></i> Menganalisa...';
-                lucide.createIcons();
+                lucide.createIcons({ root: btn });
                 btn.disabled = true;
 
                 try {
@@ -1373,7 +1420,10 @@
                 });
             } else {
                 // Fallback LocalStorage jika URL belum diisi
-                let local = JSON.parse(localStorage.getItem('spots') || '[]');
+                let local = [];
+                try {
+                    local = JSON.parse(localStorage.getItem('spots') || '[]');
+                } catch(e) { local = []; }
                 local.push(spotData);
                 localStorage.setItem('spots', JSON.stringify(local));
                 loadSpots();
@@ -1480,7 +1530,7 @@
                             <!-- Glossy Effect -->
                             <div class="absolute inset-0 rounded-full bg-gradient-to-b from-white/50 to-transparent opacity-100 pointer-events-none"></div>
                             <!-- Icon -->
-                            <i data-lucide="fish" class="text-white w-6 h-6 drop-shadow-md relative z-20"></i>
+                            ${FISH_SVG_STRING}
                             <!-- Notification Dot for Monster -->
                             ${maxWeight >= 10 ? '<div class="absolute -top-1 -right-1 w-4 h-4 bg-white rounded-full flex items-center justify-center shadow-sm z-30"><div class="w-2.5 h-2.5 bg-red-600 rounded-full animate-ping"></div></div>' : ''}
                         </div>
@@ -1529,7 +1579,7 @@
             const popupHtml = `
                 <div class="w-64 bg-neutral-900/90 backdrop-blur-xl rounded-[1.5rem] border border-white/10 shadow-2xl overflow-hidden pb-1">
                     ${coverPhoto ? `<div class="h-36 w-full relative group cursor-pointer" onclick="openSpotDetailByKey('${key}')">
-                        <img src="${coverPhoto}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
+                        <img src="${coverPhoto}" loading="lazy" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
                         <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent"></div>
                         <div class="absolute top-2 right-2 bg-black/50 backdrop-blur-md px-2 py-1 rounded-lg text-[10px] font-bold text-white flex items-center gap-1"><i data-lucide="image" class="w-3 h-3"></i> ${count}</div>
                     </div>` : '<div class="h-16 bg-gradient-to-r from-blue-600 to-purple-600 relative"><div class="absolute -bottom-6 left-4 w-12 h-12 bg-slate-800 rounded-full border-4 border-slate-900 flex items-center justify-center"><i data-lucide="fish" class="text-blue-400 w-6 h-6"></i></div></div>'}
@@ -1554,11 +1604,12 @@
             `;
             
             // Simpan maxWeight di options marker untuk filtering nanti
-            const marker = L.marker([mainSpot.lat, mainSpot.lng], {icon: dynamicIcon, maxWeight: maxWeight}).addTo(map).bindPopup(popupHtml);
+            // OPTIMISASI: Jangan langsung .addTo(map). Biarkan updateMapMarkers yang handle.
+            const marker = L.marker([mainSpot.lat, mainSpot.lng], {icon: dynamicIcon, maxWeight: maxWeight}).bindPopup(popupHtml);
             
             // Event saat popup dibuka: Fetch Nama Lokasi
             marker.on('popupopen', () => {
-                lucide.createIcons(); // Fix: Render ikon di dalam popup saat dibuka
+                lucide.createIcons({ root: document.querySelector('.leaflet-popup-content') }); // Fix: Render ikon di dalam popup saat dibuka
                 const el = document.getElementById(addrId);
                 if(el && el.innerText === "Memuat lokasi...") {
                     fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${mainSpot.lat}&lon=${mainSpot.lng}`)
@@ -1591,8 +1642,6 @@
             });
 
             allMarkers.push(marker);
-            
-            lucide.createIcons(); // Refresh icon di dalam popup
         }
 
         // Helper function untuk membuka detail dari popup (menggunakan key global)
@@ -1601,6 +1650,90 @@
                 openSpotDetail(groupedSpots[key]);
             }
         }
+
+        // --- PERFORMANCE: Pagination Helpers for Comments ---
+        let currentTextComments = [];
+        let currentPhotoComments = [];
+        let nextTextIndex = 0;
+        let nextPhotoIndex = 0;
+        const COMMENT_BATCH_SIZE = 10; // Render 10 item per batch
+
+        function renderTextComments(containerId, btnId) {
+            const container = document.getElementById(containerId);
+            const btn = document.getElementById(btnId);
+            if(!container) return;
+
+            const batch = currentTextComments.slice(nextTextIndex, nextTextIndex + COMMENT_BATCH_SIZE);
+            
+            let html = '';
+            batch.forEach(g => {
+                html += `
+                    <div class="p-3">
+                        <div class="flex justify-between items-start mb-1">
+                            <span class="text-[10px] font-bold text-slate-400">${g.uid.split('@')[0]}</span>
+                            <span class="text-[9px] text-slate-600">${new Date(g.createdAt).toLocaleDateString()}</span>
+                        </div>
+                        ${g.rating ? `<div class="flex text-yellow-400 scale-75 origin-left mb-1">${Array(parseInt(g.rating)).fill('<i data-lucide="star" class="w-3 h-3 fill-current"></i>').join('')}</div>` : ''}
+                        <p class="text-xs text-slate-300 mt-1">${g.comment || '-'}</p>
+                    </div>
+                `;
+            });
+            
+            container.insertAdjacentHTML('beforeend', html);
+            nextTextIndex += batch.length;
+            
+            if(typeof lucide !== 'undefined') lucide.createIcons({ root: container });
+
+            if (btn) {
+                if (nextTextIndex >= currentTextComments.length) btn.classList.add('hidden');
+                else btn.classList.remove('hidden');
+            }
+        }
+
+        function renderPhotoComments(containerId, btnId) {
+            const container = document.getElementById(containerId);
+            const btn = document.getElementById(btnId);
+            if(!container) return;
+
+            const batch = currentPhotoComments.slice(nextPhotoIndex, nextPhotoIndex + COMMENT_BATCH_SIZE);
+            
+            let html = '';
+            batch.forEach(g => {
+                const stars = g.rating ? `<div class="flex text-yellow-400 scale-75 origin-left mb-1">${Array(parseInt(g.rating)).fill('<i data-lucide="star" class="w-3 h-3 fill-current"></i>').join('')}</div>` : '';
+                const weight = g.weight && g.weight > 0 ? `<div class="absolute top-2 right-2 bg-black/60 backdrop-blur-md text-emerald-400 text-[9px] px-1.5 py-0.5 rounded-md font-bold border border-emerald-500/30 flex items-center gap-1"><i data-lucide="fish" class="w-3 h-3"></i> ${g.weight}kg</div>` : '';
+                
+                html += `
+                    <div class="bg-neutral-900 rounded-xl border border-white/5 overflow-hidden flex flex-col shadow-lg">
+                        <div class="relative aspect-[4/5] bg-neutral-800 group cursor-pointer" onclick="openImageLightbox('${g.photo}')">
+                            <img src="${g.photo}" loading="lazy" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60"></div>
+                            ${weight}
+                            <div class="absolute bottom-2 left-2">
+                                <p class="text-[9px] font-bold text-white shadow-black drop-shadow-md">${g.uid.split('@')[0]}</p>
+                            </div>
+                        </div>
+                        <div class="p-3 flex-1 flex flex-col">
+                            ${stars}
+                            <p class="text-[10px] text-slate-400 line-clamp-2 leading-relaxed">${g.comment || 'Tanpa keterangan'}</p>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.insertAdjacentHTML('beforeend', html);
+            nextPhotoIndex += batch.length;
+            
+            if(typeof lucide !== 'undefined') lucide.createIcons({ root: container });
+
+            if (btn) {
+                if (nextPhotoIndex >= currentPhotoComments.length) btn.classList.add('hidden');
+                else btn.classList.remove('hidden');
+            }
+        }
+        
+        // Expose to window for onclick handlers
+        window.renderTextComments = renderTextComments;
+        window.renderPhotoComments = renderPhotoComments;
 
         function openSpotDetail(group) {
             const main = group[0];
@@ -1637,64 +1770,49 @@
             // Urutkan dari yang terbaru
             group.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-            // Pisahkan data: Ada Foto vs Hanya Teks
-            const withPhotos = group.filter(g => g.photo);
-            const textOnly = group.filter(g => !g.photo);
+            // Pisahkan data & Reset Pagination
+            currentPhotoComments = group.filter(g => g.photo);
+            currentTextComments = group.filter(g => !g.photo);
+            nextTextIndex = 0;
+            nextPhotoIndex = 0;
 
             // 1. BAGIAN KOMENTAR TEKS (Accordion / Bisa dibuka-tutup)
-            if(textOnly.length > 0) {
+            if(currentTextComments.length > 0) {
                 const accId = 'acc-' + Math.random().toString(36).substr(2,5);
-                list.innerHTML += `
-                    <div class="mb-6 bg-neutral-900/50 rounded-2xl border border-white/5 overflow-hidden">
+                const textListId = 'text-list-' + accId;
+                const loadMoreTextId = 'load-more-text-' + accId;
+                
+                const section = document.createElement('div');
+                section.className = "mb-6 bg-neutral-900/50 rounded-2xl border border-white/5 overflow-hidden";
+                section.innerHTML = `
                         <button onclick="document.getElementById('${accId}').classList.toggle('hidden')" class="w-full p-4 flex items-center justify-between bg-neutral-800/50 hover:bg-neutral-800 transition-colors">
                             <span class="text-xs font-bold text-slate-300 flex items-center gap-2">
                                 <i data-lucide="message-square" class="w-4 h-4 text-blue-400"></i> 
-                                Komentar Tanpa Foto (${textOnly.length})
+                                Komentar Tanpa Foto (${currentTextComments.length})
                             </span>
                             <i data-lucide="chevron-down" class="w-4 h-4 text-slate-500"></i>
                         </button>
                         <div id="${accId}" class="hidden divide-y divide-white/5">
-                            ${textOnly.map(g => `
-                                <div class="p-3">
-                                    <div class="flex justify-between items-start mb-1">
-                                        <span class="text-[10px] font-bold text-slate-400">${g.uid.split('@')[0]}</span>
-                                        <span class="text-[9px] text-slate-600">${new Date(g.createdAt).toLocaleDateString()}</span>
-                                    </div>
-                                    ${g.rating ? `<div class="flex text-yellow-400 scale-75 origin-left mb-1">${Array(parseInt(g.rating)).fill('<i data-lucide="star" class="w-3 h-3 fill-current"></i>').join('')}</div>` : ''}
-                                    <p class="text-xs text-slate-300 mt-1">${g.comment || '-'}</p>
-                                </div>
-                            `).join('')}
+                            <div id="${textListId}"></div>
+                            <button id="${loadMoreTextId}" onclick="renderTextComments('${textListId}', '${loadMoreTextId}')" class="w-full py-3 text-xs text-blue-400 font-bold hover:bg-white/5 hidden">Muat Lebih Banyak</button>
                         </div>
-                    </div>
                 `;
+                list.appendChild(section);
+                renderTextComments(textListId, loadMoreTextId); // Render batch pertama
             }
 
             // 2. BAGIAN FOTO (Grid Katalog 2 Kolom)
-            if(withPhotos.length > 0) {
-                let grid = `<div class="grid grid-cols-2 gap-3">`;
-                withPhotos.forEach(g => {
-                    const stars = g.rating ? `<div class="flex text-yellow-400 scale-75 origin-left mb-1">${Array(parseInt(g.rating)).fill('<i data-lucide="star" class="w-3 h-3 fill-current"></i>').join('')}</div>` : '';
-                    const weight = g.weight && g.weight > 0 ? `<div class="absolute top-2 right-2 bg-black/60 backdrop-blur-md text-emerald-400 text-[9px] px-1.5 py-0.5 rounded-md font-bold border border-emerald-500/30 flex items-center gap-1"><i data-lucide="fish" class="w-3 h-3"></i> ${g.weight}kg</div>` : '';
-                    
-                    grid += `
-                        <div class="bg-neutral-900 rounded-xl border border-white/5 overflow-hidden flex flex-col shadow-lg">
-                            <div class="relative aspect-[4/5] bg-neutral-800 group cursor-pointer" onclick="openImageLightbox('${g.photo}')">
-                                <img src="${g.photo}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
-                                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60"></div>
-                                ${weight}
-                                <div class="absolute bottom-2 left-2">
-                                    <p class="text-[9px] font-bold text-white shadow-black drop-shadow-md">${g.uid.split('@')[0]}</p>
-                                </div>
-                            </div>
-                            <div class="p-3 flex-1 flex flex-col">
-                                ${stars}
-                                <p class="text-[10px] text-slate-400 line-clamp-2 leading-relaxed">${g.comment || 'Tanpa keterangan'}</p>
-                            </div>
-                        </div>
-                    `;
-                });
-                grid += `</div>`;
-                list.innerHTML += grid;
+            if(currentPhotoComments.length > 0) {
+                const photoListId = 'photo-list-' + Math.random().toString(36).substr(2,5);
+                const loadMorePhotoId = 'load-more-photo-' + Math.random().toString(36).substr(2,5);
+                
+                const section = document.createElement('div');
+                section.innerHTML = `
+                    <div id="${photoListId}" class="grid grid-cols-2 gap-3"></div>
+                    <button id="${loadMorePhotoId}" onclick="renderPhotoComments('${photoListId}', '${loadMorePhotoId}')" class="w-full py-3 text-xs text-blue-400 font-bold hover:bg-white/5 mt-2 hidden">Muat Lebih Banyak Foto</button>
+                `;
+                list.appendChild(section);
+                renderPhotoComments(photoListId, loadMorePhotoId); // Render batch pertama
             }
 
             document.getElementById('spotDetailModal').classList.remove('hidden');
@@ -1720,7 +1838,7 @@
                 closeBtn.classList.remove('hidden');
             }
             
-            lucide.createIcons();
+            lucide.createIcons({ root: document.getElementById('spotDetailModal') });
         }
 
         function closeSpotDetail() { 
@@ -1755,7 +1873,10 @@
             groupedSpots = {};
 
             // 1. Ambil Data LocalStorage (sebagai base)
-            let local = JSON.parse(localStorage.getItem('spots') || '[]');
+            let local = [];
+            try {
+                local = JSON.parse(localStorage.getItem('spots') || '[]');
+            } catch(e) { console.error("Error parsing local spots", e); local = []; }
             local.forEach(item => {
                 const key = item.spotId || (item.lat + ',' + item.lng);
                 if(!groupedSpots[key]) groupedSpots[key] = [];
@@ -1785,8 +1906,7 @@
             // 3. Render Semua Marker dari Grouping yang sudah terkumpul
             Object.keys(groupedSpots).forEach(key => addMarker(key, groupedSpots[key]));
             
-            lucide.createIcons();
-            handleZoomEffect(); // Update tampilan setelah load
+            updateMapMarkers(); // Update tampilan setelah load
         }
 
         function locateUser() {
@@ -1869,6 +1989,8 @@
             if (nearestMarker) {
                 const spotLatLng = nearestMarker.getLatLng();
                 map.flyTo(spotLatLng, 16); // Zoom lebih dekat
+                // Pastikan marker ada di peta sebelum popup dibuka
+                if(!map.hasLayer(nearestMarker)) nearestMarker.addTo(map);
                 nearestMarker.openPopup();
 
                 // Gambar garis lurus dari user ke spot
@@ -1950,7 +2072,15 @@
                 html += `<div class="h-1.5 rounded-full transition-all duration-300 ${i===0 ? 'bg-white w-4' : 'bg-slate-600 w-1.5'}" id="dot-${i}"></div>`;
             }
             dotsContainer.innerHTML = html;
-            container.onscroll = updateScrollDots;
+            
+            // Throttled Scroll Handler untuk Dots
+            let lastDotScroll = 0;
+            container.onscroll = () => {
+                const now = Date.now();
+                if (now - lastDotScroll < 100) return; // 10fps cukup untuk indikator visual
+                lastDotScroll = now;
+                updateScrollDots();
+            };
         }
 
         function updateScrollDots() {
@@ -1977,7 +2107,7 @@
         function openMapSettings() {
             document.getElementById('mapSettingsModal').classList.remove('translate-y-full');
             if(typeof updateOfflineList === 'function') updateOfflineList(); // Refresh list saat menu dibuka
-            lucide.createIcons();
+            lucide.createIcons({ root: document.getElementById('mapSettingsModal') });
         }
 
         function closeMapSettings() {
@@ -2146,7 +2276,7 @@
             if(content) {
                 legend.innerHTML = content;
                 legend.classList.remove('hidden');
-                lucide.createIcons();
+                lucide.createIcons({ root: legend });
             }
         }
 
@@ -2226,7 +2356,7 @@
                 toast.innerHTML = `<i data-lucide="check" class="w-4 h-4 text-emerald-400"></i> Layer Angin Ditampilkan`;
                 document.body.appendChild(toast);
                 setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.5s'; setTimeout(() => toast.remove(), 500); }, 3000);
-                lucide.createIcons();
+                lucide.createIcons({ root: toast });
                 return;
             }
 
@@ -2255,7 +2385,7 @@
                             const p = feature.properties;
                             const d = new Date(p.time).toLocaleString();
                             layer.bindPopup(`<div class="bg-neutral-900/90 backdrop-blur-md p-3 rounded-xl border border-white/10 min-w-[180px] shadow-xl"><h4 class="font-bold text-sm text-white flex items-center gap-2"><i data-lucide="activity" class="w-4 h-4 text-red-500"></i> Gempa M ${p.mag.toFixed(1)}</h4><p class="text-xs text-slate-300 mt-1 leading-relaxed">${p.place}</p><p class="text-[10px] text-slate-500 mt-2 flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i> ${d}</p></div>`);
-                            layer.on('popupopen', () => lucide.createIcons());
+                            layer.on('popupopen', () => lucide.createIcons({ root: document.querySelector('.leaflet-popup-content') }));
                         }
                     }).addTo(map);
 
@@ -2264,7 +2394,7 @@
                     toast.innerHTML = `<i data-lucide="activity" class="w-4 h-4 text-red-500"></i> Data Gempa Ditampilkan`;
                     document.body.appendChild(toast);
                     setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.5s'; setTimeout(() => toast.remove(), 500); }, 3000);
-                    lucide.createIcons();
+                    lucide.createIcons({ root: toast });
                 } catch(e) {
                     alert("Gagal memuat data gempa.");
                 }
@@ -2282,7 +2412,7 @@
                 toast.innerHTML = `<i data-lucide="anchor" class="w-4 h-4 text-orange-400"></i> Peta Navigasi Laut`;
                 document.body.appendChild(toast);
                 setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.5s'; setTimeout(() => toast.remove(), 500); }, 3000);
-                lucide.createIcons();
+                lucide.createIcons({ root: toast });
                 return;
             }
 
@@ -2300,7 +2430,7 @@
                 toast.innerHTML = `<i data-lucide="gauge" class="w-4 h-4 text-purple-400"></i> Peta Tekanan Udara`;
                 document.body.appendChild(toast);
                 setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.5s'; setTimeout(() => toast.remove(), 500); }, 3000);
-                lucide.createIcons();
+                lucide.createIcons({ root: toast });
                 return;
             }
 
@@ -2338,7 +2468,7 @@
                 toast.innerHTML = `<i data-lucide="scan-line" class="w-4 h-4 text-pink-400"></i> Heatmap Ikan Aktif`;
                 document.body.appendChild(toast);
                 setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.5s'; setTimeout(() => toast.remove(), 500); }, 3000);
-                lucide.createIcons();
+                lucide.createIcons({ root: toast });
                 return;
             }
 
@@ -2357,7 +2487,7 @@
                 }).addTo(map);
                 
                 showLegend('sst');
-                const toast = document.createElement('div'); toast.className = "fixed top-24 left-1/2 -translate-x-1/2 bg-neutral-900/90 text-white px-4 py-2 rounded-full text-xs font-bold border border-white/10 shadow-xl z-[2000] flex items-center gap-2"; toast.innerHTML = `<i data-lucide="thermometer-sun" class="w-4 h-4 text-indigo-400"></i> Peta Suhu Aktif`; document.body.appendChild(toast); setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.5s'; setTimeout(() => toast.remove(), 500); }, 4000); lucide.createIcons(); return;
+                const toast = document.createElement('div'); toast.className = "fixed top-24 left-1/2 -translate-x-1/2 bg-neutral-900/90 text-white px-4 py-2 rounded-full text-xs font-bold border border-white/10 shadow-xl z-[2000] flex items-center gap-2"; toast.innerHTML = `<i data-lucide="thermometer-sun" class="w-4 h-4 text-indigo-400"></i> Peta Suhu Aktif`; document.body.appendChild(toast); setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.5s'; setTimeout(() => toast.remove(), 500); }, 4000); lucide.createIcons({ root: toast }); return;
             }
 
             // CHLOROPHYLL LAYER - NASA GIBS (Free)
@@ -2375,7 +2505,7 @@
                 }).addTo(map);
                 
                 showLegend('chlorophyll');
-                const toast = document.createElement('div'); toast.className = "fixed top-24 left-1/2 -translate-x-1/2 bg-neutral-900/90 text-white px-4 py-2 rounded-full text-xs font-bold border border-white/10 shadow-xl z-[2000] flex items-center gap-2"; toast.innerHTML = `<i data-lucide="sprout" class="w-4 h-4 text-emerald-400"></i> Peta Klorofil Aktif`; document.body.appendChild(toast); setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.5s'; setTimeout(() => toast.remove(), 500); }, 4000); lucide.createIcons(); return;
+                const toast = document.createElement('div'); toast.className = "fixed top-24 left-1/2 -translate-x-1/2 bg-neutral-900/90 text-white px-4 py-2 rounded-full text-xs font-bold border border-white/10 shadow-xl z-[2000] flex items-center gap-2"; toast.innerHTML = `<i data-lucide="sprout" class="w-4 h-4 text-emerald-400"></i> Peta Klorofil Aktif`; document.body.appendChild(toast); setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.5s'; setTimeout(() => toast.remove(), 500); }, 4000); lucide.createIcons({ root: toast }); return;
             }
 
             // BATHYMETRY LAYER (GEBCO)
@@ -2394,7 +2524,7 @@
                 toast.innerHTML = `<i data-lucide="waves" class="w-4 h-4 text-cyan-400"></i> Peta Kedalaman Aktif`;
                 document.body.appendChild(toast);
                 setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.5s'; setTimeout(() => toast.remove(), 500); }, 3000);
-                lucide.createIcons();
+                lucide.createIcons({ root: toast });
                 return;
             }
 
@@ -2442,7 +2572,7 @@
                 activeLayers[type] = L.layerGroup(layers).addTo(map);
                 
                 showLegend('sonar'); 
-                const toast = document.createElement('div'); toast.className = "fixed top-24 left-1/2 -translate-x-1/2 bg-neutral-900/90 text-white px-4 py-2 rounded-full text-xs font-bold border border-white/10 shadow-xl z-[2000] flex items-center gap-2"; toast.innerHTML = `<i data-lucide="radar" class="w-4 h-4 text-emerald-400"></i> Peta Laut (Chart) Aktif`; document.body.appendChild(toast); setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.5s'; setTimeout(() => toast.remove(), 500); }, 4000); lucide.createIcons(); return;
+                const toast = document.createElement('div'); toast.className = "fixed top-24 left-1/2 -translate-x-1/2 bg-neutral-900/90 text-white px-4 py-2 rounded-full text-xs font-bold border border-white/10 shadow-xl z-[2000] flex items-center gap-2"; toast.innerHTML = `<i data-lucide="radar" class="w-4 h-4 text-emerald-400"></i> Peta Laut (Chart) Aktif`; document.body.appendChild(toast); setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.5s'; setTimeout(() => toast.remove(), 500); }, 4000); lucide.createIcons({ root: toast }); return;
             }
 
             // LIVE SHIP RADAR (AIS)
@@ -2463,7 +2593,7 @@
 
                 const toast = document.createElement('div'); toast.className = "fixed top-24 left-1/2 -translate-x-1/2 bg-neutral-900/90 text-white px-4 py-2 rounded-full text-xs font-bold border border-white/10 shadow-xl z-[2000] flex items-center gap-2"; 
                 toast.innerHTML = `<i data-lucide="ship" class="w-4 h-4 text-red-400"></i> Radar Kapal Aktif`; 
-                document.body.appendChild(toast); setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.5s'; setTimeout(() => toast.remove(), 500); }, 4000); lucide.createIcons();
+                document.body.appendChild(toast); setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.5s'; setTimeout(() => toast.remove(), 500); }, 4000); lucide.createIcons({ root: toast });
                 return;
             }
 
@@ -2512,7 +2642,7 @@
                     toast.innerHTML = `<i data-lucide="check" class="w-4 h-4 text-emerald-400"></i> Layer ${type === 'rain' ? 'Hujan' : 'Awan'} Ditampilkan`;
                     document.body.appendChild(toast);
                     setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.5s'; setTimeout(() => toast.remove(), 500); }, 3000);
-                    lucide.createIcons();
+                    lucide.createIcons({ root: toast });
                 } else {
                     alert("Data cuaca tidak tersedia saat ini.");
                 }
@@ -2611,7 +2741,7 @@
             if (!modal) return;
 
             modal.classList.remove('translate-y-full');
-            lucide.createIcons(); // Render ikon tombol close
+            lucide.createIcons({ root: modal }); // Render ikon tombol close
 
             // Tunda inisialisasi peta sampai modal terlihat
             setTimeout(async () => {
@@ -2745,7 +2875,7 @@
             if (precipAnimationInterval) return; // Already playing
             isPrecipPlaying = true;
             document.getElementById('precip-play-pause-btn').innerHTML = '<i data-lucide="pause" class="w-6 h-6"></i>';
-            lucide.createIcons();
+            lucide.createIcons({ root: document.getElementById('precip-play-pause-btn') });
 
             precipAnimationInterval = setInterval(() => {
                 let nextIndex = currentPrecipFrameIndex + 1;
@@ -2765,7 +2895,7 @@
             const btn = document.getElementById('precip-play-pause-btn');
             if(btn) {
                 btn.innerHTML = '<i data-lucide="play" class="w-6 h-6"></i>';
-                lucide.createIcons();
+                lucide.createIcons({ root: btn });
             }
         }
 
@@ -2829,7 +2959,7 @@
             
             // Insert AFTER forecast-list
             forecastList.insertAdjacentHTML('afterend', cardHtml);
-            lucide.createIcons();
+            lucide.createIcons({ root: document.getElementById('precip-map-card') });
 
             try {
                 const res = await fetch(`https://api.rainviewer.com/public/weather-maps.json?_=${Date.now()}`);
@@ -2873,7 +3003,7 @@
             } catch (e) {
                 const previewMapContainer = document.getElementById('precip-map-preview');
                 if(previewMapContainer) previewMapContainer.innerHTML = `<div class="w-full h-full flex items-center justify-center bg-neutral-800"><i data-lucide="${navigator.onLine ? 'cloud-off' : 'wifi-off'}" class="w-6 h-6 text-slate-600"></i></div>`;
-                lucide.createIcons();
+                lucide.createIcons({ root: previewMapContainer });
             }
         }
 
@@ -2937,7 +3067,7 @@
             
             btn.disabled = true;
             btn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> Menghitung...`;
-            lucide.createIcons();
+            lucide.createIcons({ root: btn });
 
             const tiles = [];
             
@@ -3001,7 +3131,10 @@
                     size: estSizeMB,
                     cacheKey: cacheKey
                 };
-                const savedMaps = JSON.parse(localStorage.getItem('offlineMaps') || '[]');
+                let savedMaps = [];
+                try {
+                    savedMaps = JSON.parse(localStorage.getItem('offlineMaps') || '[]');
+                } catch(e) { savedMaps = []; }
                 savedMaps.push(meta);
                 localStorage.setItem('offlineMaps', JSON.stringify(savedMaps));
                 
@@ -3020,7 +3153,10 @@
             const list = document.getElementById('offline-maps-list');
             if(!list) return;
             
-            const maps = JSON.parse(localStorage.getItem('offlineMaps') || '[]');
+            let maps = [];
+            try {
+                maps = JSON.parse(localStorage.getItem('offlineMaps') || '[]');
+            } catch(e) { maps = []; }
             list.innerHTML = '';
             
             if(maps.length === 0) {
@@ -3043,14 +3179,17 @@
                 `;
                 list.appendChild(item);
             });
-            lucide.createIcons();
+            lucide.createIcons({ root: list });
         }
 
         // Fungsi Hapus Peta Offline
         async function deleteOfflineMap(id) {
             if(!confirm("Hapus area offline ini?")) return;
             
-            const maps = JSON.parse(localStorage.getItem('offlineMaps') || '[]');
+            let maps = [];
+            try {
+                maps = JSON.parse(localStorage.getItem('offlineMaps') || '[]');
+            } catch(e) { maps = []; }
             const target = maps.find(m => m.id === id);
             
             if(target) {
@@ -3172,7 +3311,7 @@
                 nextBtn.classList.replace('hover:bg-emerald-500', 'hover:bg-blue-500');
             }
             
-            lucide.createIcons();
+            lucide.createIcons({ root: tooltip });
 
             // Positioning Logic
             if(step.target) {
@@ -3371,6 +3510,7 @@
         // --- REELS FEATURE LOGIC ---
         let reelsInitialized = false;
         let reelsObserver = null;
+        let memoryObserver = null; // Observer untuk manajemen memori (Virtualisasi)
         let shownReelIds = new Set(); // Melacak video yang sudah ditampilkan agar tidak duplikat
         let isLoadingReels = false; // Lock untuk mencegah loading ganda (L)
         let reelProviderIndex = 0; // Counter untuk rotasi sumber video (Round Robin)
@@ -3401,12 +3541,48 @@
                 });
             }, { threshold: 0.6 }); // 60% video terlihat baru play
 
+            // --- NEW: Memory Management Observer (Virtualization) ---
+            // Unload video yang jauh dari viewport (> 1500px) untuk hemat RAM
+            memoryObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    const video = entry.target.querySelector('video');
+                    if (!video) return;
+
+                    if (entry.isIntersecting) {
+                        // Masuk area buffer: Restore video jika src kosong
+                        if (!video.getAttribute('src') && video.dataset.src) {
+                            video.src = video.dataset.src;
+                            video.load();
+                            // Tampilkan spinner loading
+                            const spinner = entry.target.querySelector('.animate-spin')?.parentElement;
+                            if(spinner) spinner.classList.remove('hidden');
+                        }
+                    } else {
+                        // Keluar area buffer: Hapus src untuk lepas memori
+                        if (video.getAttribute('src')) {
+                            video.removeAttribute('src');
+                            video.load(); // Paksa browser melepas buffer video
+                        }
+                    }
+                });
+            }, { rootMargin: "1500px 0px 1500px 0px" }); // Buffer 2-3 layar
+
+            // Observe existing reels (jika ada yang dibuat sebelum init)
+            container.querySelectorAll('.cv-reel').forEach(el => {
+                reelsObserver.observe(el);
+                memoryObserver.observe(el);
+            });
+
             // Load batch pertama
             loadReelsBatch();
             
-            // Infinite Scroll sederhana
+            // Infinite Scroll sederhana (Throttled)
+            let lastReelScroll = 0;
             container.addEventListener('scroll', () => {
-                // FIX: Increased threshold to 200px to trigger loading earlier
+                const now = Date.now();
+                if (now - lastReelScroll < 200) return; // Cek max 5 kali per detik
+                lastReelScroll = now;
+
                 if (container.scrollTop + container.clientHeight >= container.scrollHeight - 200) {
                     loadReelsBatch();
                 }
@@ -3416,7 +3592,7 @@
         // --- NEW: Helper to create Reel Element from Data Object ---
         function createReelFromData(data) {
             const container = document.createElement('div');
-            container.className = "w-full h-full snap-start relative bg-black flex items-center justify-center border-b border-white/10 shrink-0";
+            container.className = "w-full h-full snap-start relative bg-black flex items-center justify-center border-b border-white/10 shrink-0 cv-reel";
             
             const url = data.videoFile || data.url;
             const title = data.caption || data.title || '';
@@ -3435,9 +3611,9 @@
                 <div class="absolute inset-0 flex items-center justify-center bg-black z-0">
                     <div class="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full"></div>
                 </div>
-                <video src="${url}" poster="${thumbnail}" class="w-full h-full object-cover relative z-10" loop playsinline preload="auto" onloadeddata="this.previousElementSibling.classList.add('hidden')" autoplay></video>
+                <video data-src="${url}" src="${url}" poster="${thumbnail}" class="w-full h-full object-cover relative z-10" loop playsinline preload="metadata" onloadeddata="this.previousElementSibling.classList.add('hidden')"></video>
                 <div class="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/90 pointer-events-none"></div>
-                <div class="absolute bottom-0 left-0 w-full p-4 pb-16 z-10 pointer-events-none bg-gradient-to-t from-black/80 to-transparent">
+                <div class="absolute bottom-0 left-0 w-full p-4 pb-24 z-10 pointer-events-none bg-gradient-to-t from-black/80 to-transparent">
                     <div class="flex items-center gap-2 mb-2">
                         <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-cyan-400 p-[1.5px]">
                             <div class="w-full h-full rounded-full bg-black flex items-center justify-center overflow-hidden">
@@ -3454,7 +3630,7 @@
                         <span class="flex items-center gap-1"><i data-lucide="music" class="w-3 h-3"></i> Original Sound - SpotStrike</span>
                     </div>
                 </div>
-                <div class="absolute right-2 bottom-20 flex flex-col gap-4 items-center z-20 pb-4">
+                <div class="absolute right-2 bottom-24 flex flex-col gap-4 items-center z-20 pb-4">
                     <button class="flex flex-col items-center gap-1 group" onclick="const i=this.querySelector('i'); i.classList.toggle('fill-red-500'); i.classList.toggle('text-red-500'); i.classList.toggle('fill-white'); i.classList.toggle('text-white');">
                         <i data-lucide="heart" class="w-8 h-8 text-white fill-white drop-shadow-lg transition-colors group-active:scale-90"></i>
                         <span class="text-[10px] font-bold text-white drop-shadow-md">${likes}</span>
@@ -3470,6 +3646,7 @@
                 </div>`;
             
             if(reelsObserver) reelsObserver.observe(container);
+            if(memoryObserver) memoryObserver.observe(container);
             const v = container.querySelector('video');
             v.muted = false; // Unmute saat masuk mode Reels
             container.onclick = (e) => { if(!e.target.closest('button')) v.paused ? v.play() : v.pause(); };
@@ -3518,7 +3695,7 @@
             // Tambah 3 placeholder loading
             for (let i = 0; i < 3; i++) {
                 const el = document.createElement('div');
-                el.className = "w-full h-full snap-start relative bg-black flex items-center justify-center border-b border-white/10 shrink-0";
+                el.className = "w-full h-full snap-start relative bg-black flex items-center justify-center border-b border-white/10 shrink-0 cv-reel";
                 el.innerHTML = '<div class="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full"></div>';
                 container.appendChild(el);
                 fetchReelContent(el);
@@ -3540,7 +3717,7 @@
             
             // Helper: HTML Tombol Samping (Agar tidak duplikat kode)
             const getSideActions = (likes, comments) => `
-                <div class="absolute right-2 bottom-20 flex flex-col gap-4 items-center z-20 pb-4">
+                <div class="absolute right-2 bottom-24 flex flex-col gap-4 items-center z-20 pb-4">
                     <button class="flex flex-col items-center gap-1 group" onclick="const i=this.querySelector('i'); i.classList.toggle('fill-red-500'); i.classList.toggle('text-red-500'); i.classList.toggle('fill-white'); i.classList.toggle('text-white');">
                         <i data-lucide="heart" class="w-8 h-8 text-white fill-white drop-shadow-lg transition-colors group-active:scale-90"></i>
                         <span class="text-[10px] font-bold text-white drop-shadow-md">${likes}</span>
@@ -3567,9 +3744,9 @@
                     <div class="absolute inset-0 flex items-center justify-center bg-black z-0">
                         <div class="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full"></div>
                     </div>
-                    <video src="${url}" poster="${thumbnail}" class="w-full h-full object-cover relative z-10" loop playsinline preload="auto" onloadeddata="this.previousElementSibling.classList.add('hidden')"></video>
+                    <video data-src="${url}" src="${url}" poster="${thumbnail}" class="w-full h-full object-cover relative z-10" loop playsinline preload="metadata" onloadeddata="this.previousElementSibling.classList.add('hidden')"></video>
                     <div class="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/90 pointer-events-none"></div>
-                    <div class="absolute bottom-0 left-0 w-full p-4 pb-16 z-10 pointer-events-none bg-gradient-to-t from-black/80 to-transparent">
+                    <div class="absolute bottom-0 left-0 w-full p-4 pb-24 z-10 pointer-events-none bg-gradient-to-t from-black/80 to-transparent">
                         <div class="flex items-center gap-2 mb-2">
                             <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-cyan-400 p-[1.5px]">
                                 <div class="w-full h-full rounded-full bg-black flex items-center justify-center overflow-hidden">
@@ -3589,7 +3766,8 @@
                     ${getSideActions(likes, comments)}`;
                 
                 reelsObserver.observe(container);
-                if(typeof lucide !== 'undefined') lucide.createIcons();
+                if(memoryObserver) memoryObserver.observe(container);
+                if(typeof lucide !== 'undefined') lucide.createIcons({ root: container });
                 const v = container.querySelector('video');
                 container.onclick = (e) => { if(!e.target.closest('button')) v.paused ? v.play() : v.pause(); };
             };
@@ -3828,7 +4006,10 @@
             if(grid) {
                 grid.innerHTML = '';
                 // Ambil spot lokal sebagai postingan user (Simulasi)
-                const localSpots = JSON.parse(localStorage.getItem('spots') || '[]');
+                let localSpots = [];
+                try {
+                    localSpots = JSON.parse(localStorage.getItem('spots') || '[]');
+                } catch(e) { localSpots = []; }
                 const userSpots = localSpots; 
                 
                 if(postsCount) postsCount.innerText = userSpots.length;
@@ -3845,7 +4026,7 @@
                         
                         const imgUrl = spot.photo || 'https://via.placeholder.com/150?text=No+Image';
                         div.innerHTML = `
-                            <img src="${imgUrl}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                            <img src="${imgUrl}" loading="lazy" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
                             <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1 text-white font-bold">
                                 <i data-lucide="heart" class="w-5 h-5 fill-white"></i> <span>${spot.likes || 0}</span>
                             </div>
@@ -3854,7 +4035,7 @@
                     });
                 }
             }
-            if(typeof lucide !== 'undefined') lucide.createIcons();
+            if(typeof lucide !== 'undefined') lucide.createIcons({ root: grid });
         }
 
         // --- EDIT PROFILE LOGIC ---
@@ -3932,7 +4113,7 @@
                         toast.innerHTML = `<i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i> Aplikasi Sudah Terbaru`;
                         document.body.appendChild(toast);
                         setTimeout(() => toast.remove(), 3000);
-                        if(typeof lucide !== 'undefined') lucide.createIcons();
+                        if(typeof lucide !== 'undefined') lucide.createIcons({ root: toast });
                     }
                 }
             } catch (e) {
