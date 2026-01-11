@@ -9,14 +9,13 @@ body {
     background-attachment: fixed;
     color: white; 
     overscroll-behavior-y: none; /* Mencegah efek 'melar' (rubber-band) pada PWA/Mobile */
+    -webkit-tap-highlight-color: transparent; /* Menghilangkan blok warna biru saat tap di Android/iOS */
 }
 #map { height: 100vh; width: 100%; z-index: 1; }
 
 /* Modern Glassmorphism */
 .glass { 
-    background: rgba(15, 23, 42, 0.65); 
-    backdrop-filter: blur(16px); 
-    -webkit-backdrop-filter: blur(16px);
+    background: rgba(15, 23, 42, 0.9); /* Fallback Mobile: Lebih solid & gelap */
     border: 1px solid rgba(255, 255, 255, 0.08); 
     box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
     transition: all 0.3s ease;
@@ -34,8 +33,8 @@ body {
 
 /* Floating Animation for Map Buttons */
 @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
-.animate-float { animation: float 4s ease-in-out infinite; }
-.animate-float-delay { animation: float 4s ease-in-out infinite; animation-delay: 2s; }
+.animate-float { animation: float 4s ease-in-out infinite; will-change: transform; }
+.animate-float-delay { animation: float 4s ease-in-out infinite; animation-delay: 2s; will-change: transform; }
 
 /* Gradient Text */
 .text-gradient {
@@ -61,6 +60,22 @@ body {
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
+/* --- UX: Better Touch Feedback --- */
+/* Memberikan efek 'tekan' pada tombol agar terasa responsif seperti aplikasi native */
+button:active {
+    transform: scale(0.96);
+}
+
+/* --- PERFORMANCE: CSS Containment --- */
+.cv-auto {
+    content-visibility: auto;
+    contain-intrinsic-size: 1px 600px; /* Estimasi tinggi rata-rata item feed agar scrollbar stabil */
+}
+.cv-reel {
+    content-visibility: auto;
+    contain-intrinsic-size: 100vw 100vh; /* Full screen reel */
+}
+
 /* Global Scrollbar Hiding (Native App Feel) */
 ::-webkit-scrollbar { display: none; }
 * {
@@ -70,6 +85,16 @@ body {
 
 /* Mobile Optimizations */
 input, button { touch-action: manipulation; }
+
+/* --- LAYOUT: Safe Area Insets (Poni & Home Indicator) --- */
+/* Padding khusus agar konten tidak tertutup poni atau garis bawah iPhone */
+.pt-safe { padding-top: env(safe-area-inset-top); }
+.pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+
+/* Header & Nav Specific Safe Padding */
+.header-safe { padding-top: calc(1rem + env(safe-area-inset-top)); } /* pt-4 + safe area */
+.nav-bar-safe { padding-bottom: calc(1.25rem + env(safe-area-inset-bottom)); } /* pb-5 + safe area */
+.modal-safe { padding-bottom: env(safe-area-inset-bottom); }
 
 /* Prevent iOS Zoom on Input Focus */
 @media screen and (max-width: 768px) {
@@ -192,3 +217,20 @@ body.light-mode {
     pointer-events: auto;
 }
 .tour-tooltip.active { opacity: 1; }
+
+/* --- PERFORMANCE: Disable Blur on Mobile --- */
+@media (min-width: 768px) {
+    .glass {
+        background: rgba(15, 23, 42, 0.65); 
+        backdrop-filter: blur(16px); 
+        -webkit-backdrop-filter: blur(16px);
+    }
+}
+
+@media (max-width: 767px) {
+    /* Matikan semua efek blur di HP untuk menjaga FPS stabil saat scrolling */
+    [class*="backdrop-blur"] {
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+    }
+}
