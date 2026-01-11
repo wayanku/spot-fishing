@@ -4203,3 +4203,13 @@
                 }
             }
         }, { passive: true });
+
+        // --- DISABLE CONTEXT MENU (Native App Feel) ---
+        // Mencegah menu klik kanan/tekan lama (Save Image, Copy Text, dll)
+        document.addEventListener('contextmenu', event => {
+            const tag = event.target.tagName;
+            // Izinkan menu hanya pada input text agar bisa paste/cut
+            if (tag !== 'INPUT' && tag !== 'TEXTAREA') {
+                event.preventDefault();
+            }
+        }, { passive: false });
