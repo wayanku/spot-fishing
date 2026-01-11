@@ -1872,7 +1872,7 @@ async function showLocationPanel(latlng) {
     panel.style.setProperty('background', 'transparent', 'important'); // Make transparent so canvas shows
     panel.style.setProperty('backdrop-filter', 'none', 'important'); // Hapus efek blur
     panel.style.setProperty('-webkit-backdrop-filter', 'none', 'important'); // Support Safari
-    panel.style.setProperty('padding-bottom', '80px', 'important'); // Tambahan padding bawah agar konten paling bawah tidak mentok
+    panel.style.setProperty('padding-bottom', '20px', 'important'); // Tambahan padding bawah agar konten paling bawah tidak mentok
     
     // FIX: Hapus lengkungan pada elemen anak (konten dalam panel)
     Array.from(panel.children).forEach(child => {
@@ -3218,7 +3218,7 @@ function openDetailModal(dayIndex) {
     modal.style.setProperty('margin', '0', 'important');
     modal.style.setProperty('background-color', '#000000', 'important');
     modal.style.setProperty('overflow-y', 'auto', 'important'); // Pastikan bisa di-scroll
-    modal.style.setProperty('padding-bottom', '80px', 'important');
+    modal.style.setProperty('padding-bottom', '20px', 'important');
     
     // FIX: Reset style anak elemen modal juga agar tidak memotong konten
     Array.from(modal.children).forEach(child => {
