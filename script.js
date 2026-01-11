@@ -3618,7 +3618,7 @@
                 </div>
                 <video data-src="${url}" src="${url}" poster="${thumbnail}" class="w-full h-full object-cover relative z-10" loop playsinline preload="metadata" onloadeddata="this.previousElementSibling.classList.add('hidden')"></video>
                 <div class="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/90 pointer-events-none"></div>
-                <div class="absolute bottom-0 left-0 w-full p-4 pb-24 z-10 pointer-events-none bg-gradient-to-t from-black/80 to-transparent">
+                <div class="absolute bottom-0 left-0 w-full p-4 pb-14 z-10 pointer-events-none bg-gradient-to-t from-black/80 to-transparent">
                     <div class="flex items-center gap-2 mb-2">
                         <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-cyan-400 p-[1.5px]">
                             <div class="w-full h-full rounded-full bg-black flex items-center justify-center overflow-hidden">
@@ -3635,7 +3635,7 @@
                         <span class="flex items-center gap-1"><i data-lucide="music" class="w-3 h-3"></i> Original Sound - SpotStrike</span>
                     </div>
                 </div>
-                <div class="absolute right-2 bottom-24 flex flex-col gap-4 items-center z-20 pb-4">
+                <div class="absolute right-2 bottom-14 flex flex-col gap-4 items-center z-20 pb-4">
                     <button class="flex flex-col items-center gap-1 group" onclick="const i=this.querySelector('i'); i.classList.toggle('fill-red-500'); i.classList.toggle('text-red-500'); i.classList.toggle('fill-white'); i.classList.toggle('text-white');">
                         <i data-lucide="heart" class="w-8 h-8 text-white fill-white drop-shadow-lg transition-colors group-active:scale-90"></i>
                         <span class="text-[10px] font-bold text-white drop-shadow-md">${likes}</span>
@@ -3722,7 +3722,7 @@
             
             // Helper: HTML Tombol Samping (Agar tidak duplikat kode)
             const getSideActions = (likes, comments) => `
-                <div class="absolute right-2 bottom-24 flex flex-col gap-4 items-center z-20 pb-4">
+                <div class="absolute right-2 bottom-14 flex flex-col gap-4 items-center z-20 pb-4">
                     <button class="flex flex-col items-center gap-1 group" onclick="const i=this.querySelector('i'); i.classList.toggle('fill-red-500'); i.classList.toggle('text-red-500'); i.classList.toggle('fill-white'); i.classList.toggle('text-white');">
                         <i data-lucide="heart" class="w-8 h-8 text-white fill-white drop-shadow-lg transition-colors group-active:scale-90"></i>
                         <span class="text-[10px] font-bold text-white drop-shadow-md">${likes}</span>
@@ -3751,7 +3751,7 @@
                     </div>
                     <video data-src="${url}" src="${url}" poster="${thumbnail}" class="w-full h-full object-cover relative z-10" loop playsinline preload="metadata" onloadeddata="this.previousElementSibling.classList.add('hidden')"></video>
                     <div class="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/90 pointer-events-none"></div>
-                    <div class="absolute bottom-0 left-0 w-full p-4 pb-24 z-10 pointer-events-none bg-gradient-to-t from-black/80 to-transparent">
+                    <div class="absolute bottom-0 left-0 w-full p-4 pb-14 z-10 pointer-events-none bg-gradient-to-t from-black/80 to-transparent">
                         <div class="flex items-center gap-2 mb-2">
                             <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-cyan-400 p-[1.5px]">
                                 <div class="w-full h-full rounded-full bg-black flex items-center justify-center overflow-hidden">
