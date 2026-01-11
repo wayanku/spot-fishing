@@ -1,5 +1,21 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
+
+/* --- NATIVE APP FEEL: Disable Selection & Callouts --- */
+* {
+    -webkit-touch-callout: none; /* iOS: Disable Context Menu (Save Image/Copy) */
+    -webkit-user-select: none;   /* Disable Text Selection */
+    user-select: none;
+    -webkit-user-drag: none;     /* Disable Dragging */
+}
+
+/* Allow interaction on Inputs */
+input, textarea {
+    -webkit-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
+}
+
 html, body {
     height: 100dvh !important;
     background-color: #000000 !important; /* Pastikan celah bawah tidak putih */
