@@ -12,15 +12,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fishing Spot by Wayan & StoryBali</title>
+    <title>SpotStrike by Wayan & StoryBali</title>
     <meta name="theme-color" content="#000000">
     
     <!-- PWA Manifest & Icons -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Fishing Spot by Wayan & StoryBali">
-    <meta name="application-name" content="Fishing Spot by Wayan & StoryBali">
+    <meta name="apple-mobile-web-app-title" content="SpotStrike">
+    <meta name="application-name" content="SpotStrike">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2970/2970068.png">
     <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/2970/2970068.png">
     <!-- Manifest ditanam langsung (Tanpa file baru) -->
@@ -39,6 +39,8 @@
     <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
     <!-- Solunar/Sun/Moon Calculator -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.8.0/suncalc.min.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Shrikhand&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" href="style.css">
     <style>
@@ -107,7 +109,7 @@
                 <div class="bg-gradient-to-br from-blue-500 to-blue-700 w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-blue-500/20 ring-4 ring-blue-500/10">
                     <i data-lucide="anchor" class="text-white w-8 h-8"></i>
                 </div>
-                <h2 class="text-3xl font-black tracking-tight text-gradient mb-2" data-i18n="app_title">Fishing Spot</h2>
+                <h2 class="text-3xl font-black tracking-tight text-gradient mb-2" data-i18n="app_title">SpotStrike</h2>
                 <p class="text-xs font-bold text-slate-500 uppercase tracking-widest">by Wayan & StoryBali</p>
                 <p class="text-slate-400 text-sm" data-i18n="login_subtitle">Masuk untuk simpan spot memancing Anda</p>
             </div>
@@ -128,14 +130,14 @@
         <!-- === HALAMAN 1: HOME (FEED) === -->
         <div id="view-home" class="view-section active">
             <!-- Header (Relative - Ikut Scroll) -->
-            <div id="home-header" class="relative z-50 bg-black/90 backdrop-blur-md pt-4 pb-2 px-4 md:px-6 border-b border-white/5 transition-all duration-300">
+            <div id="home-header" class="relative z-50 bg-black/90 backdrop-blur-md pt-4 pb-2 px-2 md:px-6 border-b border-white/5 transition-all duration-300">
                 <div class="flex items-center justify-between">
                     <!-- Left: Add Button -->
                     <button onclick="openAddModal()" class="p-2 text-slate-200 hover:text-white transition-colors">
-                        <i data-lucide="plus-square" class="w-7 h-7"></i>
+                        <i data-lucide="plus" class="w-7 h-7"></i>
                     </button>
                     <!-- Center: Title (Calligraphy) -->
-                    <h1 class="text-4xl text-white text-center flex-1" style="font-family: 'Brush Script MT', cursive; text-shadow: 0 0 15px rgba(59,130,246,0.6);">Fishing Spot</h1>
+                    <h1 class="text-3xl md:text-4xl text-center flex-1 text-white" style="font-family: 'Shrikhand', cursive; letter-spacing: 1px; filter: drop-shadow(0 2px 10px rgba(59,130,246,0.5));">SpotStrike</h1>
                     <!-- Right: Favorites (Love) -->
                     <button onclick="openFavorites()" class="p-2 text-slate-200 hover:text-red-500 transition-colors">
                         <i data-lucide="heart" class="w-7 h-7"></i>
@@ -436,7 +438,7 @@
         </div>
 
         <!-- Bottom Navigation Bar (Instagram Style) -->
-        <div class="fixed bottom-0 left-0 right-0 md:bottom-6 md:w-[500px] md:left-1/2 md:-translate-x-1/2 z-[900] bg-black/80 backdrop-blur-xl md:rounded-3xl pb-2 pt-2 px-2 md:pb-4 md:px-8 grid grid-cols-5 justify-items-center items-center shadow-2xl transition-all duration-300 border-t md:border border-white/10">
+        <div class="fixed bottom-0 left-0 right-0 md:bottom-6 md:w-[500px] md:left-1/2 md:-translate-x-1/2 z-[900] bg-black/80 backdrop-blur-xl md:rounded-3xl pb-5 pt-3 px-0 md:pb-4 md:px-8 grid grid-cols-5 justify-items-center items-center shadow-2xl transition-all duration-300 border-t md:border border-white/10">
             <button onclick="navigateTo('home')" class="nav-btn p-2 text-blue-400 flex flex-col items-center transition-colors group" id="nav-home">
                 <i data-lucide="home" class="w-7 h-7 group-hover:scale-110 transition-transform"></i>
             </button>
