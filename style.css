@@ -11,7 +11,7 @@ body {
     overscroll-behavior-y: none; /* Mencegah efek 'melar' (rubber-band) pada PWA/Mobile */
     -webkit-tap-highlight-color: transparent; /* Menghilangkan blok warna biru saat tap di Android/iOS */
 }
-#map { height: 100vh; width: 100%; z-index: 1; }
+#map { height: 100dvh; width: 100%; z-index: 1; }
 
 /* Modern Glassmorphism */
 .glass { 
@@ -73,7 +73,7 @@ button:active {
 }
 .cv-reel {
     content-visibility: auto;
-    contain-intrinsic-size: 100vw 100vh; /* Full screen reel */
+    contain-intrinsic-size: 100vw 100dvh; /* Full screen reel */
 }
 
 /* Global Scrollbar Hiding (Native App Feel) */
