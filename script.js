@@ -134,7 +134,7 @@
         // --- MULTI-LANGUAGE SYSTEM ---
         const translations = {
             id: {
-                app_title: "Fishing Spot by Wayan & StoryBali", login_subtitle: "Masuk untuk simpan spot memancing Anda",
+                app_title: "SpotStrike by Wayan & StoryBali", login_subtitle: "Masuk untuk simpan spot memancing Anda",
                 btn_login: "Masuk Sekarang", btn_register: "Belum punya akun? Daftar gratis",
                 search_placeholder: "Cari lokasi (Desa, Kota, Laut)...",
                 wx_score: "AI Score", wx_temp: "Suhu", wx_wind: "Angin", wx_weather: "Cuaca",
@@ -146,7 +146,7 @@
                 label_contributors: "Kontributor", label_record: "Rekor Ikan", btn_add_review: "Tambah Foto / Ulasan Disini"
             },
             en: {
-                app_title: "Fishing Spot by Wayan & StoryBali", login_subtitle: "Login to save your fishing spots",
+                app_title: "SpotStrike by Wayan & StoryBali", login_subtitle: "Login to save your fishing spots",
                 btn_login: "Login Now", btn_register: "No account? Sign up free",
                 search_placeholder: "Search location (City, Sea)...",
                 wx_score: "AI Score", wx_temp: "Temp", wx_wind: "Wind", wx_weather: "Weather",
@@ -158,7 +158,7 @@
                 label_contributors: "Contributors", label_record: "Fish Record", btn_add_review: "Add Photo / Review Here"
             },
             jp: {
-                app_title: "Fishing Spot by Wayan & StoryBali", login_subtitle: "釣り場を保存するためにログインしてください",
+                app_title: "SpotStrike by Wayan & StoryBali", login_subtitle: "釣り場を保存するためにログインしてください",
                 btn_login: "ログイン", btn_register: "アカウントなし？ 無料登録",
                 search_placeholder: "場所を検索 (都市, 海)...",
                 wx_score: "AIスコア", wx_temp: "気温", wx_wind: "風", wx_weather: "天気",
@@ -3241,7 +3241,21 @@
         }
 
         // --- NAVIGATION SYSTEM (Moved from index.html) ---
-        function navigateTo(pageId) {
+        function navigateTo(pageId, fromHistory = false) {
+            // --- FIX: Stop Audio/Video when changing views ---
+            // Menghentikan suara video feed saat pindah navigasi
+            document.querySelectorAll('video, audio').forEach(el => el.pause());
+
+            // --- FIX: Handle Android Back Button (History API) ---
+            // Menambahkan state history agar tombol kembali HP tidak langsung keluar aplikasi
+            if (!fromHistory) {
+                const current = document.querySelector('.view-section.active');
+                const currentId = current ? current.id.replace('view-', '') : 'home';
+                if (currentId !== pageId) {
+                    history.pushState({ page: pageId }, '', '');
+                }
+            }
+
             // 1. Cek status tab cuaca SEBELUM reset class (untuk logika "klik lagi")
             const weatherView = document.getElementById('view-weather');
             const isWeatherActive = weatherView && weatherView.classList.contains('active');
@@ -3328,6 +3342,12 @@
             }
         }
 
+        // --- FIX: Handle Back Button Event ---
+        window.addEventListener('popstate', (event) => {
+            const page = event.state ? event.state.page : 'home';
+            navigateTo(page, true);
+        });
+
         // Pindahkan konten pengaturan ke halaman settings saat load
         document.addEventListener('DOMContentLoaded', function() {
             const settingsContent = document.querySelector('#legendModal .space-y-4');
@@ -3343,6 +3363,9 @@
             
             // FIX: Jalankan aplikasi utama saat load agar Auth Listener aktif
             initApp();
+            
+            // --- FIX: Init History State ---
+            history.replaceState({ page: 'home' }, '', '');
         });
 
         // --- REELS FEATURE LOGIC ---
@@ -3428,7 +3451,7 @@
                     </div>
                     <p class="text-white text-sm leading-snug drop-shadow-md font-medium line-clamp-3 pr-16 opacity-90">${title}</p>
                     <div class="flex items-center gap-2 mt-3 text-xs text-white/70">
-                        <span class="flex items-center gap-1"><i data-lucide="music" class="w-3 h-3"></i> Original Sound - Fishing Spot</span>
+                        <span class="flex items-center gap-1"><i data-lucide="music" class="w-3 h-3"></i> Original Sound - SpotStrike</span>
                     </div>
                 </div>
                 <div class="absolute right-2 bottom-20 flex flex-col gap-4 items-center z-20 pb-4">
@@ -3560,7 +3583,7 @@
                         </div>
                         <p class="text-white text-sm leading-snug drop-shadow-md font-medium line-clamp-3 pr-16 opacity-90">${title}</p>
                         <div class="flex items-center gap-2 mt-3 text-xs text-white/70">
-                            <span class="flex items-center gap-1"><i data-lucide="music" class="w-3 h-3"></i> Original Sound - Fishing Spot</span>
+                            <span class="flex items-center gap-1"><i data-lucide="music" class="w-3 h-3"></i> Original Sound - SpotStrike</span>
                         </div>
                     </div>
                     ${getSideActions(likes, comments)}`;
