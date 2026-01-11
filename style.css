@@ -111,7 +111,7 @@ input, button { touch-action: manipulation; }
 
 /* Pastikan tombol tidak terpotong saat mepet bawah */
 .nav-btn {
-    padding-bottom: 2px !important;
+    padding-bottom: 0px !important;
     padding-top: 5px !important;
 }
 
