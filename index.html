@@ -1488,7 +1488,7 @@
                     const postId = d.id || d.video; 
 
                     // Verified Badge SVG (Instagram Style)
-                    const verifiedBadge = `<svg class="w-3.5 h-3.5 ml-1 text-blue-500 fill-current" viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-1.9 14.7L6 12.6l1.5-1.5 2.6 2.6 6.4-6.4 1.5 1.5-7.9 7.9z"/></svg>`;
+                    const verifiedBadge = `<svg class="w-4 h-4 ml-1" viewBox="0 0 24 24" fill="none"><path d="M23 12l-2.44-2.79.34-3.69-3.61-.82-1.89-3.2L12 2.96 8.6 1.5 6.71 4.69 3.1 5.5l.34 3.69L1 12l2.44 2.79-.34 3.69 3.61.82 1.89 3.2 3.4-1.46 3.4 1.46 1.89-3.2 3.61-.82-.34-3.69L23 12z" fill="#3b82f6"/><path d="M10 15.17L6.12 11.29L7.53 9.87L10 12.34L16.47 5.87L17.88 7.29L10 15.17Z" fill="black"/></svg>`;
 
                     const el = document.createElement('div');
                     
@@ -1514,7 +1514,7 @@
                             <div>
                                 <div class="flex items-center gap-1">
                                     <p class="text-sm font-semibold text-white truncate">${d.userName}</p>
-                                    ${verifiedBadge}
+                                    ${(d.video || d.userName === 'Wayan') ? verifiedBadge : ''}
                                 </div>
                                 <button onclick="if(typeof navigateTo === 'function') { navigateTo('map'); if(typeof map !== 'undefined') map.flyTo([${d.lat || 0}, ${d.lng || 0}], 15); }" class="text-xs text-blue-400 font-bold truncate hover:text-blue-300 transition-colors block text-left max-w-[200px]">
                                     Lihat Lokasi Spot
@@ -1741,7 +1741,7 @@
                         <div class="flex items-center gap-3 mb-4">
                             <div class="w-10 h-10 rounded-full bg-slate-700 overflow-hidden border border-white/10 p-[2px] bg-gradient-to-tr from-blue-500 to-cyan-500"><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Wayan" class="w-full h-full object-cover rounded-full bg-slate-800"></div>
                             <div>
-                                <p class="text-sm font-bold text-white flex items-center gap-1">Wayan <svg class="w-3.5 h-3.5 text-blue-500 fill-current" viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-1.9 14.7L6 12.6l1.5-1.5 2.6 2.6 6.4-6.4 1.5 1.5-7.9 7.9z"/></svg></p>
+                                <p class="text-sm font-bold text-white flex items-center gap-1">Wayan <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none"><path d="M23 12l-2.44-2.79.34-3.69-3.61-.82-1.89-3.2L12 2.96 8.6 1.5 6.71 4.69 3.1 5.5l.34 3.69L1 12l2.44 2.79-.34 3.69 3.61.82 1.89 3.2 3.4-1.46 3.4 1.46 1.89-3.2 3.61-.82-.34-3.69L23 12z" fill="#3b82f6"/><path d="M10 15.17L6.12 11.29L7.53 9.87L10 12.34L16.47 5.87L17.88 7.29L10 15.17Z" fill="black"/></svg></p>
                                 <p class="text-[10px] text-slate-400">AI Safety • Info Laut</p>
                             </div>
                             <div class="ml-auto text-[10px] px-2 py-1 rounded-full bg-red-500/20 text-red-400 border border-white/5">Peringatan</div>
@@ -1796,7 +1796,7 @@
                 <div class="flex items-center gap-3 mb-4">
                     <div class="w-10 h-10 rounded-full bg-slate-700 overflow-hidden border border-white/10 p-[2px] bg-gradient-to-tr from-blue-500 to-cyan-500"><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Wayan" class="w-full h-full object-cover rounded-full bg-slate-800"></div>
                     <div>
-                        <p class="text-sm font-bold text-white flex items-center gap-1">Wayan <svg class="w-3.5 h-3.5 text-blue-500 fill-current" viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-1.9 14.7L6 12.6l1.5-1.5 2.6 2.6 6.4-6.4 1.5 1.5-7.9 7.9z"/></svg></p>
+                        <p class="text-sm font-bold text-white flex items-center gap-1">Wayan <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none"><path d="M23 12l-2.44-2.79.34-3.69-3.61-.82-1.89-3.2L12 2.96 8.6 1.5 6.71 4.69 3.1 5.5l.34 3.69L1 12l2.44 2.79-.34 3.69 3.61.82 1.89 3.2 3.4-1.46 3.4 1.46 1.89-3.2 3.61-.82-.34-3.69L23 12z" fill="#3b82f6"/><path d="M10 15.17L6.12 11.29L7.53 9.87L10 12.34L16.47 5.87L17.88 7.29L10 15.17Z" fill="black"/></svg></p>
                         <p class="text-[10px] text-slate-400">AI Fishing Assistant • Baru saja</p>
                     </div>
                     <div class="ml-auto text-[10px] px-2 py-1 rounded-full bg-blue-500/20 text-blue-400 border border-white/5">Saran AI</div>
@@ -2009,7 +2009,7 @@
                             <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=StoryBali&backgroundColor=b6e3f4" class="w-full h-full object-cover rounded-full bg-indigo-900">
                         </div>
                         <div>
-                            <p class="text-sm font-bold text-white flex items-center gap-1">StoryBali <svg class="w-3.5 h-3.5 text-blue-500 fill-current" viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-1.9 14.7L6 12.6l1.5-1.5 2.6 2.6 6.4-6.4 1.5 1.5-7.9 7.9z"/></svg></p>
+                            <p class="text-sm font-bold text-white flex items-center gap-1">StoryBali</p>
                             <p class="text-[10px] text-indigo-200">Teman Mancingmu • Live Update</p>
                         </div>
                     </div>
@@ -2105,7 +2105,7 @@
                     <div class="flex items-center gap-3 mb-4">
                         <div class="w-10 h-10 rounded-full bg-slate-700 overflow-hidden border border-white/10 p-[2px] bg-gradient-to-tr from-slate-700 to-slate-600"><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Jack" class="w-full h-full object-cover rounded-full bg-slate-800"></div>
                         <div>
-                            <p class="text-sm font-bold text-white flex items-center gap-1">Kapten Jack <svg class="w-3.5 h-3.5 text-blue-500 fill-current" viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-1.9 14.7L6 12.6l1.5-1.5 2.6 2.6 6.4-6.4 1.5 1.5-7.9 7.9z"/></svg></p>
+                            <p class="text-sm font-bold text-white flex items-center gap-1">Kapten Jack</p>
                             <p class="text-[10px] text-slate-400">Edukasi & Tips • Nelayan Senior</p>
                         </div>
                         <div class="ml-auto text-[10px] px-2 py-1 rounded-full ${category.bg} ${category.color} border border-white/5">${category.title}</div>
@@ -2160,7 +2160,7 @@
                     <div class="flex items-center gap-3 mb-4">
                         <div class="w-10 h-10 rounded-full bg-slate-700 overflow-hidden border border-white/10 p-[2px] bg-gradient-to-tr from-blue-500 to-cyan-500"><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Wayan" class="w-full h-full object-cover rounded-full bg-slate-800"></div>
                         <div>
-                            <p class="text-sm font-bold text-white flex items-center gap-1">Wayan <svg class="w-3.5 h-3.5 text-blue-500 fill-current" viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-1.9 14.7L6 12.6l1.5-1.5 2.6 2.6 6.4-6.4 1.5 1.5-7.9 7.9z"/></svg></p>
+                            <p class="text-sm font-bold text-white flex items-center gap-1">Wayan <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none"><path d="M23 12l-2.44-2.79.34-3.69-3.61-.82-1.89-3.2L12 2.96 8.6 1.5 6.71 4.69 3.1 5.5l.34 3.69L1 12l2.44 2.79-.34 3.69 3.61.82 1.89 3.2 3.4-1.46 3.4 1.46 1.89-3.2 3.61-.82-.34-3.69L23 12z" fill="#3b82f6"/><path d="M10 15.17L6.12 11.29L7.53 9.87L10 12.34L16.47 5.87L17.88 7.29L10 15.17Z" fill="black"/></svg></p>
                             <p class="text-[10px] text-slate-400">Prakiraan 3 Hari</p>
                         </div>
                         <div class="ml-auto text-[10px] px-2 py-1 rounded-full bg-blue-500/20 text-blue-400 border border-white/5">Info</div>
@@ -3005,6 +3005,10 @@
 
         // Helper: Render Tampilan Postingan (Sama persis dengan Feed User)
         function renderExternalPostUI(container, d, mode) {
+            // Verified Badge Logic
+            const isVerified = ['Wayan', 'StoryBali', 'Kapten Jack', 'NatGeo', 'NASA', 'Ensiklopedia', 'Chef', 'Ahli'].some(k => d.userName.includes(k)) || (d.videoFile || d.videoUrl);
+            const verifiedBadge = `<svg class="w-4 h-4 ml-1" viewBox="0 0 24 24" fill="none"><path d="M23 12l-2.44-2.79.34-3.69-3.61-.82-1.89-3.2L12 2.96 8.6 1.5 6.71 4.69 3.1 5.5l.34 3.69L1 12l2.44 2.79-.34 3.69 3.61.82 1.89 3.2 3.4-1.46 3.4 1.46 1.89-3.2 3.61-.82-.34-3.69L23 12z" fill="#3b82f6"/><path d="M10 15.17L6.12 11.29L7.53 9.87L10 12.34L16.47 5.87L17.88 7.29L10 15.17Z" fill="black"/></svg>`;
+
             container.className = "bg-black mb-1 pb-2 border-b border-neutral-800";
             container.innerHTML = `
                 <!-- Header -->
@@ -3018,7 +3022,7 @@
                     <div>
                         <div class="flex items-center gap-1">
                             <p class="text-sm font-semibold text-white truncate">${d.userName}</p>
-                            <svg class="w-3 h-3 text-blue-500 fill-current" viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-1.9 14.7L6 12.6l1.5-1.5 2.6 2.6 6.4-6.4 1.5 1.5-7.9 7.9z"/></svg>
+                            ${isVerified ? verifiedBadge : ''}
                         </div>
                         <p class="text-xs text-white/80 font-medium">${d.location}</p>
                     </div>
