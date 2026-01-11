@@ -1828,7 +1828,7 @@
                     document.body.appendChild(closeBtn);
                     
                     closeBtn.style.position = 'fixed';
-                    closeBtn.style.top = '20px';
+                    closeBtn.style.top = 'calc(20px + env(safe-area-inset-top))';
                     closeBtn.style.right = '20px';
                     closeBtn.style.zIndex = '10000';
                     closeBtn.className = "bg-black/80 backdrop-blur-md border border-white/20 shadow-2xl rounded-full p-2 hover:bg-red-500/20 transition-all text-white";
@@ -2133,7 +2133,7 @@
                     container.style.alignItems = 'center';
                     container.style.justifyContent = 'center';
                     container.style.cursor = 'pointer';
-                    container.style.marginTop = '80px'; // Turunkan posisi agar tidak tertutup search bar
+                    container.style.marginTop = 'calc(120px + env(safe-area-inset-top))'; // Turunkan posisi agar tidak tertutup search bar
                     container.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
                     
                     // Ikon Kompas Custom (Jarum Merah = Utara)
@@ -4129,3 +4129,77 @@
                 }
             }
         }
+
+        // --- GESTURE NAVIGATION (SWIPE BACK) ---
+        // Fitur: Geser dari tepi kiri/kanan untuk kembali (Back Gesture)
+        let touchStartX = 0;
+        let touchStartY = 0;
+
+        document.addEventListener('touchstart', e => {
+            touchStartX = e.changedTouches[0].clientX;
+            touchStartY = e.changedTouches[0].clientY;
+        }, { passive: true });
+
+        document.addEventListener('touchend', e => {
+            const touchEndX = e.changedTouches[0].clientX;
+            const touchEndY = e.changedTouches[0].clientY;
+            
+            const diffX = touchEndX - touchStartX;
+            const diffY = touchEndY - touchStartY;
+            
+            // Syarat Swipe: Horizontal dominan, jarak cukup jauh (>50px), deviasi vertikal kecil (<100px)
+            if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50 && Math.abs(diffY) < 100) {
+                const edgeThreshold = 30; // Area aktif di tepi layar (30px dari pinggir)
+                const screenWidth = window.innerWidth;
+                
+                // 1. Swipe dari Kiri ke Kanan (Back normal)
+                const isLeftSwipe = touchStartX < edgeThreshold && diffX > 0;
+                
+                // 2. Swipe dari Kanan ke Kiri (Back juga, sesuai request)
+                const isRightSwipe = touchStartX > (screenWidth - edgeThreshold) && diffX < 0;
+                
+                if (isLeftSwipe || isRightSwipe) {
+                    // A. Cek apakah ada MODAL yang terbuka? Jika ada, tutup modal dulu (Prioritas)
+                    const openModals = Array.from(document.querySelectorAll('.fixed.inset-0.z-\\[10000\\], .fixed.inset-0.z-\\[11000\\], .fixed.inset-0.z-\\[12000\\]'));
+                    let modalClosed = false;
+                    
+                    // Urutkan berdasarkan z-index (tertinggi dulu) agar yang paling atas tertutup duluan
+                    openModals.sort((a, b) => parseInt(window.getComputedStyle(b).zIndex) - parseInt(window.getComputedStyle(a).zIndex));
+
+                    for (const modal of openModals) {
+                        // Cek apakah modal sedang tampil (tidak hidden dan tidak digeser ke bawah)
+                        if (!modal.classList.contains('hidden') && !modal.classList.contains('translate-y-full')) {
+                            // Tutup modal sesuai ID-nya
+                            if(modal.id === 'spotDetailModal') closeSpotDetail();
+                            else if(modal.id === 'addModal') closeModal();
+                            else if(modal.id === 'mapSettingsModal') closeMapSettings();
+                            else if(modal.id === 'routeModal') closeRouteModal();
+                            else if(modal.id === 'windyModal') closeWindy();
+                            else if(modal.id === 'weatherDetailModal') closeDetailModal();
+                            else if(modal.id === 'favoritesModal') closeFavorites();
+                            else if(modal.id === 'editProfileModal') closeEditProfile();
+                            else if(modal.id === 'storyViewerModal') closeStoryViewer();
+                            else if(modal.id === 'lightboxModal') closeImageLightbox();
+                            else if(modal.id === 'customAlertModal') closeCustomAlert();
+                            else if(modal.id === 'precipModal') closePrecipMap();
+                            
+                            modalClosed = true;
+                            break; // Tutup satu per satu
+                        }
+                    }
+                    
+                    if (modalClosed) return; // Jika menutup modal, jangan navigasi halaman dulu
+
+                    // B. Jika tidak ada modal, lakukan navigasi Back Halaman
+                    const activeView = document.querySelector('.view-section.active');
+                    // Jangan back jika sudah di Home
+                    if (activeView && activeView.id !== 'view-home') {
+                        if (window.history.state && window.history.state.page && window.history.state.page !== 'home') {
+                            window.history.back();
+                        } else {
+                            navigateTo('home'); // Fallback ke home
+                        }
+                    }
+                }
+            }
+        }, { passive: true });
