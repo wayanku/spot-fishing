@@ -2177,6 +2177,7 @@
         // --- NEW: AI STORIES LOGIC ---
         let storiesData = [];
         let currentStoryIndex = 0;
+        let currentStoryPageIndex = 0;
         let storyInterval = null;
         let storyProgress = 0;
         let isStoryPaused = false;
@@ -2202,10 +2203,9 @@
             storiesData = [];
 
             // 1. Story: Ringkasan (Wayan)
-            storiesData.push({
-                title: 'Saran AI',
-                color: 'from-blue-500 to-purple-500',
-                img: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Wayan',
+            const wayanPages = [];
+            // Page 1: Intro
+            wayanPages.push({
                 render: () => `
                     <div class="text-center px-6 animate-in zoom-in-90 duration-500">
                         <div class="w-32 h-32 mx-auto mb-8 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 p-1 shadow-[0_0_50px_rgba(59,130,246,0.5)]">
@@ -2218,8 +2218,36 @@
                         </p>
                     </div>`
             });
+            
+            // Page 2: Safety Advice
+            let safetyMsg = "Kondisi aman terkendali.";
+            let safetyIcon = "shield-check";
+            let safetyColor = "text-emerald-400";
+            
+            if (wx.weathercode >= 95) { safetyMsg = "⚠️ BAHAYA PETIR! Sebaiknya tunda melaut."; safetyIcon = "cloud-lightning"; safetyColor = "text-red-500"; }
+            else if (wx.weathercode >= 51) { safetyMsg = "🌧️ Sedia jas hujan, basah kuyup nanti."; safetyIcon = "cloud-rain"; safetyColor = "text-blue-400"; }
+            else if (wx.temperature > 30) { safetyMsg = "☀️ Panas terik! Pakai sunblock & topi."; safetyIcon = "sun"; safetyColor = "text-orange-400"; }
+            
+            wayanPages.push({
+                render: () => `
+                    <div class="text-center px-6 animate-in slide-in-from-right duration-500">
+                        <div class="w-24 h-24 mx-auto mb-6 bg-neutral-800 rounded-full flex items-center justify-center border border-white/10">
+                            <i data-lucide="${safetyIcon}" class="w-12 h-12 ${safetyColor}"></i>
+                        </div>
+                        <h2 class="text-3xl font-bold text-white mb-4">Info Keselamatan</h2>
+                        <p class="text-lg text-slate-300 leading-relaxed">${safetyMsg}</p>
+                    </div>`
+            });
+
+            storiesData.push({
+                title: 'Saran AI',
+                color: 'from-blue-500 to-purple-500',
+                img: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Wayan',
+                pages: wayanPages
+            });
 
             // 2. Story: Aktivitas Ikan (Solunar - Donut Chart)
+            const activityPages = [];
             let activity = 50;
             if (typeof SunCalc !== 'undefined') {
                 const moon = SunCalc.getMoonIllumination(new Date());
@@ -2230,10 +2258,8 @@
                 else activity = 60;
             }
             
-            storiesData.push({
-                title: 'Aktivitas',
-                icon: 'activity',
-                color: 'from-purple-600 to-pink-500',
+            // Page 1: Score
+            activityPages.push({
                 render: () => `
                     <div class="text-center animate-in zoom-in-90 duration-500">
                         <div class="relative w-56 h-56 mx-auto mb-8 flex items-center justify-center">
@@ -2244,18 +2270,38 @@
                         <p class="text-slate-300 text-lg">Fase bulan mendukung aktivitas <b>${activity > 80 ? 'TINGGI' : 'SEDANG'}</b> hari ini.</p>
                     </div>`
             });
+            
+            // Page 2: Tips
+            activityPages.push({
+                render: () => `
+                    <div class="text-center px-6 animate-in slide-in-from-right duration-500">
+                        <div class="w-24 h-24 mx-auto mb-6 bg-purple-900/30 rounded-full flex items-center justify-center border border-purple-500/30">
+                            <i data-lucide="moon-star" class="w-12 h-12 text-purple-400"></i>
+                        </div>
+                        <h2 class="text-3xl font-bold text-white mb-4">Tips Solunar</h2>
+                        <p class="text-lg text-slate-300 leading-relaxed">
+                            Waktu terbaik adalah saat bulan terbit atau terbenam. Cek tabel pasang surut untuk hasil maksimal.
+                        </p>
+                    </div>`
+            });
+
+            storiesData.push({
+                title: 'Aktivitas',
+                icon: 'activity',
+                color: 'from-purple-600 to-pink-500',
+                pages: activityPages
+            });
 
             // 2. Story: Grafik Hujan (Bar Chart)
+            const rainPages = [];
             const rainData = [];
             for(let i=0; i<8; i++) {
                 const idx = new Date().getHours() + i;
                 if(idx < hourly.time.length) rainData.push({ t: idx%24, p: hourly.precipitation_probability[idx] });
             }
             
-            storiesData.push({
-                title: 'Hujan',
-                icon: 'cloud-rain',
-                color: 'from-blue-600 to-cyan-400',
+            // Page 1: Chart
+            rainPages.push({
                 render: () => {
                     const bars = rainData.map(d => {
                         const h = Math.max(10, d.p * 2); // Scale height
@@ -2283,11 +2329,33 @@
                 }
             });
 
-            // 4. Story: Angin (Compass Visual)
+            // Page 2: Summary
+            const maxRain = Math.max(...rainData.map(d=>d.p));
+            rainPages.push({
+                render: () => `
+                    <div class="text-center px-6 animate-in slide-in-from-right duration-500">
+                        <div class="w-24 h-24 mx-auto mb-6 bg-blue-900/30 rounded-full flex items-center justify-center border border-blue-500/30">
+                            <i data-lucide="cloud-rain" class="w-12 h-12 text-blue-400"></i>
+                        </div>
+                        <h2 class="text-3xl font-bold text-white mb-4">Ringkasan Hujan</h2>
+                        <p class="text-lg text-slate-300 leading-relaxed">
+                            ${maxRain > 50 ? 'Potensi hujan cukup tinggi dalam 8 jam ke depan.' : 'Langit diprediksi cukup bersahabat.'}
+                            <br><br>
+                            Peluang tertinggi: <b>${maxRain}%</b>
+                        </p>
+                    </div>`
+            });
+
             storiesData.push({
-                title: 'Angin',
-                icon: 'wind',
-                color: 'from-emerald-500 to-teal-400',
+                title: 'Hujan',
+                icon: 'cloud-rain',
+                color: 'from-blue-600 to-cyan-400',
+                pages: rainPages
+            });
+
+            // 4. Story: Angin (Compass Visual)
+            const windPages = [];
+            windPages.push({
                 render: () => `
                     <div class="text-center animate-in spin-in-12 duration-700">
                         <div class="relative w-64 h-64 mx-auto mb-8 flex items-center justify-center">
@@ -2316,16 +2384,21 @@
                     </div>`
             });
 
+            storiesData.push({
+                title: 'Angin',
+                icon: 'wind',
+                color: 'from-emerald-500 to-teal-400',
+                pages: windPages
+            });
+
             // 5. Story: Ombak (Wave Animation) - Jika ada data laut
             if (typeof currentMarineData !== 'undefined' && currentMarineData && currentMarineData.hourly) {
+                const wavePages = [];
                 const waveH = currentMarineData.hourly.sea_level_height_msl ? currentMarineData.hourly.sea_level_height_msl[new Date().getHours()] : 0;
                 // Simulasi tinggi ombak (karena data API kadang null, kita pakai dummy logic visual jika data kosong)
                 const displayWave = waveH || (wx.windspeed / 10).toFixed(1); 
                 
-                storiesData.push({
-                    title: 'Ombak',
-                    icon: 'waves',
-                    color: 'from-cyan-500 to-blue-600',
+                wavePages.push({
                     render: () => `
                         <div class="text-center animate-in slide-in-from-bottom-10 duration-700 w-full">
                             <div class="h-48 w-full relative overflow-hidden rounded-3xl bg-gradient-to-b from-sky-300 to-blue-600 mb-8 border-4 border-white/20 shadow-2xl">
@@ -2343,19 +2416,31 @@
                         </div>
                         <style>@keyframes wave { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }</style>`
                 });
+
+                storiesData.push({
+                    title: 'Ombak',
+                    icon: 'waves',
+                    color: 'from-cyan-500 to-blue-600',
+                    pages: wavePages
+                });
             }
 
             // 6. Story: Suhu (Thermometer)
-            storiesData.push({
-                title: 'Suhu',
-                icon: 'thermometer',
-                color: 'from-orange-500 to-red-500',
+            const tempPages = [];
+            tempPages.push({
                 render: () => `
                     <div class="text-center animate-in zoom-in-90 duration-500">
                         <div class="text-[10rem] font-black text-white leading-none tracking-tighter drop-shadow-2xl">${Math.round(wx.temperature)}°</div>
                         <p class="text-2xl font-bold text-orange-200 mt-4 uppercase tracking-widest">Temperatur</p>
                         <p class="text-slate-300 mt-2">Terasa seperti <b>${Math.round(wx.temperature + 2)}°C</b> karena kelembaban.</p>
                     </div>`
+            });
+
+            storiesData.push({
+                title: 'Suhu',
+                icon: 'thermometer',
+                color: 'from-orange-500 to-red-500',
+                pages: tempPages
             });
 
             // Render Circles
@@ -2972,14 +3057,16 @@
             if(typeof lucide !== 'undefined') lucide.createIcons();
         }
 
-        function openStory(index) {
+        function openStory(index, startPage = 0) {
             currentStoryIndex = index;
+            currentStoryPageIndex = startPage;
             const modal = document.getElementById('storyViewerModal');
             modal.classList.remove('hidden');
             
             // Render Progress Bars Container
+            const group = storiesData[currentStoryIndex];
             const barsContainer = document.getElementById('story-bars-container');
-            barsContainer.innerHTML = storiesData.map((_, i) => `
+            barsContainer.innerHTML = group.pages.map((_, i) => `
                 <div class="h-1 flex-1 bg-white/30 rounded-full overflow-hidden">
                     <div id="story-bar-${i}" class="h-full bg-white w-0"></div>
                 </div>
@@ -2989,20 +3076,21 @@
         }
 
         function renderStoryContent() {
-            const story = storiesData[currentStoryIndex];
+            const group = storiesData[currentStoryIndex];
+            const page = group.pages[currentStoryPageIndex];
             const content = document.getElementById('story-content');
             
             // Render Content
-            content.innerHTML = story.render();
-            document.getElementById('story-header-title').innerText = story.title;
+            content.innerHTML = page.render();
+            document.getElementById('story-header-title').innerText = group.title;
             lucide.createIcons();
 
             // Reset Bars Visual
-            storiesData.forEach((_, i) => {
+            group.pages.forEach((_, i) => {
                 const bar = document.getElementById(`story-bar-${i}`);
                 if(bar) {
-                    if (i < currentStoryIndex) bar.style.width = '100%';
-                    else if (i > currentStoryIndex) bar.style.width = '0%';
+                    if (i < currentStoryPageIndex) bar.style.width = '100%';
+                    else if (i > currentStoryPageIndex) bar.style.width = '0%';
                     else bar.style.width = '0%';
                 }
             });
@@ -3015,7 +3103,7 @@
             storyProgress = 0;
             isStoryPaused = false;
             
-            const bar = document.getElementById(`story-bar-${currentStoryIndex}`);
+            const bar = document.getElementById(`story-bar-${currentStoryPageIndex}`);
             const duration = 5000; // 5 detik per story
             const step = 20; // Update tiap 20ms
             const increment = (step / duration) * 100;
@@ -3061,16 +3149,25 @@
         }
 
         function prevStory() {
-            if (currentStoryIndex > 0) {
-                openStory(currentStoryIndex - 1);
-            } else {
-                // Restart current story if first
+            if (currentStoryPageIndex > 0) {
+                currentStoryPageIndex--;
                 renderStoryContent();
+            } else {
+                if (currentStoryIndex > 0) {
+                    // Go to previous group, last page
+                    openStory(currentStoryIndex - 1, storiesData[currentStoryIndex - 1].pages.length - 1);
+                } else {
+                    renderStoryContent(); // Restart current
+                }
             }
         }
 
         function nextStory() {
-            if (currentStoryIndex < storiesData.length - 1) {
+            const group = storiesData[currentStoryIndex];
+            if (currentStoryPageIndex < group.pages.length - 1) {
+                currentStoryPageIndex++;
+                renderStoryContent();
+            } else if (currentStoryIndex < storiesData.length - 1) {
                 openStory(currentStoryIndex + 1);
             } else {
                 closeStoryViewer();
