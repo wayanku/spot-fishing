@@ -198,7 +198,7 @@
         <!-- === HALAMAN 2: PETA (MAP) === -->
         <div id="view-map" class="view-section">
             <!-- Search Bar (Moved inside Map View) -->
-            <div class="absolute top-6 left-4 right-4 z-[1000] transition-all duration-300 pt-safe">
+            <div class="absolute top-2 left-4 right-4 z-[1000] transition-all duration-300 pt-safe">
                 <div class="glass rounded-full flex items-center p-2 max-w-lg mx-auto shadow-2xl border border-white/10 backdrop-blur-xl bg-neutral-900/60 ring-1 ring-white/5">
                     <button onclick="startVoiceSearch()" id="mic-btn" class="p-2 text-slate-400 hover:text-white transition-colors">
                     <i data-lucide="mic" class="w-4 h-4"></i>
@@ -651,7 +651,7 @@
     <!-- MODAL ADD SPOT -->
     <div id="addModal" class="fixed inset-0 z-[10000] bg-black translate-y-full transition-transform duration-300 ease-in-out flex flex-col">
         <!-- Header -->
-        <div class="flex items-center justify-between p-4 border-b border-white/10 shrink-0 header-safe">
+        <div class="flex items-center justify-between p-4 border-b border-white/10 shrink-0" style="padding-top: calc(1rem + env(safe-area-inset-top));">
             <h3 id="addModalTitle" class="text-lg font-bold flex items-center gap-2"><i data-lucide="map-pin" class="text-blue-500"></i> <span data-i18n="modal_add_title">Tambah Spot</span></h3>
             <button onclick="closeModal()" class="p-2 text-slate-400 hover:bg-slate-800 rounded-full" aria-label="Tutup modal"><i data-lucide="x" class="w-5 h-5"></i></button>
         </div>
