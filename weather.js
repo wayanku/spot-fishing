@@ -1,5 +1,6 @@
 
 
+
 // --- HIGH-PERFORMANCE WEATHER ANIMATION (CANVAS) ---
 let canvas = document.getElementById('weather-canvas');
 let ctx = canvas ? canvas.getContext('2d') : null;
@@ -229,13 +230,6 @@ function initStars() {
 let deferredPrompt;
 
 function initPWA() {
-    // 1. Register Service Worker (Wajib untuk PWA)
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js')
-            .then(() => console.log('Service Worker Registered'))
-            .catch(err => console.error('SW Register Failed', err));
-    }
-
     // 2. Listen event 'beforeinstallprompt' (Browser mendeteksi web bisa diinstall)
     window.addEventListener('beforeinstallprompt', (e) => {
         // Prevent default browser banner
@@ -301,6 +295,7 @@ const weatherAudio = {
         try {
             // Menggunakan audio langsung dari URL GitHub (raw)
             this.rain = new Audio('https://raw.githubusercontent.com/wayanku/fishing/main/real-rain-sound-379215%20(2).mp3');
+            this.rain.crossOrigin = "anonymous"; // FIX: Agar bisa dicache dengan aman
             this.rain.loop = true;
             this.rain.volume = 0; // Mulai dengan volume 0
             this.rain.preload = 'auto';
@@ -308,6 +303,7 @@ const weatherAudio = {
             // Buat beberapa audio petir agar bisa tumpang tindih
             for (let i = 0; i < 3; i++) {
                 this.thunder.push(new Audio('https://raw.githubusercontent.com/wayanku/fishing/main/loud-thunder-192165.mp3'));
+                this.thunder[i].crossOrigin = "anonymous"; // FIX: Agar bisa dicache dengan aman
                 this.thunder[i].volume = 0.7;
                 this.thunder[i].preload = 'auto';
             }
@@ -1337,18 +1333,23 @@ function startWeatherEffect(type) {
     canvas.style.zIndex = "42"; 
     canvas.style.pointerEvents = "none";
     
+    // --- OPTIMIZATION: Calculate particle count based on screen area (Pixel Density) ---
+    // Mencegah lag di tablet resolusi tinggi dengan membatasi max partikel
+    const screenArea = window.innerWidth * window.innerHeight;
+    const densityFactor = Math.min(1, screenArea / (1920 * 1080)); // Normalize to 1080p
+    
     if (type === 'rain') {
-        const count = isMobile ? 150 : 350; // Kurangi jumlah partikel di HP agar loading cepat
+        const count = Math.floor((isMobile ? 100 : 300) * densityFactor); 
         for (let i = 0; i < count; i++) particles.push(new RainDrop());
         pendingAudio = { volume: 0.5 }; // Sinkronisasi: Queue audio
     }
     else if (type === 'snow') {
-        const count = isMobile ? 100 : 200;
+        const count = Math.floor((isMobile ? 80 : 150) * densityFactor);
         for (let i = 0; i < count; i++) particles.push(new SnowFlake());
     }
     else if (type === 'wind') for (let i = 0; i < 10; i++) particles.push(new WindLine());
     else if (type === 'storm') {
-        const count = isMobile ? 250 : 500; // Kurangi kepadatan badai di HP
+        const count = Math.floor((isMobile ? 200 : 450) * densityFactor);
         for (let i = 0; i < count; i++) particles.push(new RainDrop()); // Badai lebih padat
         lightningBolts = []; // Reset bolts
         storm = { flashOpacity: 0 };
@@ -1424,7 +1425,11 @@ function stopWeatherEffect() {
     
     if(metaTheme) metaTheme.content = defaultColor;
 
-    if(ctx && canvas) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if(ctx && canvas) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // Force clear path cache
+        ctx.beginPath();
+    }
     if(canvas) canvas.style.zIndex = "-1"; // Reset z-index saat stop
 }
 
@@ -1496,7 +1501,13 @@ async function fetchUserWeather(lat, lng) {
         const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true&timezone=auto&_=${t}`);
         const data = await res.json();
         if(data.current_weather) {
-            if(data.current_weather.time) wxLocalHour = parseInt(data.current_weather.time.split('T')[1].split(':')[0]);
+            if(data.current_weather.time) {
+                try {
+                    wxLocalHour = new Date(data.current_weather.time).getHours();
+                } catch(e) {
+                    wxLocalHour = parseInt(data.current_weather.time.split('T')[1].split(':')[0]);
+                }
+            }
             const temp = Math.round(data.current_weather.temperature);
             currentUserWeatherCode = data.current_weather.weathercode;
             currentUserWindSpeed = data.current_weather.windspeed;
@@ -1625,16 +1636,11 @@ function injectCardStyles() {
             margin-bottom: 4px !important;
         }
         
-        /* Mobile Optimization for Weather Cards */
+        /* Liquid Glass Style for Weather Cards (Mobile & Desktop) */
         .weather-card-fixed {
-            background-color: rgba(10, 10, 10, 0.85) !important; /* Solid Dark on Mobile */
-        }
-        @media (min-width: 768px) {
-            .weather-card-fixed {
-                background-color: rgba(10, 10, 10, 0.5) !important;
-                backdrop-filter: blur(16px) !important;
-                -webkit-backdrop-filter: blur(16px) !important;
-            }
+            background-color: rgba(10, 10, 10, 0.5) !important; /* Semi-transparent dark */
+            backdrop-filter: blur(16px) !important;
+            -webkit-backdrop-filter: blur(16px) !important;
         }
     `;
     document.head.appendChild(style);
@@ -2186,7 +2192,13 @@ function updateWeatherUI(data) {
     if(!data || !data.current_weather) return;
     
     // Update Jam Lokal dari Data API
-    if(data.current_weather.time) wxLocalHour = parseInt(data.current_weather.time.split('T')[1].split(':')[0]);
+    if(data.current_weather.time) {
+        try {
+            wxLocalHour = new Date(data.current_weather.time).getHours();
+        } catch(e) {
+            wxLocalHour = parseInt(data.current_weather.time.split('T')[1].split(':')[0]);
+        }
+    }
 
     const lang = localStorage.getItem('appLang') || 'id';
     const dt = dynamicTranslations[lang];
@@ -2207,7 +2219,7 @@ function updateWeatherUI(data) {
         // --- MODIFIED: Cari slot waktu TERDEKAT (Paling Akurat) ---
         // Sebelumnya bisa meleset 14 menit. Sekarang cari selisih terkecil.
         let currentIdx = 0;
-        let minDiff = Infinity;
+        let minDiff = 999999999;
         
         pTimes.forEach((t, i) => {
             const diff = Math.abs(new Date(t).getTime() - now.getTime());
@@ -2358,12 +2370,12 @@ function updateWeatherUI(data) {
     }
 
     const wx = data.current_weather;
-    document.getElementById('wx-temp').innerText = `${Math.round(wx.temperature)}°`;
-    document.getElementById('wx-wind-speed').innerText = wx.windspeed;
+    const elTemp = document.getElementById('wx-temp'); if(elTemp) elTemp.innerText = `${Math.round(wx.temperature)}°`;
+    const elWind = document.getElementById('wx-wind-speed'); if(elWind) elWind.innerText = wx.windspeed;
     
     // Rotasi panah angin
     const arrow = document.getElementById('wx-wind-dir');
-    arrow.style.transform = `rotate(${wx.winddirection}deg)`;
+    if(arrow) arrow.style.transform = `rotate(${wx.winddirection}deg)`;
     
     // Kode cuaca sederhana (WMO code)
     
@@ -2378,7 +2390,8 @@ function updateWeatherUI(data) {
         if(code > 80) desc = dt.weather[95]; // Badai
     }
 
-    document.getElementById('wx-desc').innerText = desc; // Keep old one for the card logic
+    const elDesc = document.getElementById('wx-desc'); if(elDesc) elDesc.innerText = desc;
+    
     const headerDesc = document.getElementById('header-desc');
     if (headerDesc) headerDesc.innerText = desc;
     const headerLocation = document.getElementById('header-location');
@@ -2400,14 +2413,14 @@ function updateWeatherUI(data) {
     if(data.hourly && data.hourly.wave_height) {
         const currentHour = new Date().getHours();
         const waveHeight = data.hourly.wave_height[currentHour] || 0;
-        document.getElementById('wx-wave').innerText = `${waveHeight} m`;
+        const elWave = document.getElementById('wx-wave'); if(elWave) elWave.innerText = `${waveHeight} m`;
     }
     
     // Data Matahari (Sunrise/Sunset)
     if(data.daily && data.daily.sunrise && data.daily.sunset) {
         const sunrise = data.daily.sunrise[0].split('T')[1];
         const sunset = data.daily.sunset[0].split('T')[1];
-        document.getElementById('wx-sun').innerHTML = `<div class="flex items-center justify-center gap-1"><i data-lucide="sunrise" class="w-3 h-3 text-yellow-300"></i> ${sunrise}</div><div class="flex items-center justify-center gap-1"><i data-lucide="sunset" class="w-3 h-3 text-orange-400"></i> ${sunset}</div>`;
+        const elSun = document.getElementById('wx-sun'); if(elSun) elSun.innerHTML = `<div class="flex items-center justify-center gap-1"><i data-lucide="sunrise" class="w-3 h-3 text-yellow-300"></i> ${sunrise}</div><div class="flex items-center justify-center gap-1"><i data-lucide="sunset" class="w-3 h-3 text-orange-400"></i> ${sunset}</div>`;
     }
 
     // AI Score Calculation
@@ -2420,7 +2433,7 @@ function updateWeatherUI(data) {
     if(wx.weathercode > 80) score -= 40;
     
     // Tampilkan Score
-    document.getElementById('wx-score').innerText = `${Math.max(10, score)}%`;
+    const elScore = document.getElementById('wx-score'); if(elScore) elScore.innerText = `${Math.max(10, score)}%`;
 
     // --- NEW: HOURLY FORECAST (iPhone Style) ---
     // Cari atau buat container baru DI BAWAH weather-scroll agar fitur lama (AI Score dll) tetap ada
@@ -2834,6 +2847,9 @@ function updateWeatherUI(data) {
         if(typeof injectPrecipitationCard === 'function') {
             injectPrecipitationCard(data.latitude, data.longitude);
         }
+
+        // --- NEW: iPhone Style Details Grid (UV, Sunset, Wind, etc) ---
+        renderWeatherDetailsGrid(data);
     }
 }
 
@@ -3631,6 +3647,137 @@ function showMetricInsight(type) {
     textEl.innerHTML = text;
     iconEl.setAttribute('data-lucide', icon);
     lucide.createIcons();
+}
+
+// --- NEW: iPhone Style Weather Details Grid ---
+function renderWeatherDetailsGrid(data) {
+	let container = document.getElementById('weather-details-grid');
+
+	// Create container if not exists (Dynamic injection)
+	if (!container) {
+		const forecastList = document.getElementById('forecast-list');
+		const quake = document.getElementById('quake-container');
+		const aqi = document.getElementById('aqi-container');
+		const precipMap = document.getElementById('precip-map-card');
+        
+        // FIX: Pastikan Grid selalu di paling bawah (setelah Peta Hujan)
+		let ref = precipMap || quake || aqi || forecastList;
+
+		if (ref && ref.parentNode) {
+			container = document.createElement('div');
+			container.id = 'weather-details-grid';
+			container.className = "grid grid-cols-2 gap-3 mb-6 mt-3 mx-0";
+			ref.parentNode.insertBefore(container, ref.nextSibling);
+		} else {
+			return;
+		}
+	}
+
+	const hIdx = wxLocalHour;
+	const daily = data.daily;
+	const hourly = data.hourly;
+	const current = data.current_weather;
+
+	// 1. UV Index
+	const uv = daily.uv_index_max ? daily.uv_index_max[0] : 0;
+	const uvLevel = uv < 3 ? "Rendah" : (uv < 6 ? "Sedang" : (uv < 8 ? "Tinggi" : (uv < 11 ? "Sangat Tinggi" : "Ekstrem")));
+	const uvPct = Math.min((uv / 11) * 100, 100);
+
+	// 2. Sunset/Sunrise with Arc Visualization
+	const sunriseDate = new Date(daily.sunrise[0]);
+	const sunsetDate = new Date(daily.sunset[0]);
+	const tomorrowSunriseDate = new Date(daily.sunrise[1]);
+	const now = new Date();
+	let sunProgress = 0;
+	let isSunUp = now > sunriseDate && now < sunsetDate;
+	let sunLabel, sunTime, subText;
+
+	if (isSunUp) {
+		sunLabel = "Matahari Terbenam";
+		sunTime = sunsetDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+		subText = `Terbit pada ${sunriseDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+		sunProgress = (now.getTime() - sunriseDate.getTime()) / (sunsetDate.getTime() - sunriseDate.getTime());
+	} else {
+		if (now < sunriseDate) {
+			sunLabel = "Matahari Terbit";
+			sunTime = sunriseDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+			subText = `Terbenam pada ${sunsetDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+			sunProgress = 0;
+		} else {
+			sunLabel = "Matahari Terbit";
+			sunTime = tomorrowSunriseDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+			subText = `Terbenam pada ${sunsetDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+			sunProgress = 1;
+		}
+	}
+	sunProgress = Math.max(0, Math.min(1, sunProgress));
+	const angle = 180 - (sunProgress * 180);
+	const rad = angle * (Math.PI / 180);
+	const sunX = 50 - 45 * Math.cos(rad);
+	const sunY = 50 - 45 * Math.sin(rad);
+	const sunArcSvg = `<div class="relative w-full h-24 -mb-4 mt-2"><svg viewBox="0 0 100 55" class="w-full h-full overflow-visible"><path d="M 5 50 A 45 45 0 0 1 95 50" stroke="rgba(255,255,255,0.2)" stroke-width="2" fill="none" stroke-dasharray="2,3"></path>${isSunUp ? `<circle cx="${sunX}" cy="${sunY}" r="4" fill="#facc15" stroke="white" stroke-width="1.5" />` : ''}<text x="5" y="55" font-size="8" fill="rgba(255,255,255,0.7)">${sunriseDate.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</text><text x="95" y="55" font-size="8" fill="rgba(255,255,255,0.7)" text-anchor="end">${sunsetDate.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</text></svg></div>`;
+	const sunIcon = isSunUp ? "sunset" : "sunrise";
+
+	// 3. Wind
+	const windSpeed = current.windspeed;
+	const windDir = current.winddirection;
+
+	// 4. Feels Like
+	const feelsLike = hourly.apparent_temperature[hIdx];
+	const diff = feelsLike - current.temperature;
+	let feelDesc = "Sama dengan suhu asli.";
+	if (diff <= -2) feelDesc = "Terasa lebih dingin karena angin.";
+	if (diff >= 2) feelDesc = "Terasa lebih panas karena lembab.";
+
+	// 5. Precipitation
+	const precip = daily.precipitation_sum[0];
+
+	// 6. Visibility
+	const vis = hourly.visibility[hIdx] / 1000; // km
+	let visDesc = "Pandangan sangat jelas.";
+	if (vis < 1) visDesc = "Kabut tebal.";
+	else if (vis < 5) visDesc = "Ada sedikit kabut.";
+
+	// 7. Humidity with Gauge
+	const hum = hourly.relativehumidity_2m[hIdx];
+	const dew = hourly.dewpoint_2m[hIdx];
+	const humidityGauge = `<div class="w-full h-1 bg-gradient-to-r from-slate-600 to-blue-300 rounded-full mt-4 relative"><div class="absolute top-1/2 -translate-y-1/2 w-2 h-2 bg-white rounded-full border border-black/50" style="left: calc(${hum}% - 4px);"></div></div>`;
+
+	// 8. Pressure with Gauge
+	const press = hourly.surface_pressure[hIdx];
+	const prevPress = hourly.surface_pressure[hIdx - 3] || press;
+	let pressureTrend = "Stabil";
+	if (press > prevPress + 0.5) pressureTrend = "Naik";
+	if (press < prevPress - 0.5) pressureTrend = "Turun";
+	const minP = 950, maxP = 1050;
+	const pressureProgress = Math.max(0, Math.min(1, (press - minP) / (maxP - minP)));
+	const pressureAngle = -120 + (pressureProgress * 240);
+	const pressureGauge = `<div class="relative w-full h-24 -mb-4 mt-2 flex items-center justify-center"><svg viewBox="0 0 100 60" class="w-full h-full overflow-visible"><defs><linearGradient id="pressureGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#3b82f6" /><stop offset="50%" stop-color="#22c55e" /><stop offset="100%" stop-color="#ef4444" /></linearGradient></defs><path d="M 10 50 A 40 40 0 0 1 90 50" stroke="url(#pressureGrad)" stroke-width="5" fill="none" stroke-linecap="round"></path><g transform="translate(50 50) rotate(${pressureAngle})"><path d="M 0 -35 L -2 -42 L 2 -42 Z" fill="white" /></g><text x="10" y="55" font-size="8" fill="rgba(255,255,255,0.7)">L</text><text x="90" y="55" font-size="8" fill="rgba(255,255,255,0.7)" text-anchor="end">H</text></svg></div>`;
+
+	// Helper for Tile
+	const createTile = (icon, title, value, sub, extraHtml = '', isFullWidth = false) => {
+		const colSpan = isFullWidth ? 'col-span-2' : '';
+		const heightClass = isFullWidth ? 'h-48' : 'h-36';
+		return `<div class="bg-neutral-900/50 backdrop-blur-xl rounded-xl border border-white/20 p-3 flex flex-col justify-between ${heightClass} shadow-lg hover:bg-neutral-800/60 transition-colors ${colSpan}"><div class="flex items-center gap-1 text-slate-400 text-[10px] font-bold uppercase tracking-wider"><i data-lucide="${icon}" class="w-3 h-3"></i> ${title}</div><div><div class="text-2xl font-bold text-white">${value}</div><div class="text-[10px] text-slate-300 font-medium leading-tight mt-1 line-clamp-2">${sub}</div></div>${extraHtml}</div>`;
+	};
+
+	container.innerHTML = `
+        ${createTile('sun', 'UV Index', uv, uvLevel, `<div class="w-full h-1 bg-slate-700 rounded-full mt-2 overflow-hidden"><div class="h-full bg-gradient-to-r from-green-500 via-yellow-500 to-red-500" style="width: ${uvPct}%"></div></div>`)}
+        ${createTile('thermometer', 'Terasa Seperti', `${feelsLike}°`, feelDesc)}
+        ${createTile(sunIcon, sunLabel, sunTime, subText, sunArcSvg, true)}
+        ${createTile('wind', 'Angin', `${windSpeed} <span class="text-sm">km/h</span>`, `Hembusan ${data.hourly.windgusts_10m[hIdx]} km/h`, `<div class="flex items-center gap-2 mt-1"><div class="w-8 h-8 rounded-full border border-slate-500 flex items-center justify-center bg-white/5"><i data-lucide="arrow-up" class="w-4 h-4 text-white" style="transform: rotate(${windDir}deg)"></i></div><span class="text-[10px] text-slate-400 font-bold">${getCardinalDirection(windDir)}</span></div>`)}
+        ${createTile('droplets', 'Curah Hujan', `${precip} mm`, `Dalam 24 jam terakhir. ${data.daily.precipitation_probability_max[0]}% kemungkinan.`)}
+        ${createTile('droplet', 'Kelembaban', `${hum}%`, `Titik Embun saat ini ${dew}°`, humidityGauge)}
+        ${createTile('eye', 'Jarak Pandang', `${vis} km`, visDesc)}
+        ${createTile('gauge', 'Tekanan', `${Math.round(press)} hPa`, `Tren: ${pressureTrend}`, pressureGauge, true)}
+    `;
+
+	lucide.createIcons({ root: container });
+}
+
+function getCardinalDirection(angle) {
+    const directions = ['U', 'TL', 'T', 'TG', 'S', 'BD', 'B', 'BL'];
+    return directions[Math.round(angle / 45) % 8];
 }
 
 // Apply responsive styles immediately on load
