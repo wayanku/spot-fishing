@@ -69,8 +69,9 @@
 
             window.lucide = {
                 isFallback: true, // Flag untuk deteksi saat online nanti
-                createIcons: () => {
-                    document.querySelectorAll('[data-lucide]').forEach(el => {
+                createIcons: ({ root } = {}) => {
+                    const container = root || document;
+                    container.querySelectorAll('[data-lucide]').forEach(el => {
                         const key = el.getAttribute('data-lucide');
                         const path = iconPaths[key];
                         // Jika path ada, render SVG. Jika tidak, fallback ke emoji atau dot
@@ -91,7 +92,8 @@
         let isSat = true; // Hoisted to top to fix initialization error
         
         // --- MAP LAYERS CONFIGURATION ---
-        const OWM_API_KEY = "YOUR_OWM_API_KEY"; // Ganti dengan API Key OpenWeatherMap Anda untuk layer Angin
+        const OWM_API_KEY = ""; // Kosongkan jika tidak punya
+        const DEFAULT_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzDgpGXHWgT8ZXh14GF1m9vWoxhMiJBAThfVOPlsONIXnrwZqrx46rpUvl0uOYJnkC6/exec";
         let activeLayers = {}; // Menyimpan layer yang aktif (Multi-layer support)
 
         // --- THEME SYSTEM (Default Dark) ---
@@ -224,7 +226,7 @@
         setTimeout(() => changeLanguage(localStorage.getItem('appLang') || 'id'), 100);
 
         // --- CONFIGURATION ---
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzDgpGXHWgT8ZXh14GF1m9vWoxhMiJBAThfVOPlsONIXnrwZqrx46rpUvl0uOYJnkC6/exec"; 
+        const GOOGLE_SCRIPT_URL = ""; // Biarkan kosong untuk menggunakan DEFAULT_SCRIPT_URL
         const IMGBB_API_KEY = "7e6f3ce63649d305ccaceea00c28266d"; // Daftar gratis di api.imgbb.com
 
         // --- AI SETUP (Web Worker & Lazy Loading) ---
@@ -288,6 +290,13 @@
             return aiWorker;
         }
 
+        // --- HAPTIC FEEDBACK ENGINE (Sophistication) ---
+        function triggerHaptic(pattern = 10) {
+            if (navigator.vibrate) {
+                navigator.vibrate(pattern);
+            }
+        }
+
         // Cek apakah Leaflet (Peta) termuat
         if (typeof L === 'undefined') {
             document.getElementById('map').innerHTML = '<div class="flex flex-col items-center justify-center h-full text-slate-500 bg-slate-900 gap-2"><i class="text-4xl">🗺️</i><p>Mode Offline: Peta tidak dapat dimuat.</p></div>';
@@ -301,14 +310,16 @@
 
         // 2. Map & Street View Setup
         // Menggunakan Google Hybrid (Satelit + Label/Jalan) agar lebih lengkap & cerah
-        const satLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { 
+        const satLayer = L.tileLayer('https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { 
             maxZoom: 20,
+            subdomains: ['0', '1', '2', '3'], // Load balancing ke 4 server Google
             attribution: '© Google Maps'
         });
         
         // GANTI OSM DENGAN GOOGLE ROADMAP (Lebih Lengkap & Familiar)
-        const streetLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { 
+        const streetLayer = L.tileLayer('https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { 
             maxZoom: 20,
+            subdomains: ['0', '1', '2', '3'], // Load balancing ke 4 server Google
             attribution: '© Google Maps'
         });
 
@@ -356,8 +367,13 @@
         L.control.attribution({ prefix: false }).addTo(map);
         
         // --- OPTIMIZATION: Bounding Box Loading & Clustering ---
+        let mapUpdateFrame = null; // Variable untuk throttling requestAnimationFrame
+
         function updateMapMarkers() {
-            const zoom = map.getZoom();
+            if (mapUpdateFrame) cancelAnimationFrame(mapUpdateFrame);
+
+            mapUpdateFrame = requestAnimationFrame(() => {
+                const zoom = map.getZoom();
             const bounds = map.getBounds();
             const mapEl = document.getElementById('map');
             
@@ -411,6 +427,7 @@
                 }
             });
             // OPTIMISASI: Hapus lucide.createIcons() di sini agar peta lancar saat digeser
+            });
         }
         
         map.on('zoomend', updateMapMarkers);
@@ -811,6 +828,18 @@
             setTimeout(initScrollDots, 500); // Init dots setelah layout render
             setTimeout(initCompass, 1000); // Inisialisasi Kompas Digital
             setTimeout(loadLayerPreferences, 2000); // Mengembalikan layer peta yang tersimpan
+            
+            // --- NEW: Scroll to Top Logic ---
+            const homeView = document.getElementById('view-home');
+            if(homeView) {
+                homeView.addEventListener('scroll', () => {
+                    const btn = document.getElementById('scroll-to-top');
+                    if(btn) {
+                        if(homeView.scrollTop > 300) btn.classList.remove('hidden');
+                        else btn.classList.add('hidden');
+                    }
+                });
+            }
         }
 
         function logout() {
@@ -829,6 +858,24 @@
         // Pastikan fungsi bisa diakses dari HTML (Global Scope)
         window.openProfile = openProfile;
         window.closeAuthOverlay = closeAuthOverlay;
+        
+        // --- SECURITY: XSS Prevention Helper ---
+        function escapeHTML(str) {
+            if (!str) return '';
+            return String(str).replace(/[&<>'"]/g, 
+                tag => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    "'": '&#39;',
+                    '"': '&quot;'
+                }[tag]));
+        }
+        function scrollToTop() {
+            const homeView = document.getElementById('view-home');
+            if(homeView) homeView.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        window.scrollToTop = scrollToTop;
 
         // 4. Spot Management
         
@@ -839,6 +886,7 @@
             // Tambahkan Marker Pin pada lokasi yang diklik
             if (selectionMarker) map.removeLayer(selectionMarker);
             
+            triggerHaptic(15); // Haptic feedback saat memilih lokasi
             const pinIcon = L.divIcon({
                 className: 'bg-transparent',
                 html: `<div class="relative -mt-8 flex flex-col items-center animate-bounce">
@@ -895,8 +943,10 @@
             const btn = document.getElementById('btn-favorite');
             if(isFav) {
                 btn.innerHTML = '<i data-lucide="heart" class="w-6 h-6 fill-red-500 text-red-500"></i>';
+                triggerHaptic([10, 30, 10]); // Double tap feel
             } else {
                 btn.innerHTML = '<i data-lucide="heart" class="w-6 h-6 text-white"></i>';
+                triggerHaptic(10);
             }
             lucide.createIcons();
         }
@@ -1388,21 +1438,27 @@
             // 3. Simpan Data ke Google Sheets
             btn.innerText = "Posting...";
             const spotData = {
-                name: name,
+                spotId: 'spot_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9), // Generate Unique ID
+                name: escapeHTML(name),
                 lat: tempLatlng.lat,
                 lng: tempLatlng.lng,
                 photo: photoUrl,
                 uid: currentUser.email,
                 createdAt: new Date().toISOString(),
                 rating: rating,
-                comment: comment,
+                comment: escapeHTML(comment), // Sanitize comment
                 weight: weight || 0
             };
 
+            // Gunakan URL Default jika user tidak mengisi konfigurasi
+            const targetUrl = (GOOGLE_SCRIPT_URL && GOOGLE_SCRIPT_URL.startsWith("http")) ? GOOGLE_SCRIPT_URL : DEFAULT_SCRIPT_URL;
+
             // Kirim data ke Google Apps Script
-            if(GOOGLE_SCRIPT_URL.startsWith("http")) {
-                fetch(GOOGLE_SCRIPT_URL, {
+            if(targetUrl) {
+                fetch(targetUrl, {
                     method: "POST",
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(spotData)
                 }).then(() => {
                     loadSpots(); // Reload semua spot untuk update grouping
@@ -1579,13 +1635,13 @@
             const popupHtml = `
                 <div class="w-64 bg-neutral-900/90 backdrop-blur-xl rounded-[1.5rem] border border-white/10 shadow-2xl overflow-hidden pb-1">
                     ${coverPhoto ? `<div class="h-36 w-full relative group cursor-pointer" onclick="openSpotDetailByKey('${key}')">
-                        <img src="${coverPhoto}" loading="lazy" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
+                        <img src="${coverPhoto}" loading="lazy" decoding="async" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
                         <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent"></div>
                         <div class="absolute top-2 right-2 bg-black/50 backdrop-blur-md px-2 py-1 rounded-lg text-[10px] font-bold text-white flex items-center gap-1"><i data-lucide="image" class="w-3 h-3"></i> ${count}</div>
                     </div>` : '<div class="h-16 bg-gradient-to-r from-blue-600 to-purple-600 relative"><div class="absolute -bottom-6 left-4 w-12 h-12 bg-slate-800 rounded-full border-4 border-slate-900 flex items-center justify-center"><i data-lucide="fish" class="text-blue-400 w-6 h-6"></i></div></div>'}
                     
                     <div class="px-4 pt-3 pb-3">
-                        <h4 class="font-black text-lg text-white leading-tight mb-1 truncate">${mainSpot.name}</h4>
+                        <h4 class="font-black text-lg text-white leading-tight mb-1 truncate">${escapeHTML(mainSpot.name)}</h4>
                         
                         <div class="flex items-center gap-1 text-[10px] text-slate-400 mb-2">
                             <i data-lucide="map-pin" class="w-3 h-3"></i> <span id="${addrId}">Memuat lokasi...</span>
@@ -1605,6 +1661,7 @@
             
             // Simpan maxWeight di options marker untuk filtering nanti
             // OPTIMISASI: Jangan langsung .addTo(map). Biarkan updateMapMarkers yang handle.
+            // FIX: Gunakan decoding="async" pada gambar popup agar tidak memblokir render thread
             const marker = L.marker([mainSpot.lat, mainSpot.lng], {icon: dynamicIcon, maxWeight: maxWeight}).bindPopup(popupHtml);
             
             // Event saat popup dibuka: Fetch Nama Lokasi
@@ -1670,11 +1727,11 @@
                 html += `
                     <div class="p-3">
                         <div class="flex justify-between items-start mb-1">
-                            <span class="text-[10px] font-bold text-slate-400">${g.uid.split('@')[0]}</span>
+                            <span class="text-[10px] font-bold text-slate-400">${escapeHTML(g.uid.split('@')[0])}</span>
                             <span class="text-[9px] text-slate-600">${new Date(g.createdAt).toLocaleDateString()}</span>
                         </div>
                         ${g.rating ? `<div class="flex text-yellow-400 scale-75 origin-left mb-1">${Array(parseInt(g.rating)).fill('<i data-lucide="star" class="w-3 h-3 fill-current"></i>').join('')}</div>` : ''}
-                        <p class="text-xs text-slate-300 mt-1">${g.comment || '-'}</p>
+                        <p class="text-xs text-slate-300 mt-1">${escapeHTML(g.comment) || '-'}</p>
                     </div>
                 `;
             });
@@ -1705,16 +1762,16 @@
                 html += `
                     <div class="bg-neutral-900 rounded-xl border border-white/5 overflow-hidden flex flex-col shadow-lg">
                         <div class="relative aspect-[4/5] bg-neutral-800 group cursor-pointer" onclick="openImageLightbox('${g.photo}')">
-                            <img src="${g.photo}" loading="lazy" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
+                            <img src="${g.photo}" loading="lazy" decoding="async" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
                             <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60"></div>
                             ${weight}
                             <div class="absolute bottom-2 left-2">
-                                <p class="text-[9px] font-bold text-white shadow-black drop-shadow-md">${g.uid.split('@')[0]}</p>
+                                <p class="text-[9px] font-bold text-white shadow-black drop-shadow-md">${escapeHTML(g.uid.split('@')[0])}</p>
                             </div>
                         </div>
                         <div class="p-3 flex-1 flex flex-col">
                             ${stars}
-                            <p class="text-[10px] text-slate-400 line-clamp-2 leading-relaxed">${g.comment || 'Tanpa keterangan'}</p>
+                            <p class="text-[10px] text-slate-400 line-clamp-2 leading-relaxed">${escapeHTML(g.comment) || 'Tanpa keterangan'}</p>
                         </div>
                     </div>
                 `;
@@ -1748,12 +1805,13 @@
             const avg = countR > 0 ? (totalR / countR).toFixed(1) : "0.0";
             
             // Populate UI
-            document.getElementById('detail-name').innerText = main.name;
+            document.getElementById('detail-name').innerText = main.name; // innerText is safe
             document.getElementById('detail-count').innerText = group.length;
             document.getElementById('detail-max-weight').innerText = maxW > 0 ? maxW + " kg" : "-";
             document.getElementById('detail-rating-text').innerText = `(${avg} dari ${countR} ulasan)`;
             updateFavoriteBtn(); // Update status tombol favorit
             
+            triggerHaptic(10); // Feedback saat membuka detail
             document.getElementById('detail-img').src = group.find(g => g.photo)?.photo || 'https://via.placeholder.com/400x200?text=No+Image';
             
             // Render Stars
@@ -1877,36 +1935,70 @@
             try {
                 local = JSON.parse(localStorage.getItem('spots') || '[]');
             } catch(e) { console.error("Error parsing local spots", e); local = []; }
-            local.forEach(item => {
+            
+            // --- NEW: Load Cached Cloud Spots (Agar Peta Langsung Terisi) ---
+            let cachedCloud = [];
+            try {
+                cachedCloud = JSON.parse(localStorage.getItem('cached_cloud_spots') || '[]');
+            } catch(e) { cachedCloud = []; }
+
+            // Gabungkan data lokal user + data komunitas dari cache
+            const initialData = [...local, ...cachedCloud];
+
+            initialData.forEach(item => {
                 const key = item.spotId || (item.lat + ',' + item.lng);
                 if(!groupedSpots[key]) groupedSpots[key] = [];
                 groupedSpots[key].push(item);
             });
 
+            // Render awal (Instan)
+            Object.keys(groupedSpots).forEach(key => addMarker(key, groupedSpots[key]));
+            updateMapMarkers();
+
             // 2. Ambil Data Google Sheets (Async) & Merge
-            if(GOOGLE_SCRIPT_URL.startsWith("http")) {
+            const targetUrl = (GOOGLE_SCRIPT_URL && GOOGLE_SCRIPT_URL.startsWith("http")) ? GOOGLE_SCRIPT_URL : DEFAULT_SCRIPT_URL;
+            if(targetUrl) {
                 try {
                     // FIX: Tambahkan timestamp (?t=...) agar data peta selalu update (Like/Komen baru muncul)
-                    const res = await fetch(`${GOOGLE_SCRIPT_URL}?t=${Date.now()}`);
+                    const res = await fetch(`${targetUrl}?t=${Date.now()}`);
                     const data = await res.json();
                     
-                    data.forEach(item => {
-                        // FIX: Handle Comma in Coordinates (Data Lama)
-                        if(typeof item.lat === 'string') item.lat = parseFloat(item.lat.replace(',', '.'));
-                        if(typeof item.lng === 'string') item.lng = parseFloat(item.lng.replace(',', '.'));
+                    // --- NEW: Update Cache dengan Data Baru ---
+                    localStorage.setItem('cached_cloud_spots', JSON.stringify(data));
+                    
+                    // Reset & Re-render dengan data terbaru (Fresh)
+                    allMarkers.forEach(m => map.removeLayer(m));
+                    allMarkers = [];
+                    groupedSpots = {};
 
+                    // Masukkan ulang data lokal user
+                    local.forEach(item => {
                         const key = item.spotId || (item.lat + ',' + item.lng);
                         if(!groupedSpots[key]) groupedSpots[key] = [];
                         groupedSpots[key].push(item);
                     });
+
+                    data.forEach(item => {
+                        // FIX: Handle Comma in Coordinates (Data Lama)
+                        if (item && (item.lat !== undefined) && (item.lng !== undefined)) {
+                            if(typeof item.lat === 'string') item.lat = parseFloat(item.lat.replace(',', '.'));
+                            if(typeof item.lng === 'string') item.lng = parseFloat(item.lng.replace(',', '.'));
+
+                            if (typeof item.lat === 'number' && !isNaN(item.lat) && typeof item.lng === 'number' && !isNaN(item.lng)) {
+                                const key = item.spotId || (item.lat + ',' + item.lng);
+                                if(!groupedSpots[key]) groupedSpots[key] = [];
+                                groupedSpots[key].push(item);
+                            }
+                        }
+                    });
+                    
+                    // Render ulang dengan data fresh
+                    Object.keys(groupedSpots).forEach(key => addMarker(key, groupedSpots[key]));
+                    updateMapMarkers();
                     
                 } catch(e) { console.log("Gagal load Sheet:", e); }
             }
             
-            // 3. Render Semua Marker dari Grouping yang sudah terkumpul
-            Object.keys(groupedSpots).forEach(key => addMarker(key, groupedSpots[key]));
-            
-            updateMapMarkers(); // Update tampilan setelah load
         }
 
         function locateUser() {
@@ -1938,6 +2030,7 @@
             });
 
             userLocationMarker = L.marker(e.latlng, {icon: userIcon, zIndexOffset: 1000}).addTo(map);
+            triggerHaptic([20, 50, 20]); // Success locate
             
             // PERBAIKAN: Update data cuaca saat lokasi GPS ditemukan via tombol
             // Ini memastikan cuaca tidak lagi menggunakan data IP Address lama
@@ -1992,6 +2085,7 @@
                 // Pastikan marker ada di peta sebelum popup dibuka
                 if(!map.hasLayer(nearestMarker)) nearestMarker.addTo(map);
                 nearestMarker.openPopup();
+                triggerHaptic([10, 10]);
 
                 // Gambar garis lurus dari user ke spot
                 if(currentRouteLine) map.removeLayer(currentRouteLine);
@@ -2156,6 +2250,7 @@
                                     if (response === 'granted') {
                                         window.addEventListener('deviceorientation', handleOrientation);
                                         alert("Kompas Aktif! Putar HP Anda.");
+                                        triggerHaptic(20);
                                     } else {
                                         alert("Izin Kompas Ditolak.");
                                     }
@@ -2165,6 +2260,7 @@
                             // Android / Browser Biasa
                             window.addEventListener('deviceorientation', handleOrientation);
                             alert("Kompas Diaktifkan (Jika sensor tersedia).");
+                            triggerHaptic(20);
                         }
                     };
                     return container;
@@ -2211,6 +2307,7 @@
                 map.removeLayer(satLayer); map.removeLayer(streetLayer); map.addLayer(oceanLayer);
                 isSat = false;
                 if(btnOcean) { btnOcean.classList.add('border-blue-500'); btnOcean.classList.remove('border-transparent'); }
+                triggerHaptic(5);
             }
             
             // Re-add overlay if exists (because base layer change might hide it)
@@ -2312,6 +2409,7 @@
             const toggle = document.getElementById(`toggle-${type}`);
             if(!toggle) return;
             
+            triggerHaptic(5); // Feedback toggle
             const isChecked = toggle.checked;
             updateLayerStorage(); // Simpan status terbaru setiap kali di-klik
 
@@ -2333,7 +2431,7 @@
             // 2. Jika dinyalakan (Check)
             // OPENWEATHERMAP LAYERS (Wind) - Butuh API Key
             if(type === 'wind') {
-                if(OWM_API_KEY === "YOUR_OWM_API_KEY" || !OWM_API_KEY) {
+                if(!OWM_API_KEY || OWM_API_KEY === "YOUR_OWM_API_KEY") {
                     alert("⚠️ Fitur Peta Angin Memerlukan API Key");
                     toggle.checked = false;
                     updateLayerStorage();
@@ -2418,7 +2516,7 @@
 
             // PRESSURE LAYER (Tekanan Udara)
             if(type === 'pressure') {
-                if(OWM_API_KEY === "YOUR_OWM_API_KEY" || !OWM_API_KEY) {
+                if(!OWM_API_KEY || OWM_API_KEY === "YOUR_OWM_API_KEY") {
                     alert("Fitur ini butuh API Key OpenWeatherMap."); toggle.checked = false; updateLayerStorage(); return;
                 }
                 activeLayers[type] = L.tileLayer(`https://tile.openweathermap.org/map/pressure_new/{z}/{x}/{y}.png?appid=${OWM_API_KEY}`, {
@@ -2741,6 +2839,7 @@
             if (!modal) return;
 
             modal.classList.remove('translate-y-full');
+            triggerHaptic(10);
             lucide.createIcons({ root: modal }); // Render ikon tombol close
 
             // Tunda inisialisasi peta sampai modal terlihat
@@ -2957,9 +3056,21 @@
                     </div>
                 </div>`;
             
-            // Insert AFTER forecast-list
-            forecastList.insertAdjacentHTML('afterend', cardHtml);
-            lucide.createIcons({ root: document.getElementById('precip-map-card') });
+            // --- FIX: Placement Logic (iPhone Style Order) ---
+            // Urutan: Forecast -> AQI -> Quake -> MAP -> Grid
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = cardHtml.trim();
+            const newCard = tempDiv.firstChild;
+
+            const quake = document.getElementById('quake-container');
+            const aqi = document.getElementById('aqi-container');
+            let ref = quake || aqi || forecastList; // Cari elemen terakhir yang ada
+
+            if (ref && ref.parentNode) {
+                if (ref.nextSibling) ref.parentNode.insertBefore(newCard, ref.nextSibling);
+                else ref.parentNode.appendChild(newCard);
+            }
+            lucide.createIcons({ root: newCard });
 
             try {
                 const res = await fetch(`https://api.rainviewer.com/public/weather-maps.json?_=${Date.now()}`);
@@ -3073,8 +3184,10 @@
             
             // 2. Tentukan URL Layer Aktif (Satelit / Laut / Jalan)
             let urlTemplate = "";
+            let subdomains = ['a', 'b', 'c']; // Default OSM
             if(isSat) {
-                urlTemplate = "https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}";
+                urlTemplate = "https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}";
+                subdomains = ['0', '1', '2', '3']; // Google pakai angka
             } else if (map.hasLayer(oceanLayer)) {
                 urlTemplate = "https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}";
             } else {
@@ -3089,7 +3202,7 @@
                 for (let x = minTile.x; x <= maxTile.x; x++) {
                     for (let y = minTile.y; y <= maxTile.y; y++) {
                         // Gunakan logika subdomain Leaflet (a, b, c) agar cocok dengan request peta
-                        const s = ['a','b','c'][(x + y) % 3];
+                        const s = subdomains[(x + y) % subdomains.length];
                         const url = urlTemplate.replace('{x}', x).replace('{y}', y).replace('{z}', z).replace('{s}', s);
                         tiles.push(url);
                     }
@@ -3116,7 +3229,12 @@
                 
                 for (let i = 0; i < tiles.length; i += batchSize) {
                     const batch = tiles.slice(i, i + batchSize);
-                    await Promise.all(batch.map(url => fetch(url, { mode: 'no-cors' }).then(res => cache.put(url, res))));
+                    // FIX: Gunakan catch per item agar satu gagal tidak membatalkan semua
+                    await Promise.all(batch.map(url => 
+                        fetch(url, { mode: 'no-cors' })
+                            .then(res => cache.put(url, res))
+                            .catch(e => console.warn(`Gagal cache tile: ${url}`, e))
+                    ));
                     
                     count += batch.length;
                     btn.innerHTML = `<span class="animate-pulse">Downloading... ${Math.min(count, tiles.length)}/${tiles.length}</span>`;
@@ -3140,6 +3258,7 @@
                 
                 if(typeof updateOfflineList === 'function') updateOfflineList(); // Refresh list
                 alert(`✅ Area "${mapName}" berhasil didownload!`);
+                triggerHaptic([50, 50, 50]);
             } catch (e) {
                 console.error(e);
                 alert("Gagal download. Pastikan koneksi internet stabil saat mendownload.");
@@ -3384,6 +3503,7 @@
             // --- FIX: Stop Audio/Video when changing views ---
             // Menghentikan suara video feed saat pindah navigasi
             document.querySelectorAll('video, audio').forEach(el => el.pause());
+            triggerHaptic(5); // Light tap on navigation
 
             // --- FIX: Handle Android Back Button (History API) ---
             // Menambahkan state history agar tombol kembali HP tidak langsung keluar aplikasi
@@ -3564,6 +3684,7 @@
                         }
                     } else {
                         // Keluar area buffer: Hapus src untuk lepas memori
+                        // FIX: Aggressive Memory Clearing
                         if (video.getAttribute('src')) {
                             video.removeAttribute('src');
                             video.load(); // Paksa browser melepas buffer video
@@ -3616,7 +3737,7 @@
                 <div class="absolute inset-0 flex items-center justify-center bg-black z-0">
                     <div class="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full"></div>
                 </div>
-                <video data-src="${url}" src="${url}" poster="${thumbnail}" class="w-full h-full object-cover relative z-10" loop playsinline preload="metadata" onloadeddata="this.previousElementSibling.classList.add('hidden')"></video>
+                <video data-src="${url}" src="${url}" poster="${thumbnail}" class="w-full h-full object-cover relative z-10" loop playsinline preload="none" onloadeddata="this.previousElementSibling.classList.add('hidden')"></video>
                 <div class="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/90 pointer-events-none"></div>
                 <div class="absolute bottom-0 left-0 w-full p-4 pb-14 z-10 pointer-events-none bg-gradient-to-t from-black/80 to-transparent">
                     <div class="flex items-center gap-2 mb-2">
@@ -3636,7 +3757,7 @@
                     </div>
                 </div>
                 <div class="absolute right-2 bottom-14 flex flex-col gap-4 items-center z-20 pb-4">
-                    <button class="flex flex-col items-center gap-1 group" onclick="const i=this.querySelector('i'); i.classList.toggle('fill-red-500'); i.classList.toggle('text-red-500'); i.classList.toggle('fill-white'); i.classList.toggle('text-white');">
+                    <button class="flex flex-col items-center gap-1 group" onclick="triggerHaptic(15); const i=this.querySelector('i'); i.classList.toggle('fill-red-500'); i.classList.toggle('text-red-500'); i.classList.toggle('fill-white'); i.classList.toggle('text-white');">
                         <i data-lucide="heart" class="w-8 h-8 text-white fill-white drop-shadow-lg transition-colors group-active:scale-90"></i>
                         <span class="text-[10px] font-bold text-white drop-shadow-md">${likes}</span>
                     </button>
@@ -3723,7 +3844,7 @@
             // Helper: HTML Tombol Samping (Agar tidak duplikat kode)
             const getSideActions = (likes, comments) => `
                 <div class="absolute right-2 bottom-14 flex flex-col gap-4 items-center z-20 pb-4">
-                    <button class="flex flex-col items-center gap-1 group" onclick="const i=this.querySelector('i'); i.classList.toggle('fill-red-500'); i.classList.toggle('text-red-500'); i.classList.toggle('fill-white'); i.classList.toggle('text-white');">
+                    <button class="flex flex-col items-center gap-1 group" onclick="triggerHaptic(15); const i=this.querySelector('i'); i.classList.toggle('fill-red-500'); i.classList.toggle('text-red-500'); i.classList.toggle('fill-white'); i.classList.toggle('text-white');">
                         <i data-lucide="heart" class="w-8 h-8 text-white fill-white drop-shadow-lg transition-colors group-active:scale-90"></i>
                         <span class="text-[10px] font-bold text-white drop-shadow-md">${likes}</span>
                     </button>
@@ -3749,7 +3870,7 @@
                     <div class="absolute inset-0 flex items-center justify-center bg-black z-0">
                         <div class="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full"></div>
                     </div>
-                    <video data-src="${url}" src="${url}" poster="${thumbnail}" class="w-full h-full object-cover relative z-10" loop playsinline preload="metadata" onloadeddata="this.previousElementSibling.classList.add('hidden')"></video>
+                    <video data-src="${url}" src="${url}" poster="${thumbnail}" class="w-full h-full object-cover relative z-10" loop playsinline preload="none" onloadeddata="this.previousElementSibling.classList.add('hidden')"></video>
                     <div class="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/90 pointer-events-none"></div>
                     <div class="absolute bottom-0 left-0 w-full p-4 pb-14 z-10 pointer-events-none bg-gradient-to-t from-black/80 to-transparent">
                         <div class="flex items-center gap-2 mb-2">
@@ -3779,7 +3900,7 @@
 
             // --- PROVIDER FUNCTIONS ---
             const fetchPixabay = async () => {
-                const res = await fetch(`${GOOGLE_SCRIPT_URL}?type=pixabay&q=${query}&t=${Date.now()}`, { redirect: 'follow' });
+                const res = await fetch(`${DEFAULT_SCRIPT_URL}?type=pixabay&q=${query}&t=${Date.now()}`, { redirect: 'follow' });
                 const data = await res.json();
                 if (data.error) throw new Error("GAS Pixabay Error: " + data.error);
                 
@@ -3810,7 +3931,7 @@
             };
 
             const fetchPexels = async () => {
-                const res = await fetch(`${GOOGLE_SCRIPT_URL}?type=pexels&q=${query}&t=${Date.now()}`, { redirect: 'follow' });
+                const res = await fetch(`${DEFAULT_SCRIPT_URL}?type=pexels&q=${query}&t=${Date.now()}`, { redirect: 'follow' });
                 const data = await res.json();
                 if (data.error) throw new Error("GAS Pexels Error: " + data.error);
 
@@ -3901,7 +4022,7 @@
                 if (videos.length === 0) {
                     try {
                         // Use global URL if available
-                        const url = (typeof GOOGLE_SCRIPT_URL !== 'undefined') ? GOOGLE_SCRIPT_URL : "https://script.google.com/macros/s/AKfycbybJe6cBuciSnj4j4hmm3nN4C860Sen9RVht6b1O5cZoRpkwvBoDLw6jTkYa4tmUas1/exec";
+                        const url = (typeof GOOGLE_SCRIPT_URL !== 'undefined' && GOOGLE_SCRIPT_URL) ? GOOGLE_SCRIPT_URL : DEFAULT_SCRIPT_URL;
                         const res = await fetch(`${url}?type=all&t=${Date.now()}`);
                         const data = await res.json();
                         
@@ -4031,7 +4152,7 @@
                         
                         const imgUrl = spot.photo || 'https://via.placeholder.com/150?text=No+Image';
                         div.innerHTML = `
-                            <img src="${imgUrl}" loading="lazy" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                            <img src="${imgUrl}" loading="lazy" decoding="async" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
                             <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1 text-white font-bold">
                                 <i data-lucide="heart" class="w-5 h-5 fill-white"></i> <span>${spot.likes || 0}</span>
                             </div>
@@ -4193,6 +4314,7 @@
                     // B. Jika tidak ada modal, lakukan navigasi Back Halaman
                     const activeView = document.querySelector('.view-section.active');
                     // Jangan back jika sudah di Home
+                    triggerHaptic(10); // Feedback gesture
                     if (activeView && activeView.id !== 'view-home') {
                         if (window.history.state && window.history.state.page && window.history.state.page !== 'home') {
                             window.history.back();
