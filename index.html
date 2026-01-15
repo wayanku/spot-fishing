@@ -192,6 +192,10 @@
                     </div>
                 </div>
                 </div>
+                <!-- Scroll to Top Button -->
+                <button id="scroll-to-top" onclick="scrollToTop()" class="fixed bottom-24 right-4 z-[800] bg-blue-600 text-white p-3 rounded-full shadow-lg hidden transition-all duration-300 hover:bg-blue-500 border border-white/10">
+                    <i data-lucide="arrow-up" class="w-6 h-6"></i>
+                </button>
             </div>
         </div>
 
@@ -1405,9 +1409,12 @@
             // Reset cache postingan eksternal agar selalu update saat refresh feed (Navigasi)
             externalPostDataCache = {};
             
+            // --- NEW: Show Skeleton Loader ---
+            container.innerHTML = FEED_SKELETON_HTML;
+
             // Gunakan URL Google Sheet yang sudah ada di script.js
             // Fallback URL jika variabel tidak ditemukan
-            const SHEET_URL = (typeof GOOGLE_SCRIPT_URL !== 'undefined') ? GOOGLE_SCRIPT_URL : "https://script.google.com/macros/s/AKfycbybJe6cBuciSnj4j4hmm3nN4C860Sen9RVht6b1O5cZoRpkwvBoDLw6jTkYa4tmUas1/exec";
+            const SHEET_URL = (typeof GOOGLE_SCRIPT_URL !== 'undefined' && GOOGLE_SCRIPT_URL) ? GOOGLE_SCRIPT_URL : DEFAULT_SCRIPT_URL;
 
             // Helper: Ubah Link YouTube jadi Embed
             const getEmbedUrl = (url) => {
@@ -1432,11 +1439,11 @@
                         ...item,
                         image: item.photo,
                         video: item.video, // Pastikan ada kolom 'video' di Google Sheet
-                        userName: item.uid ? item.uid.split('@')[0] : 'Pengguna',
+                        userName: item.uid ? escapeHTML(item.uid.split('@')[0]) : 'Pengguna',
                         userPhoto: `https://api.dicebear.com/7.x/avataaars/svg?seed=${item.uid || 'User'}`,
-                        locationName: item.name || 'Lokasi Spot',
+                        locationName: escapeHTML(item.name) || 'Lokasi Spot',
                         likes: item.likes || 0,
-                        description: item.comment,
+                        description: escapeHTML(item.comment),
                         weight: item.weight,
                         lat: (typeof item.lat === 'string') ? parseFloat(item.lat.replace(',', '.')) : item.lat,
                         lng: (typeof item.lng === 'string') ? parseFloat(item.lng.replace(',', '.')) : item.lng,
@@ -1504,7 +1511,7 @@
                     let commentsListHtml = '';
                     if (d.comments && d.comments.length > 0) {
                         commentsListHtml = `<div id="comments-list-${postId}" class="hidden mt-2 space-y-1 animate-in fade-in slide-in-from-top-1">` + 
-                            d.comments.map(c => `<p class="text-xs text-slate-300"><span class="font-bold text-white mr-1">${c.userName}</span>${c.text}</p>`).join('') +
+                            d.comments.map(c => `<p class="text-xs text-slate-300"><span class="font-bold text-white mr-1">${escapeHTML(c.userName)}</span>${escapeHTML(c.text)}</p>`).join('') +
                         `</div>`;
                     }
 
@@ -2927,7 +2934,7 @@
 
                     if (videos.length === 0) {
                         try {
-                            const SHEET_URL = (typeof GOOGLE_SCRIPT_URL !== 'undefined') ? GOOGLE_SCRIPT_URL : "https://script.google.com/macros/s/AKfycbybJe6cBuciSnj4j4hmm3nN4C860Sen9RVht6b1O5cZoRpkwvBoDLw6jTkYa4tmUas1/exec";
+                            const SHEET_URL = (typeof GOOGLE_SCRIPT_URL !== 'undefined' && GOOGLE_SCRIPT_URL) ? GOOGLE_SCRIPT_URL : DEFAULT_SCRIPT_URL;
                             const res = await fetch(`${SHEET_URL}?type=all&t=${Date.now()}`);
                             const data = await res.json();
                             if (data && data.videos) videos = data.videos;
@@ -3257,7 +3264,7 @@
             localStorage.setItem('liked_' + postId, 'true');
 
             // Kirim ke Google Sheet
-            const SHEET_URL = (typeof GOOGLE_SCRIPT_URL !== 'undefined') ? GOOGLE_SCRIPT_URL : "https://script.google.com/macros/s/AKfycbybJe6cBuciSnj4j4hmm3nN4C860Sen9RVht6b1O5cZoRpkwvBoDLw6jTkYa4tmUas1/exec";
+            const SHEET_URL = (typeof GOOGLE_SCRIPT_URL !== 'undefined' && GOOGLE_SCRIPT_URL) ? GOOGLE_SCRIPT_URL : DEFAULT_SCRIPT_URL;
             
             fetch(SHEET_URL, {
                 method: 'POST',
@@ -3408,7 +3415,7 @@
             input.value = ''; // Clear input immediately
 
             // Kirim ke Google Sheet
-            const SHEET_URL = (typeof GOOGLE_SCRIPT_URL !== 'undefined') ? GOOGLE_SCRIPT_URL : "https://script.google.com/macros/s/AKfycbybJe6cBuciSnj4j4hmm3nN4C860Sen9RVht6b1O5cZoRpkwvBoDLw6jTkYa4tmUas1/exec";
+            const SHEET_URL = (typeof GOOGLE_SCRIPT_URL !== 'undefined' && GOOGLE_SCRIPT_URL) ? GOOGLE_SCRIPT_URL : DEFAULT_SCRIPT_URL;
             
             // Tampilkan feedback visual
             const toast = document.createElement('div');
@@ -3423,9 +3430,9 @@
                 body: JSON.stringify({
                     action: 'comment',
                     postId: postId,
-                    userName: userName,
+                    userName: escapeHTML(userName),
                     userAvatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${userName}`,
-                    text: text
+                    text: escapeHTML(text)
                 })
             }).then(() => {
                 toast.innerText = "Komentar terkirim!";
