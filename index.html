@@ -434,7 +434,7 @@
         </div>
 
         <!-- Bottom Navigation Bar (Instagram Style) -->
-        <div class="fixed bottom-2 left-2 right-2 md:bottom-6 md:w-[500px] md:left-1/2 md:-translate-x-1/2 z-[900] bg-black/90 backdrop-blur-xl rounded-2xl md:rounded-3xl pt-2 px-0 pb-safe md:pb-4 md:px-8 grid grid-cols-5 justify-items-center items-center shadow-2xl transition-all duration-300 border border-white/10">
+        <div class="fixed bottom-0 left-0 right-0 md:bottom-6 md:w-[500px] md:left-1/2 md:-translate-x-1/2 z-[900] bg-black/90 backdrop-blur-xl md:rounded-3xl pt-2 px-0 pb-0 md:pb-4 md:px-8 grid grid-cols-5 justify-items-center items-center shadow-2xl transition-all duration-300 border-t md:border border-white/10">
             <button onclick="navigateTo('home')" class="nav-btn p-2 text-blue-400 flex flex-col items-center transition-colors group" id="nav-home">
                 <i data-lucide="home" class="w-7 h-7 group-hover:scale-110 transition-transform"></i>
             </button>
@@ -796,62 +796,46 @@
 
     <!-- MODAL WEATHER DETAIL (New Feature) -->
     <div id="weatherDetailModal" class="fixed inset-0 z-[10000] bg-black hidden animate-in slide-in-from-bottom duration-300">
-        <div class="w-full h-full p-6 overflow-y-auto no-scrollbar relative" style="padding-top: calc(1.5rem + env(safe-area-inset-top));">
-            <button onclick="closeDetailModal()" class="absolute top-4 right-4 p-2 bg-neutral-800 rounded-full hover:bg-neutral-700" aria-label="Tutup detail cuaca"><i data-lucide="x" class="w-4 h-4"></i></button>
-            <h3 class="text-xl font-bold mb-1 flex items-center gap-2" id="detail-title">Detail Cuaca</h3>
-            <p class="text-xs text-slate-400 mb-4" id="detail-date">...</p>
+        <div class="w-full h-full p-4 md:p-6 overflow-y-auto no-scrollbar relative" style="padding-top: calc(1.5rem + env(safe-area-inset-top)); padding-bottom: 4rem;">
+            <!-- Header -->
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h3 class="text-2xl font-bold text-white" id="detail-title">Detail Cuaca</h3>
+                    <p class="text-sm text-slate-400" id="detail-date">...</p>
+                </div>
+            </div>
             
-            <!-- AI Insight Box (New Feature) -->
-            <div class="bg-gradient-to-br from-neutral-800 to-neutral-900 p-4 rounded-2xl border border-blue-500/30 mb-5 relative overflow-hidden shadow-lg group">
-                <div class="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity"><i data-lucide="bot" class="w-16 h-16 text-blue-400"></i></div>
+            <!-- Chart Section -->
+            <div class="bg-neutral-900/50 backdrop-blur-xl rounded-2xl border border-white/10 p-4 mb-4">
+                <!-- Chart Tabs -->
+                <div class="flex gap-2 mb-4 overflow-x-auto no-scrollbar">
+                    <button onclick="switchChart('temp')" id="tab-temp" class="chart-tab active px-3 py-1.5 rounded-lg text-[10px] font-bold border border-white/10 bg-neutral-800/50 text-slate-400 transition-all whitespace-nowrap flex items-center gap-1"><i data-lucide="thermometer" class="w-3 h-3"></i> Suhu & Hujan</button>
+                    <button onclick="switchChart('solunar')" id="tab-solunar" class="chart-tab px-3 py-1.5 rounded-lg text-[10px] font-bold border border-white/10 bg-neutral-800/50 text-slate-400 transition-all whitespace-nowrap flex items-center gap-1"><i data-lucide="moon-star" class="w-3 h-3"></i> Aktivitas Ikan</button>
+                    <button onclick="switchChart('wind')" id="tab-wind" class="chart-tab px-3 py-1.5 rounded-lg text-[10px] font-bold border border-white/10 bg-neutral-800/50 text-slate-400 transition-all whitespace-nowrap flex items-center gap-1"><i data-lucide="wind" class="w-3 h-3"></i> Angin</button>
+                    <button onclick="switchChart('wave')" id="tab-wave" class="chart-tab px-3 py-1.5 rounded-lg text-[10px] font-bold border border-white/10 bg-neutral-800/50 text-slate-400 transition-all whitespace-nowrap flex items-center gap-1"><i data-lucide="waves" class="w-3 h-3"></i> Ombak</button>
+                </div>
+                <!-- Chart Container -->
+                <div class="w-full h-56 md:h-64 rounded-xl relative cursor-crosshair touch-none" id="chart-wrapper">
+                    <div id="chart-container" class="w-full h-full"></div>
+                    <div id="chart-tooltip"></div>
+                    <div id="chart-cursor" class="absolute top-4 bottom-4 w-px bg-white/30 hidden border-l border-dashed border-white"></div>
+                </div>
+            </div>
+
+            <!-- AI Insight Box (Restyled) -->
+            <div id="ai-insight-container" class="bg-neutral-900/50 backdrop-blur-xl rounded-2xl border border-white/10 p-4 mb-4">
                 <h4 class="text-xs font-bold text-blue-300 uppercase mb-3 flex items-center gap-2"><i data-lucide="sparkles" class="w-4 h-4 text-yellow-400"></i> Analisa Cerdas (AI)</h4>
                 <div id="ai-insight-content" class="grid md:grid-cols-2 gap-4 text-sm text-slate-200 leading-relaxed">
-                    <!-- Left Column for Warnings -->
                     <div id="ai-warnings-container" class="space-y-2">
                         <p class="text-xs text-slate-500 animate-pulse">Menganalisa potensi bahaya...</p>
                     </div>
-                    <!-- Right Column for Recommendations -->
                     <div id="ai-recommendations-container" class="space-y-2"></div>
                 </div>
             </div>
-
-            <!-- Chart Tabs -->
-            <div class="flex gap-2 mb-4 overflow-x-auto no-scrollbar">
-                <button onclick="switchChart('temp')" id="tab-temp" class="chart-tab active px-3 py-1.5 rounded-lg text-[10px] font-bold border border-white/10 bg-neutral-800/50 text-slate-400 transition-all whitespace-nowrap flex items-center gap-1"><i data-lucide="thermometer" class="w-3 h-3"></i> Suhu & Hujan</button>
-                <button onclick="switchChart('solunar')" id="tab-solunar" class="chart-tab px-3 py-1.5 rounded-lg text-[10px] font-bold border border-white/10 bg-neutral-800/50 text-slate-400 transition-all whitespace-nowrap flex items-center gap-1"><i data-lucide="moon-star" class="w-3 h-3"></i> Aktivitas Ikan</button>
-                <button onclick="switchChart('wind')" id="tab-wind" class="chart-tab px-3 py-1.5 rounded-lg text-[10px] font-bold border border-white/10 bg-neutral-800/50 text-slate-400 transition-all whitespace-nowrap flex items-center gap-1"><i data-lucide="wind" class="w-3 h-3"></i> Angin</button>
-                <button onclick="switchChart('wave')" id="tab-wave" class="chart-tab px-3 py-1.5 rounded-lg text-[10px] font-bold border border-white/10 bg-neutral-800/50 text-slate-400 transition-all whitespace-nowrap flex items-center gap-1"><i data-lucide="waves" class="w-3 h-3"></i> Ombak</button>
-            </div>
-
-            <!-- Chart Container -->
-            <div class="w-full h-64 md:h-80 rounded-xl p-4 relative mb-4 cursor-crosshair touch-none" id="chart-wrapper">
-                <!-- SVG Chart will be injected here -->
-                <div id="chart-container" class="w-full h-full"></div>
-                <div id="chart-tooltip"></div>
-                <div id="chart-cursor" class="absolute top-4 bottom-4 w-px bg-white/30 hidden border-l border-dashed border-white"></div>
-            </div>
             
-            <!-- Advanced Details Grid -->
-            <h4 class="text-xs font-bold text-slate-400 uppercase mb-2">Data Atmosfer</h4>
-            <div class="grid grid-cols-3 gap-2 mb-4">
-                <div class="bg-neutral-800/30 p-2 rounded-xl border border-white/5 text-center">
-                    <p class="text-[9px] text-slate-500 uppercase">Kelembaban</p>
-                    <p class="text-sm font-bold text-blue-300" id="det-humidity">-%</p>
-                </div>
-                <div class="bg-neutral-800/30 p-2 rounded-xl border border-white/5 text-center">
-                    <p class="text-[9px] text-slate-500 uppercase">Tekanan</p>
-                    <p class="text-sm font-bold text-emerald-300" id="det-pressure">- hPa</p>
-                </div>
-                <div class="bg-neutral-800/30 p-2 rounded-xl border border-white/5 text-center">
-                    <p class="text-[9px] text-slate-500 uppercase">UV Index</p>
-                    <p class="text-sm font-bold text-yellow-300" id="det-uv">-</p>
-                </div>
-            </div>
-            
-            <!-- Summary -->
-            <div class="p-3 bg-neutral-800/50 rounded-xl border border-neutral-700/50 text-xs text-slate-300" id="rain-summary">
-                <!-- Summary -->
-            </div>
+            <!-- Detailed Metrics Grid (iPhone Style) -->
+            <div id="detail-metrics-grid" class="grid grid-cols-2 gap-3"></div>
+            <div id="rain-summary" class="hidden"></div>
         </div>
     </div>
 
@@ -1101,6 +1085,9 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <!-- SECURITY: DOMPurify for XSS Prevention -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.8/purify.min.js"></script>
 
     <script src="weather.js"></script>
     <script src="script.js"></script>
@@ -2596,7 +2583,7 @@
                         // Ikan Laut & Tawar
                         "Ikan_badut", "Ikan_hiu", "Ikan_paus", "Ikan_pari", "Ikan_tuna", "Ikan_kakap", "Ikan_lele", "Ikan_nila", 
                         "Ikan_arwana", "Barakuda", "Marlin_biru", "Ikan_mas", "Ikan_tenggiri", "Ikan_tongkol", "Ikan_kerapu", 
-                        "Ikan_kuwe", "Ikan_bawal", "Ikan_patin", "Ikan_gabus", "Ikan_belanak", "Ikan_mujair", "Ikan_gurami", 
+                        "Ikan_bawal", "Ikan_patin", "Ikan_gabus", "Ikan_belanak", "Ikan_mujair", "Ikan_gurami", 
                         "Ikan_layur", "Ikan_cakalang", "Ikan_teri", "Ikan_kembung", "Ikan_baronang", "Ikan_kakap_putih", 
                         "Ikan_kakap_merah", "Ikan_napoleon", "Ikan_buntal", "Ikan_sepat", "Ikan_betok", "Ikan_sidat", "Ikan_belida",
                         "Ikan_lemadang", "Ikan_layang", "Ikan_selar", "Ikan_ekor_kuning", "Ikan_manyung", "Ikan_sembilang",
@@ -2606,7 +2593,7 @@
                         "Paus_pembunuh", "Paus_biru", "Kerang", "Tiram", "Siput_laut", "Bulu_babi", "Teripang",
                         // Alat & Teknik Mancing
                         "Memancing", "Joran", "Kail", "Umpan_pancing", "Senar_pancing", "Reel_pancing", "Pelampung_(memancing)",
-                        "Teknik_memancing", "Jigging", "Casting_(memancing)", "Trolling_(memancing)", "Fly_fishing", 
+                        "Teknik_memancing", "Jigging", "Trolling_(memancing)", "Fly_fishing", 
                         "Mancing_dasaran", "Popping_(memancing)", "Rawai", "Jala", "Bubu", "Rumpon",
                         // Lokasi & Ekosistem
                         "Laut", "Sungai", "Danau", "Rawa", "Waduk", "Muara", "Pantai", "Hutan_bakau", "Padang_lamun", 
@@ -2666,16 +2653,15 @@
                     // Menggunakan CORS Proxy karena API ini kadang memblokir akses langsung dari browser
                     if (!fishWatchDataCache) {
                         try {
-                            // Gunakan allorigins (JSON Wrapper) agar lebih stabil dan tidak error SyntaxError jika API down/HTML
-                            const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent('https://www.fishwatch.gov/api/species')}`);
+                            // FIX: Switch to corsproxy.io for better reliability & direct JSON
+                            const res = await fetch('https://corsproxy.io/?' + encodeURIComponent('https://www.fishwatch.gov/api/species'));
                             if (!res.ok) throw new Error("Network response was not ok");
-                            const wrapper = await res.json();
                             
-                            if (wrapper && wrapper.contents) {
-                                fishWatchDataCache = JSON.parse(wrapper.contents);
-                            } else {
-                                throw new Error("Invalid wrapper response");
-                            }
+                            // Cek apakah response benar-benar JSON sebelum parse
+                            const contentType = res.headers.get("content-type");
+                            if (!contentType || !contentType.includes("application/json")) throw new Error("Response is not JSON (Proxy Error)");
+
+                            fishWatchDataCache = await res.json();
                         } catch (e) {
                             console.warn("FishWatch API failed, fallback to Wiki", e);
                             delete externalPostDataCache[mode]; // Reset status loading agar tidak stuck
