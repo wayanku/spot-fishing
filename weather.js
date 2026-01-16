@@ -1869,13 +1869,39 @@ async function showLocationPanel(latlng) {
         
         checkWeatherAnimation(wx.weathercode, wx.windspeed, wx.is_day);
     } else {
-        // Lokasi baru / belum ada data: Gunakan estimasi waktu sistem & cerah
-        wxLocalHour = sysHour; // Reset ke jam sistem sementara loading
-        wxIsDay = initIsDay;
+        // Lokasi baru / belum ada data: Estimasi waktu lokal berdasarkan Longitude
+        // Agar langit langsung sesuai (Gelap/Terang) sebelum data API masuk
+        const nowUTC = new Date();
+        const utcHour = nowUTC.getUTCHours() + (nowUTC.getUTCMinutes() / 60);
+        const offset = latlng.lng / 15; // Estimasi offset jam (15 derajat = 1 jam)
+        let estLocalHour = (utcHour + offset) % 24;
+        if (estLocalHour < 0) estLocalHour += 24;
+        
+        wxLocalHour = Math.floor(estLocalHour);
+        
+        // Update dummy data agar SunCalc bisa menghitung posisi matahari/bulan di lokasi baru
+        // Ini penting agar animasi matahari/bulan langsung pindah ke posisi yang benar
+        currentWeatherData = {
+            latitude: latlng.lat,
+            longitude: latlng.lng,
+            current_weather: { weathercode: 0, is_day: 1, temperature: 0, windspeed: 0 }, // Dummy
+            daily: { sunrise: [], sunset: [] } // Dummy agar tidak error
+        };
+
+        // Cek Day/Night menggunakan SunCalc untuk akurasi visual
+        if (typeof SunCalc !== 'undefined') {
+             const times = SunCalc.getTimes(new Date(), latlng.lat, latlng.lng);
+             const now = new Date();
+             wxIsDay = (now > times.sunrise && now < times.sunset);
+        } else {
+             wxIsDay = (wxLocalHour >= 6 && wxLocalHour < 18);
+        }
+        
         wxCode = 0;
         
         // --- NEW: Force Draw Sky Immediately ---
-        drawSkyBackground(); // Gambar langit langsung
+        updateCelestialPositions(); // Hitung posisi matahari/bulan baru
+        drawSkyBackground(); // Gambar langit dengan jam lokal estimasi
         
         startWeatherEffect('clear');
     }
@@ -3091,10 +3117,17 @@ function openDetailModal(dayIndex) {
     // Penting: Set ke tengah hari agar kalkulasi 1 hari penuh akurat
     const dateObj = new Date(dateStr + 'T12:00:00');
     
-    document.getElementById('tab-solunar').innerText = solunarTranslations[localStorage.getItem('appLang') || 'id'];
+    const tabSolunar = document.getElementById('tab-solunar');
+    if (tabSolunar) {
+        const lang = localStorage.getItem('appLang') || 'id';
+        tabSolunar.innerHTML = `<i data-lucide="moon-star" class="w-3 h-3"></i> ${solunarTranslations[lang]}`;
+    }
 
-    document.getElementById('detail-title').innerText = days[dateObj.getDay()];
-    document.getElementById('detail-date').innerText = dateStr;
+    const detailTitle = document.getElementById('detail-title');
+    if (detailTitle) detailTitle.innerText = days[dateObj.getDay()];
+    
+    const detailDate = document.getElementById('detail-date');
+    if (detailDate) detailDate.innerText = dateStr;
     
     // Call the new grid renderer
     renderDailyDetailsGrid(dayIndex);
