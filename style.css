@@ -123,7 +123,7 @@ input, button { touch-action: manipulation; }
 .nav-bar-safe { padding-bottom: calc(1.25rem + env(safe-area-inset-bottom)); } /* pb-5 + safe area */
 .modal-safe { padding-bottom: env(safe-area-inset-bottom); }
 .view-section {
-    padding-bottom: 95px !important; /* Space for floating nav bar */
+    padding-bottom: 60px !important; /* Agar konten berhenti pas di atas tombol */
     height: 100dvh;
 }
 /* Pastikan tombol tidak terpotong saat mepet bawah */
