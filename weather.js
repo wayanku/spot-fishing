@@ -411,6 +411,22 @@ window.addEventListener('resize', () => {
     resizeTimeout = setTimeout(resizeCanvas, 200);
 });
 
+// --- OPTIMIZATION: Battery Saver (Visibility Change) ---
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        // Stop animation loop immediately to save battery
+        if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId);
+            animationFrameId = null;
+        }
+    } else {
+        // Resume animation if weather effect is supposed to be running
+        if (currentWxType && !animationFrameId) {
+            animate();
+        }
+    }
+});
+
 class RainDrop {
     constructor() {
         this.reset(true);
@@ -740,16 +756,16 @@ function drawSkyBackground() {
         // Definisi Keyframe Warna Langit (Jam -> Warna Top, Warna Bot)
         // Menggunakan Hitam Pekat (True Dark) untuk malam
         skyKeys = [
-            { h: 0,               top: "#000000", bot: "#0a0a0a" },   // Midnight: Black -> Neutral-950
-            { h: sunriseHour - 2, top: "#000000", bot: "#171717" },   // Pre-Dawn
-            { h: sunriseHour - 1, top: "#0a0a0a", bot: "#1e3a8a" },   // Dawn
-            { h: sunriseHour,     top: "#1e40af", bot: "#f97316" },   // Sunrise Moment
-            { h: sunriseHour + 2, top: "#3b82f6", bot: "#bae6fd" },   // Morning
-            { h: 12,              top: "#0ea5e9", bot: "#cffafe" },   // Noon
-            { h: sunsetHour - 2,  top: "#2563eb", bot: "#fdba74" },   // Late Afternoon
-            { h: sunsetHour,      top: "#1e3a8a", bot: "#f59e0b" },   // Sunset Moment: Blue-900 -> Amber-500 (Softer Orange)
-            { h: sunsetHour + 1,  top: "#172554", bot: "#0a0a0a" },   // Dusk: Deep Dark Blue -> Neutral-950
-            { h: 24,              top: "#000000", bot: "#0a0a0a" }    // Loop back to Midnight
+            { h: 0,               top: "#000000", bot: "#0a0a0a" },    // Midnight: Black -> Neutral-950
+            { h: sunriseHour - 2, top: "#000000", bot: "#171717" },    // Pre-Dawn
+            { h: sunriseHour - 1, top: "#0a0a0a", bot: "#1e3a8a" },    // Dawn
+            { h: sunriseHour,     top: "#4f46e5", bot: "#f59e0b" },    // Sunrise Moment: Indigo -> Amber (Lebih dramatis)
+            { h: sunriseHour + 2, top: "#3b82f6", bot: "#bae6fd" },    // Morning
+            { h: 12,              top: "#0ea5e9", bot: "#cffafe" },    // Noon
+            { h: sunsetHour - 2,  top: "#2563eb", bot: "#fdba74" },    // Late Afternoon
+            { h: sunsetHour,      top: "#4f46e5", bot: "#f97316" },    // Sunset Moment: Indigo -> Orange-Red (Lebih dramatis)
+            { h: sunsetHour + 1,  top: "#172554", bot: "#0a0a0a" },    // Dusk: Deep Dark Blue -> Neutral-950
+            { h: 24,              top: "#000000", bot: "#0a0a0a" }     // Loop back to Midnight
         ];
 
     } else {
@@ -1021,12 +1037,12 @@ function drawCelestialBodies() {
             const grdRainbow = ctx.createRadialGradient(0, 0, rBase * 0.8, 0, 0, rBase * 1.6);
             
             // Urutan warna pelangi (Dalam: Biru -> Luar: Merah)
-            grdRainbow.addColorStop(0, "rgba(255, 255, 255, 0)");
-            grdRainbow.addColorStop(0.3, "rgba(100, 150, 255, 0.15)"); // Biru
-            grdRainbow.addColorStop(0.5, "rgba(100, 255, 100, 0.15)"); // Hijau
-            grdRainbow.addColorStop(0.7, "rgba(255, 200, 50, 0.15)");  // Kuning
-            grdRainbow.addColorStop(0.9, "rgba(255, 100, 100, 0.15)"); // Merah
-            grdRainbow.addColorStop(1, "rgba(255, 255, 255, 0)");
+            grdRainbow.addColorStop(0, "rgba(255, 255, 255, 0)"); // Transparan di tengah
+            grdRainbow.addColorStop(0.3, "rgba(100, 150, 255, 0.25)"); // Biru (lebih terlihat)
+            grdRainbow.addColorStop(0.5, "rgba(100, 255, 100, 0.25)"); // Hijau (lebih terlihat)
+            grdRainbow.addColorStop(0.7, "rgba(255, 200, 50, 0.25)");  // Kuning (lebih terlihat)
+            grdRainbow.addColorStop(0.9, "rgba(255, 100, 100, 0.25)"); // Merah (lebih terlihat)
+            grdRainbow.addColorStop(1, "rgba(255, 255, 255, 0)"); // Transparan di luar
 
             ctx.fillStyle = grdRainbow;
             
@@ -1105,7 +1121,7 @@ function drawCelestialBodies() {
         ctx.globalAlpha = moonOpacity; // Terapkan transparansi
 
         const radius = 25;
-
+        
         // 1. Moon Glow (Atmosphere) - Lebih natural
         const grd = ctx.createRadialGradient(moonX, moonY, radius, moonX, moonY, radius * 5);
         grd.addColorStop(0, "rgba(255, 255, 255, 0.2)");
@@ -1121,7 +1137,7 @@ function drawCelestialBodies() {
         // 3. Draw Lit Part (Phase) - Putih Terang
         ctx.fillStyle = "#f8fafc"; 
         ctx.shadowColor = "rgba(255, 255, 255, 0.9)";
-        ctx.shadowBlur = 15; // Glow pada bagian yang terang
+        ctx.shadowBlur = 20; // Glow pada bagian yang terang (lebih kuat)
 
         ctx.beginPath();
         
@@ -1214,6 +1230,15 @@ function renderStaticLandscape() {
     if (landscapeTreePath) {
         landscapeCtx.fillStyle = lerpColor(frontColor, '#000000', 0.6);
         landscapeCtx.fill(landscapeTreePath);
+    }
+
+    // 4. Tambahkan efek kabut tipis di dasar gunung untuk perspektif atmosferik
+    if (h > 0) { // Pastikan canvas sudah punya tinggi
+        const mistGrad = landscapeCtx.createLinearGradient(0, h * 0.6, 0, h);
+        mistGrad.addColorStop(0, 'rgba(255, 255, 255, 0)');
+        mistGrad.addColorStop(1, lerpColor(backColor, '#ffffff', 0.1) + '1a'); // Kabut tipis dengan warna dasar langit
+        landscapeCtx.fillStyle = mistGrad;
+        landscapeCtx.fillRect(0, h * 0.6, w, h * 0.4);
     }
 }
 
@@ -2948,6 +2973,113 @@ let currentChartType = 'temp';
 let currentDayIndex = 0;
 const solunarTranslations = { id: "Aktivitas Ikan", en: "Fish Activity", jp: "魚の活性" };
 
+// --- NEW: iPhone Style Daily Details Grid ---
+function renderDailyDetailsGrid(dayIndex) {
+    const container = document.getElementById('detail-metrics-grid');
+	if (!container || !currentWeatherData) return;
+
+	const daily = currentWeatherData.daily;
+	const hourly = currentWeatherData.hourly;
+    // Use noon as representative for the day, but for current values, use the actual current hour if it's today
+    const isToday = dayIndex === 0;
+    const now = new Date();
+    const hIdx = isToday ? now.getHours() : (dayIndex * 24) + 12;
+    const current = isToday ? currentWeatherData.current_weather : {
+        windspeed: hourly.windspeed_10m[hIdx],
+        winddirection: hourly.winddirection_10m[hIdx],
+        temperature: hourly.temperature_2m[hIdx]
+    };
+
+	// 1. UV Index
+	const uv = daily.uv_index_max ? daily.uv_index_max[dayIndex] : 0;
+	const uvLevel = uv < 3 ? "Rendah" : (uv < 6 ? "Sedang" : (uv < 8 ? "Tinggi" : (uv < 11 ? "Sangat Tinggi" : "Ekstrem")));
+	const uvPct = Math.min((uv / 11) * 100, 100);
+
+	// 2. Sunset/Sunrise with Arc Visualization
+	const sunriseDate = new Date(daily.sunrise[dayIndex]);
+	const sunsetDate = new Date(daily.sunset[dayIndex]);
+	const tomorrowSunriseDate = new Date(daily.sunrise[dayIndex + 1] || daily.sunrise[dayIndex]);
+	
+	let sunProgress = 0;
+	let isSunUp = isToday ? (now > sunriseDate && now < sunsetDate) : false; // Only show live progress for today
+	let sunLabel, sunTime, subText;
+
+	if (isSunUp) {
+		sunLabel = "Matahari Terbenam";
+		sunTime = sunsetDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+		subText = `Terbit pada ${sunriseDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+		sunProgress = (now.getTime() - sunriseDate.getTime()) / (sunsetDate.getTime() - sunriseDate.getTime());
+	} else {
+        sunLabel = "Matahari Terbit";
+        sunTime = sunriseDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        subText = `Terbenam pada ${sunsetDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+        sunProgress = (now > sunsetDate) ? 1 : 0;
+	}
+	sunProgress = Math.max(0, Math.min(1, sunProgress));
+	const angle = 180 - (sunProgress * 180);
+	const rad = angle * (Math.PI / 180);
+	const sunX = 50 - 45 * Math.cos(rad);
+	const sunY = 50 - 45 * Math.sin(rad);
+	const sunArcSvg = `<div class="relative w-full h-24 -mb-4 mt-2"><svg viewBox="0 0 100 55" class="w-full h-full overflow-visible"><path d="M 5 50 A 45 45 0 0 1 95 50" stroke="rgba(255,255,255,0.2)" stroke-width="2" fill="none" stroke-dasharray="2,3"></path>${isSunUp ? `<circle cx="${sunX}" cy="${sunY}" r="4" fill="#facc15" stroke="white" stroke-width="1.5" />` : ''}<text x="5" y="55" font-size="8" fill="rgba(255,255,255,0.7)">${sunriseDate.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</text><text x="95" y="55" font-size="8" fill="rgba(255,255,255,0.7)" text-anchor="end">${sunsetDate.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</text></svg></div>`;
+	const sunIcon = isSunUp ? "sunset" : "sunrise";
+
+	// 3. Wind
+	const windSpeed = current.windspeed;
+	const windDir = current.winddirection;
+
+	// 4. Feels Like
+	const feelsLike = hourly.apparent_temperature[hIdx];
+	const diff = feelsLike - hourly.temperature_2m[hIdx];
+	let feelDesc = "Sama dengan suhu asli.";
+	if (diff <= -2) feelDesc = "Terasa lebih dingin karena angin.";
+	if (diff >= 2) feelDesc = "Terasa lebih panas karena lembab.";
+
+	// 5. Precipitation
+	const precip = daily.precipitation_sum[dayIndex];
+
+	// 6. Visibility
+	const vis = hourly.visibility[hIdx] / 1000; // km
+	let visDesc = "Pandangan sangat jelas.";
+	if (vis < 1) visDesc = "Kabut tebal.";
+	else if (vis < 5) visDesc = "Ada sedikit kabut.";
+
+	// 7. Humidity with Gauge
+	const hum = hourly.relativehumidity_2m[hIdx];
+	const dew = hourly.dewpoint_2m[hIdx];
+	const humidityGauge = `<div class="w-full h-1 bg-gradient-to-r from-slate-600 to-blue-300 rounded-full mt-4 relative"><div class="absolute top-1/2 -translate-y-1/2 w-2 h-2 bg-white rounded-full border border-black/50" style="left: calc(${hum}% - 4px);"></div></div>`;
+
+	// 8. Pressure with Gauge
+	const press = hourly.surface_pressure[hIdx];
+	const prevPress = hourly.surface_pressure[hIdx - 3] || press;
+	let pressureTrend = "Stabil";
+	if (press > prevPress + 0.5) pressureTrend = "Naik";
+	if (press < prevPress - 0.5) pressureTrend = "Turun";
+	const minP = 950, maxP = 1050;
+	const pressureProgress = Math.max(0, Math.min(1, (press - minP) / (maxP - minP)));
+	const pressureAngle = -120 + (pressureProgress * 240);
+	const pressureGauge = `<div class="relative w-full h-24 -mb-4 mt-2 flex items-center justify-center"><svg viewBox="0 0 100 60" class="w-full h-full overflow-visible"><defs><linearGradient id="pressureGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#3b82f6" /><stop offset="50%" stop-color="#22c55e" /><stop offset="100%" stop-color="#ef4444" /></linearGradient></defs><path d="M 10 50 A 40 40 0 0 1 90 50" stroke="url(#pressureGrad)" stroke-width="5" fill="none" stroke-linecap="round"></path><g transform="translate(50 50) rotate(${pressureAngle})"><path d="M 0 -35 L -2 -42 L 2 -42 Z" fill="white" /></g><text x="10" y="55" font-size="8" fill="rgba(255,255,255,0.7)">L</text><text x="90" y="55" font-size="8" fill="rgba(255,255,255,0.7)" text-anchor="end">H</text></svg></div>`;
+
+	// Helper for Tile
+	const createTile = (icon, title, value, sub, extraHtml = '', isFullWidth = false) => {
+		const colSpan = isFullWidth ? 'col-span-2' : '';
+		const heightClass = isFullWidth ? 'h-48' : 'h-36';
+		return `<div class="bg-neutral-900/50 backdrop-blur-xl rounded-xl border border-white/10 p-3 flex flex-col justify-between ${heightClass} shadow-lg hover:bg-neutral-800/60 transition-colors ${colSpan}"><div class="flex items-center gap-1 text-slate-400 text-[10px] font-bold uppercase tracking-wider"><i data-lucide="${icon}" class="w-3 h-3"></i> ${title}</div><div><div class="text-2xl font-bold text-white">${value}</div><div class="text-[10px] text-slate-300 font-medium leading-tight mt-1 line-clamp-2">${sub}</div></div>${extraHtml}</div>`;
+	};
+
+	container.innerHTML = `
+        ${createTile('sun', 'UV Index', uv, uvLevel, `<div class="w-full h-1 bg-slate-700 rounded-full mt-2 overflow-hidden"><div class="h-full bg-gradient-to-r from-green-500 via-yellow-500 to-red-500" style="width: ${uvPct}%"></div></div>`)}
+        ${createTile('thermometer', 'Terasa Seperti', `${feelsLike}°`, feelDesc)}
+        ${createTile(sunIcon, sunLabel, sunTime, subText, sunArcSvg, true)}
+        ${createTile('wind', 'Angin', `${windSpeed} <span class="text-sm">km/h</span>`, `Hembusan ${hourly.windgusts_10m[hIdx]} km/h`, `<div class="flex items-center gap-2 mt-1"><div class="w-8 h-8 rounded-full border border-slate-500 flex items-center justify-center bg-white/5"><i data-lucide="arrow-up" class="w-4 h-4 text-white" style="transform: rotate(${windDir}deg)"></i></div><span class="text-[10px] text-slate-400 font-bold">${getCardinalDirection(windDir)}</span></div>`)}
+        ${createTile('droplets', 'Curah Hujan', `${precip} mm`, `Dalam 24 jam. ${daily.precipitation_probability_max[dayIndex]}% kemungkinan.`, '')}
+        ${createTile('droplet', 'Kelembaban', `${hum}%`, `Titik Embun saat ini ${dew}°`, humidityGauge)}
+        ${createTile('eye', 'Jarak Pandang', `${vis} km`, visDesc)}
+        ${createTile('gauge', 'Tekanan', `${Math.round(press)} hPa`, `Tren: ${pressureTrend}`, pressureGauge, true)}
+    `;
+
+	lucide.createIcons({ root: container });
+}
+
 function openDetailModal(dayIndex) {
     // closeLocationPanel(); // JANGAN tutup panel utama agar bisa kembali
     
@@ -2964,115 +3096,8 @@ function openDetailModal(dayIndex) {
     document.getElementById('detail-title').innerText = days[dateObj.getDay()];
     document.getElementById('detail-date').innerText = dateStr;
     
-    // Update Advanced Details (Ambil data jam 12 siang sebagai representasi)
-    const noonIdx = (dayIndex * 24) + 12;
-    const humidity = currentWeatherData.hourly.relativehumidity_2m[noonIdx] || '-';
-    const pressure = currentWeatherData.hourly.surface_pressure[noonIdx] || '-';
-    const uv = currentWeatherData.daily.uv_index_max[dayIndex] || '-';
-    
-    document.getElementById('det-humidity').innerText = `${humidity}%`;
-    document.getElementById('det-pressure').innerText = `${pressure} hPa`;
-    document.getElementById('det-uv').innerText = uv;
-    
-    // --- NEW: Extra Weather Details ---
-    const feelsLike = currentWeatherData.hourly.apparent_temperature ? Math.round(currentWeatherData.hourly.apparent_temperature[noonIdx]) : '-';
-    const dewPoint = currentWeatherData.hourly.dewpoint_2m ? Math.round(currentWeatherData.hourly.dewpoint_2m[noonIdx]) : '-';
-    const cloudCover = currentWeatherData.hourly.cloudcover ? currentWeatherData.hourly.cloudcover[noonIdx] : '-';
-    const windGust = currentWeatherData.hourly.windgusts_10m ? currentWeatherData.hourly.windgusts_10m[noonIdx] : '-';
-    const visibility = currentWeatherData.hourly.visibility ? (currentWeatherData.hourly.visibility[noonIdx] / 1000).toFixed(1) : '-';
-    
-    // --- NEW: Pressure Trend Calculation (3 Jam Terakhir) ---
-    // Ikan sensitif terhadap perubahan tekanan. Turun = Buruk, Naik/Stabil = Bagus.
-    const currentP = currentWeatherData.hourly.surface_pressure[noonIdx] || 0;
-    const prevP = currentWeatherData.hourly.surface_pressure[noonIdx - 3] || currentP;
-    let pTrend = "Stabil";
-    if (currentP > prevP + 1) pTrend = "Naik";
-    else if (currentP < prevP - 1) pTrend = "Turun";
-
-    const extraDetailsHtml = `
-        <div class="grid grid-cols-3 gap-2 mb-4 mt-2">
-            <div class="bg-neutral-800/50 p-2 rounded-xl border border-white/5 text-center">
-                <p class="text-[9px] text-slate-400 uppercase font-bold">Terasa Spt</p>
-                <p class="text-sm font-bold text-white">${feelsLike}°</p>
-            </div>
-            <div class="bg-neutral-800/50 p-2 rounded-xl border border-white/5 text-center">
-                <p class="text-[9px] text-slate-400 uppercase font-bold">Awan</p>
-                <p class="text-sm font-bold text-white">${cloudCover}<span class="text-[9px]">%</span></p>
-            </div>
-            <div class="bg-neutral-800/50 p-2 rounded-xl border border-white/5 text-center">
-                <p class="text-[9px] text-slate-400 uppercase font-bold">Gust Angin</p>
-                <p class="text-sm font-bold text-white">${windGust} <span class="text-[9px]">km/h</span></p>
-            </div>
-            <div class="bg-neutral-800/50 p-2 rounded-xl border border-white/5 text-center">
-                <p class="text-[9px] text-slate-400 uppercase font-bold">Titik Embun</p>
-                <p class="text-sm font-bold text-white">${dewPoint}°</p>
-            </div>
-            <div class="bg-neutral-800/50 p-2 rounded-xl border border-white/5 text-center">
-                <p class="text-[9px] text-slate-400 uppercase font-bold">Visibilitas</p>
-                <p class="text-sm font-bold text-white">${visibility} <span class="text-[9px]">km</span></p>
-            </div>
-            <div class="bg-neutral-800/50 p-2 rounded-xl border border-white/5 text-center">
-                <p class="text-[9px] text-slate-400 uppercase font-bold">Tren Barometer</p>
-                <p class="text-sm font-bold ${pTrend === 'Turun' ? 'text-red-400' : 'text-emerald-400'}">${pTrend}</p>
-            </div>
-        </div>
-    `;
-
-    // Render Summary Text
-    const dailyCode = currentWeatherData.daily.weathercode[dayIndex];
-    const isSnow = [71, 73, 75, 77, 85, 86].includes(dailyCode);
-    const rainSum = currentWeatherData.daily.precipitation_sum ? currentWeatherData.daily.precipitation_sum[dayIndex] : 0;
-    
-    let summary = extraDetailsHtml + `<div class="flex items-center gap-2"><i data-lucide="info" class="text-blue-400 w-4 h-4"></i> <p>Total presipitasi: ${rainSum}mm. `;
-    if (isSnow) {
-        summary += "Turun salju, siapkan pakaian hangat.";
-    } else {
-        if(rainSum > 5) summary += "Siapkan jas hujan.";
-        else summary += "Cuaca relatif kering.";
-    }
-    summary += "</p></div>";
-    
-    // --- NEW: Astro Visualization (Sun Position) ---
-    const nowTime = new Date().getTime();
-    let sunPct = -1; // Default hidden
-    
-    if (currentWeatherData.daily.sunrise && currentWeatherData.daily.sunset) {
-        const riseTime = new Date(currentWeatherData.daily.sunrise[dayIndex]).getTime();
-        const setTime = new Date(currentWeatherData.daily.sunset[dayIndex]).getTime();
-    
-    // Only show for Today
-    if (new Date().toDateString() === dateObj.toDateString()) {
-        if(nowTime > riseTime && nowTime < setTime) sunPct = (nowTime - riseTime) / (setTime - riseTime);
-        else if (nowTime >= setTime) sunPct = 1;
-        else sunPct = 0;
-    }
-    
-    if(sunPct >= 0) {
-        // MODIFIED: Batasi rotasi agar tidak terlalu ke bawah (-70 s/d 70 derajat)
-        const maxRot = 70; 
-        const sunRotate = (sunPct * (maxRot * 2)) - maxRot;
-
-        summary += `
-            <div class="relative h-28 w-full overflow-hidden mt-4 mb-2 bg-neutral-800/30 rounded-xl border border-white/5 pt-4">
-                <p class="absolute top-2 left-0 w-full text-center text-[10px] text-slate-400 uppercase font-bold tracking-widest">Posisi Matahari</p>
-                <div class="absolute -bottom-4 left-1/2 -translate-x-1/2 w-56 h-28 border-t-2 border-dashed border-yellow-500/20 rounded-t-full"></div>
-                <div class="absolute -bottom-4 left-1/2 -translate-x-1/2 w-56 h-28">
-                    <div class="w-full h-full origin-bottom transition-transform duration-1000" style="transform: rotate(${sunRotate}deg)">
-                        <div class="absolute -top-3 left-1/2 -translate-x-1/2 w-7 h-7 bg-yellow-400 rounded-full shadow-[0_0_30px_rgba(250,204,21,0.8)] flex items-center justify-center border-2 border-white/20">
-                            <div class="w-2 h-2 bg-white rounded-full opacity-80"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="absolute bottom-2 w-full flex justify-between px-4 text-[10px] font-bold text-slate-400">
-                    <span class="bg-black/50 px-2 py-0.5 rounded text-yellow-500/80">${currentWeatherData.daily.sunrise[dayIndex].split('T')[1]}</span>
-                    <span class="bg-black/50 px-2 py-0.5 rounded text-orange-500/80">${currentWeatherData.daily.sunset[dayIndex].split('T')[1]}</span>
-                </div>
-            </div>
-        `;
-    }
-    }
-
-    document.getElementById('rain-summary').innerHTML = summary;
+    // Call the new grid renderer
+    renderDailyDetailsGrid(dayIndex);
 
     // --- NEW: Calculate Solunar Data ---
     const lat = currentWeatherData.latitude;
@@ -3085,6 +3110,7 @@ function openDetailModal(dayIndex) {
     
     if (typeof SunCalc !== 'undefined') {
         sunTimes = SunCalc.getTimes(dateObj, lat, lng);
+        if (!sunTimes.sunrise) sunTimes = SunCalc.getTimes(new Date(), lat, lng); // Fallback
         moonTimes = SunCalc.getMoonTimes(dateObj, lat, lng);
         
         // Find moon transit (peak) and nadir (low)
@@ -3116,6 +3142,7 @@ function openDetailModal(dayIndex) {
         let warningsHtml = '';
         let recommendationsHtml = '';
         let aiWarnings = [];
+        const noonIdx = (dayIndex * 24) + 12;
         
         // 1. Analisa Bahaya (Warnings)
         const dCode = currentWeatherData.daily.weathercode[dayIndex];
