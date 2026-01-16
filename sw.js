@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fishing-spot-v31-static'; // Cache Statis (Inti App)
+const CACHE_NAME = 'fishing-spot-v3111-static'; // Cache Statis (Inti App)
 const DYNAMIC_CACHE = 'fishing-spot-dynamic-v1'; // Cache Dinamis (Peta/API)
 const ASSETS = [
     './',
