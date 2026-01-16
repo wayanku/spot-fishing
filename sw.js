@@ -1,4 +1,5 @@
-const CACHE_NAME = 'fishing-spot-v311-perfect'; // Naikkan versi
+const CACHE_NAME = 'fishing-spot-v31-static'; // Cache Statis (Inti App)
+const DYNAMIC_CACHE = 'fishing-spot-dynamic-v1'; // Cache Dinamis (Peta/API)
 const ASSETS = [
     './',
     './index.html',
@@ -6,10 +7,30 @@ const ASSETS = [
     './script.js',
     './weather.js',
     './manifest.json',
+    // --- External Libraries (CDN) ---
+    'https://cdn.tailwindcss.com',
+    'https://unpkg.com/lucide@latest',
+    'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
+    'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.8.0/suncalc.min.js',
+    'https://fonts.googleapis.com/css2?family=Shrikhand&display=swap',
+    'https://cdn.jsdelivr.net/npm/exif-js',
     // --- NEW: Pre-cache Audio Assets (Penting untuk Offline) ---
     'https://raw.githubusercontent.com/wayanku/fishing/main/real-rain-sound-379215%20(2).mp3',
     'https://raw.githubusercontent.com/wayanku/fishing/main/loud-thunder-192165.mp3'
 ];
+
+// --- HELPER: Limit Cache Size ---
+async function trimCache(cacheName, maxItems) {
+    const cache = await caches.open(cacheName);
+    const keys = await cache.keys();
+    if (keys.length > maxItems) {
+        // Hapus item terlama (urutan awal array)
+        await cache.delete(keys[0]);
+        trimCache(cacheName, maxItems); // Rekursif sampai jumlah sesuai
+    }
+}
 
 // 1. Install Service Worker & Cache File Inti
 self.addEventListener('install', (event) => {
@@ -18,7 +39,13 @@ self.addEventListener('install', (event) => {
         caches.open(CACHE_NAME).then((cache) => {
             // FIX: Gunakan { cache: 'reload' } untuk memaksa browser mengambil file terbaru dari server
             // saat versi CACHE_NAME berubah, bukan mengambil dari disk cache browser yang lama.
-            const newAssets = ASSETS.map(url => new Request(url, { cache: 'reload' }));
+            const newAssets = ASSETS.map(url => {
+                // Gunakan no-cors untuk aset eksternal (CDN) agar tidak kena blokir CORS
+                if (url.includes('http')) {
+                    return new Request(url, { mode: 'no-cors', cache: 'reload' });
+                }
+                return new Request(url, { cache: 'reload' });
+            });
             return cache.addAll(newAssets);
         })
     );
@@ -30,7 +57,7 @@ self.addEventListener('activate', (event) => {
         caches.keys().then((keys) => {
             return Promise.all(
                 keys.map((key) => {
-                    if (key !== CACHE_NAME) return caches.delete(key);
+                    if (key !== CACHE_NAME && key !== DYNAMIC_CACHE) return caches.delete(key);
                 })
             );
         })
@@ -55,9 +82,34 @@ self.addEventListener('fetch', (event) => {
 
     const url = new URL(event.request.url);
 
-    // --- FIX: AUDIO & API BYPASS ---
-    if (url.hostname.includes('rainviewer.com') ||
-        url.hostname.includes('script.google.com') ||
+    // --- STRATEGY: Network First, Fallback to Cache (Weather & Location APIs) ---
+    // Agar user bisa melihat data terakhir saat offline, tapi tetap dapat data baru saat online.
+    if (url.hostname.includes('open-meteo.com') || 
+        url.hostname.includes('rainviewer.com') ||
+        url.hostname.includes('ipapi.co') ||
+        url.hostname.includes('nominatim.openstreetmap.org')) {
+        
+        event.respondWith(
+            fetch(event.request).then(response => {
+                // Update cache dengan data terbaru jika berhasil
+                if (response && response.status === 200) {
+                    const responseToCache = response.clone();
+                    caches.open(DYNAMIC_CACHE).then(cache => {
+                        cache.put(event.request, responseToCache);
+                        trimCache(DYNAMIC_CACHE, 50); // Batasi max 50 item
+                    });
+                }
+                return response;
+            }).catch(() => {
+                // Jika offline/gagal, coba ambil dari cache
+                return caches.match(event.request);
+            })
+        );
+        return;
+    }
+
+    // --- FIX: AUDIO & API BYPASS (No Cache) ---
+    if (url.hostname.includes('script.google.com') ||
         url.hostname.includes('upload.wikimedia.org')) { // FIX: Bypass Audio Wiki
         return;
     }
@@ -89,8 +141,9 @@ self.addEventListener('fetch', (event) => {
 
                 if (shouldCache) {
                     const responseToCache = response.clone();
-                    caches.open(CACHE_NAME).then((cache) => {
+                    caches.open(DYNAMIC_CACHE).then(cache => {
                         cache.put(event.request, responseToCache);
+                        trimCache(DYNAMIC_CACHE, 50); // Batasi max 50 item
                     });
                 }
                 
