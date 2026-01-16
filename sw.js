@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fishing-spot-v31-perfect'; // Naikkan versi
+const CACHE_NAME = 'fishing-spot-v311-perfect'; // Naikkan versi
 const ASSETS = [
     './',
     './index.html',
