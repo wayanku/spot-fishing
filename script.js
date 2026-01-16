@@ -2399,17 +2399,17 @@
                     }
                     // Now, re-apply it
                         toggle.checked = true;
-                    toggleLayer(type);
+                    toggleLayer(type, true); // FIX: Silent mode on init
                     }
                 });
             } catch(e) { console.log("Error restoring layers", e); }
         }
 
-        async function toggleLayer(type) {
+        async function toggleLayer(type, silent = false) {
             const toggle = document.getElementById(`toggle-${type}`);
             if(!toggle) return;
             
-            triggerHaptic(5); // Feedback toggle
+            if(!silent) triggerHaptic(5); // FIX: Only vibrate if user interaction
             const isChecked = toggle.checked;
             updateLayerStorage(); // Simpan status terbaru setiap kali di-klik
 
@@ -3691,7 +3691,7 @@
                         }
                     }
                 });
-            }, { rootMargin: "1500px 0px 1500px 0px" }); // Buffer 2-3 layar
+            }, { rootMargin: "400px 0px 400px 0px" }); // Buffer lebih agresif (Virtualization)
 
             // Observe existing reels (jika ada yang dibuat sebelum init)
             container.querySelectorAll('.cv-reel').forEach(el => {
