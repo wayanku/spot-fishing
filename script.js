@@ -3553,9 +3553,9 @@
 
                 // --- FIX: Refresh Data Home saat Navigasi ---
                 if(pageId === 'home') {
-                    // Selalu refresh feed saat masuk ke Home (Sesuai permintaan: Selalu Terbaru)
-                    if(typeof loadHomeFeed === 'function') loadHomeFeed();
-                    if(typeof loadHomeWidgetData === 'function') loadHomeWidgetData();
+                    // MODIFIED: Disable auto-refresh agar aplikasi ringan (Silent Update)
+                    // if(typeof loadHomeFeed === 'function') loadHomeFeed();
+                    // if(typeof loadHomeWidgetData === 'function') loadHomeWidgetData();
                 }
                 
                 // Highlight tombol nav
