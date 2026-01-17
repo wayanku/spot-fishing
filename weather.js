@@ -318,15 +318,18 @@ const weatherAudio = {
         
         console.log("Attempting to unlock audio context...");
         
-        // FIX: Pastikan volume 0 saat unlock agar tidak ada suara bocor/glitch
+        // FIX: Gunakan audio hujan asli tapi di-MUTE agar tidak ada suara bocor (glitch)
+        // Menggunakan file silent terpisah ternyata membuat audio hujan asli tetap terblokir di beberapa browser
+        this.rain.muted = true;
         this.rain.volume = 0;
 
-        // Trik untuk "membuka kunci" audio di browser mobile
         const promise = this.rain.play();
+
         if (promise !== undefined) {
             promise.then(_ => {
                 this.rain.pause();
-                this.rain.currentTime = 0; // Rewind after test play
+                this.rain.currentTime = 0; 
+                this.rain.muted = false; // Unmute agar siap dimainkan nanti
                 console.log("Audio context unlocked by user interaction.");
                 this.isReady = true;
                 isAudioUnlocked = true; // Set flag global
@@ -342,6 +345,7 @@ const weatherAudio = {
 
     playRain: function(volume = 0.5) {
         if (this.isReady && this.rain.paused) {
+            this.rain.muted = false; // Pastikan tidak mute saat mau main
             this.rain.currentTime = 0;
             this.rain.volume = 0;
             this.rain.play().catch(e => console.error("Rain audio play failed:", e));
